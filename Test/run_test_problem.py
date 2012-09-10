@@ -22,7 +22,7 @@ def main():
     V1[40, 1] -= 5.
 
     X = np.zeros_like(V)
-    test_problem(V, T, X, V1, maxIterations=10, woops=10)
+    test_problem(V, T, X, V1, maxIterations=10)
 
     view(V1, T)
 
