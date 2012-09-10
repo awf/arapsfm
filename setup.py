@@ -59,9 +59,9 @@ include_dirs = [NUMPY_INC, '.', 'shared/']
 setup(
     ext_modules=[
         Extension('test_mesh',
-                  ['test_mesh.pyx'],
+                  ['Test/test_mesh.pyx'],
                   include_dirs=include_dirs + [SSLM_ROOT],
-                  define_macros= REMOVE_EXCEPTION_MACROS,
+                  define_macros=REMOVE_EXCEPTION_MACROS,
                   language='c++'),
         ],
 

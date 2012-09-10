@@ -4,8 +4,8 @@
 #include <Math/v3d_linear.h>
 using namespace V3D;
 
-#include "pyarray_conversion.h"
-#include "mesh.h"
+#include "Util/pyarray_conversion.h"
+#include "Geometry/mesh.h"
 
 #include <iostream>
 using namespace std;

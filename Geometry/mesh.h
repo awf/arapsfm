@@ -10,7 +10,7 @@ using namespace V3D;
 using namespace std;
 
 #include <cmath>
-#include "static_linear.h"
+#include "Math/static_linear.h"
 
 // Mesh
 class Mesh
