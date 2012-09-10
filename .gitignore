@@ -1,3 +1,4 @@
 *.swp
 *.pyd
 *.pyc
+build/
