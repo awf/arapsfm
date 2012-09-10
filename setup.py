@@ -68,6 +68,8 @@ setup(
         Extension('Test.test_problem',
                   ['Test/test_problem.pyx'],
                   include_dirs=include_dirs + [SSLM_ROOT],
+                  # library_dirs=[COLAMD_LIB],
+                  # libraries=['colamd'],
                   define_macros=REMOVE_EXCEPTION_MACROS,
                   language='c++'),
         ],

@@ -4,7 +4,10 @@
 #include "Math/v3d_linear.h"
 using namespace V3D;
 
-#include "static_linear.h"
+#include "Math/static_linear.h"
+#include "Energy/energy.h"
+#include "Geometry/mesh.h"
+#include "Geometry/quaternion.h"
 
 // arapResiduals_Unsafe
 inline void arapResiduals_Unsafe(const double * Vi, const double * Vj,
@@ -141,7 +144,7 @@ inline void arapJac_V_Unsafe(bool isVi, const double & w, const double * q, doub
 }
 
 // DualARAPEnergy
-class DualARAPEnergy : public EnergyFactor
+class DualARAPEnergy : public Energy
 {
 public:
     DualARAPEnergy(const VertexNode & V,  const RotationNode & X, const VertexNode & V1,
@@ -152,11 +155,11 @@ public:
     virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions) const
     {
         vector<int> * pUsedParamTypes = new vector<int>;
-        pUsedParamTypes->push_back(_V.GetId());
-        pUsedParamTypes->push_back(_V1.GetId());
-        pUsedParamTypes->push_back(_X.GetId());
+        pUsedParamTypes->push_back(_V.GetParamId());
+        pUsedParamTypes->push_back(_V1.GetParamId());
+        pUsedParamTypes->push_back(_X.GetParamId());
 
-        costFunctions.push_back(new EnergyFactor_CostFunction(*this, pUsedParamTypes));
+        costFunctions.push_back(new Energy_CostFunction(*this, pUsedParamTypes));
     }
 
     virtual int GetCorrespondingParam(const int k, const int i) const
@@ -182,12 +185,14 @@ public:
     virtual void EvaluateResidual(const int k, Vector<double> & e) const
     {
         int i = _mesh.GetHalfEdge(k, 0), j = _mesh.GetHalfEdge(k, 1);
-        const double & edgeWeight = _mesh.GetHalfEdgeWeight(k);
+        const double & edgeWeight = _mesh.GetCotanWeight(_V.GetVertices(), k);
 
         double q[4];
-        quat_Unsafe(X.GetRotation(i), q);
+        quat_Unsafe(_X.GetRotation(i), q);
 
-        /* TODO */
+        arapResiduals_Unsafe(_V.GetVertex(i), _V.GetVertex(j),
+                             _V1.GetVertex(i), _V1.GetVertex(j),
+                             _w, q, &e[0]);
     }
 
     virtual void EvaluateJacobian(const int k, const int whichParam, Vector<double> & J) const
@@ -203,3 +208,5 @@ protected:
     const Mesh & _mesh;
     const double _w;
 };
+
+#endif

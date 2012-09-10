@@ -6,6 +6,8 @@ using namespace V3D;
 
 #include "Solve/problem.h"
 #include "Solve/node.h"
+// #include "Energy/arap.h"
+#include "Solve/optimiser.h"
 
 // test_problem
 void test_problem()

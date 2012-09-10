@@ -3,6 +3,9 @@
 
 #include "Math/v3d_nonlinlsq.h"
 
+#include <vector>
+using namespace std;
+
 // Energy
 class Energy
 {
@@ -13,26 +16,27 @@ public:
     virtual int GetNumberOfMeasurements() const = 0;
 
     virtual void EvaluateResidual(const int k, Vector<double> & e) const = 0;
-    virtual void EvaluateJacobian(const int k, const int whichParam, Vector<double> & J) const = 0;
+    virtual void EvaluateJacobian(const int k, const int whichParam, Matrix<double> & J) const = 0;
 };
 
-/*
 // Energy_CostFunction
 class Energy_CostFunction : public NLSQ_CostFunction
 {
 public:
-    Energy_CostFunction(const & Energy parentEnergy,
-                     const vector<int> * pUsedParamTypes,
-                     const vector<int> * pResidualMap = nullptr)
-        : _pUsedParamTypes(pUsedParamTypes),
+    Energy_CostFunction(const Energy & parentEnergy,
+                        const vector<int> * pUsedParamTypes,
+                        const vector<int> * pResidualMap = nullptr)
+        : _parentEnergy(parentEnergy),
+          _pUsedParamTypes(pUsedParamTypes),
           _pResidualMap(pResidualMap),
           NLSQ_CostFunction(*pUsedParamTypes, 3, nullptr)
+    {}
                      
     virtual ~Energy_CostFunction()
     {
         delete _pUsedParamTypes;
-        if (pResidualMap != nullptr)
-            delete pResidualMap;
+        if (_pResidualMap != nullptr)
+            delete _pResidualMap;
     }
 
     virtual int correspondingParam(const int k, const int i) const
@@ -59,7 +63,7 @@ public:
     }
 
 protected:
-    int TranslateResidualIndex(const int k)
+    int TranslateResidualIndex(const int k) const
     {
         if (_pResidualMap == nullptr)
             return k;
@@ -72,6 +76,7 @@ protected:
     const vector<int> * _pResidualMap;
 };
 
+/*
 // ARAPEnergy
 class ARAPEnergy : public Energy
 {
