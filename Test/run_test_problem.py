@@ -9,6 +9,7 @@ def load_model_1():
     z = np.load('Models/BAR_PROJECTION.npz')
     return z['V'], z['T'], z['C'], z['P']
     
+# view
 def view(V, T, C):
     T_ = faces_to_vtkCellArray(T)
     poly_data = numpy_to_vtkPolyData(V, T_)
