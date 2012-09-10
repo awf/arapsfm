@@ -10,10 +10,12 @@ using namespace V3D;
 #include <iostream>
 using namespace std;
 
-int test_mesh(int numVertices,
+int test_mesh(PyArrayObject * npy_vertices,
               PyArrayObject * npy_triangles)
 {
+    PYARRAY_AS_MATRIX(double, npy_vertices, vertices);
     PYARRAY_AS_MATRIX(int, npy_triangles, triangles);
+    const int numVertices = vertices.num_rows();
 
     Mesh mesh(numVertices, triangles);
 
@@ -21,6 +23,7 @@ int test_mesh(int numVertices,
     cout << "NumberOfHalfEdges: " << mesh.GetNumberOfHalfEdges() << endl;
     cout << "All \"HalfEdge\"'s: " << endl;
 
+    // GetOppositeHalfEdge
     for (int i=0; i < mesh.GetNumberOfHalfEdges(); i++)
     {
         cout << " " << i << ": (" << mesh.GetHalfEdge(i, 0) << "," << mesh.GetHalfEdge(i, 1) << ") <=> ";
@@ -32,6 +35,7 @@ int test_mesh(int numVertices,
             cout << "(" << mesh.GetHalfEdge(j, 0) << "," << mesh.GetHalfEdge(j, 1) << ")" << endl;
     }
 
+    // GetHalfEdgesFromVertex
     cout << "Vertex to \"HalfEdge\"'s: " << endl;
 
     for (int i=0; i < mesh.GetNumberOfVertices(); i++)
@@ -44,6 +48,14 @@ int test_mesh(int numVertices,
             cout << *j << " ";
 
         cout << endl;
+    }
+
+    // GetCotanWeight
+    cout << "\"HalfEdge\" weights: " << endl;
+
+    for (int i=0; i < mesh.GetNumberOfHalfEdges(); i++)
+    {
+        cout << " " << i << ": " << mesh.GetCotanWeight(vertices, i) << endl;;
     }
 
     return 0;

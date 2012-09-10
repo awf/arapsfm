@@ -9,6 +9,9 @@ using namespace V3D;
 #include <algorithm>
 using namespace std;
 
+#include <cmath>
+#include "static_linear.h"
+
 // Mesh
 class Mesh
 {
@@ -101,13 +104,49 @@ public:
         return _vertexToHalfEdges[vertexId];
     }
 
-    /*
     double GetCotanWeight(const Matrix<double> & V, int halfEdgeIndex) const
     {
+        int halfEdges [] = { halfEdgeIndex, GetOppositeHalfEdge(halfEdgeIndex) };
 
+        double w = 0.;
 
+        for (int q = 0; q < 2; q++)
+        {
+            halfEdgeIndex = halfEdges[q];
+            if (halfEdgeIndex == -1)
+                continue;
+
+            int halfEdgeFace = GetHalfEdgeFace(halfEdgeIndex);
+            int oppositeOffset = (GetHalfEdgeOffset(halfEdgeIndex) + 2) % 3;
+
+            double l[3];
+
+            for (int i=0; i < 3; i++)
+            {
+                const int m = _triangles[halfEdgeFace][(oppositeOffset + i) % 3];
+                const int n = _triangles[halfEdgeFace][(oppositeOffset + i + 1) % 3];
+
+                double d[3];
+                subtractVectors_Static<double, 3>(V[m], V[n], d);
+
+                l[i] = norm_L2_Static<double, 3>(d);
+            }
+            
+            double t = (l[0]*l[0] + l[2]*l[2] - l[1]*l[1]) / (2*l[0]*l[2]);
+            t = t > 1.0 ? 1.0 : t;
+            t = t < -1.0 ? -1.0 : t;
+
+            const double alpha = acos(t);
+            const double addToW = 0.5 / tan(alpha);
+
+            if (addToW < 1e-6)
+                continue; 
+
+            w += addToW;
+        }
+
+        return w;
     }
-    */
 
 protected:
     const int _numVertices;
