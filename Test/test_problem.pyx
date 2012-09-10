@@ -21,11 +21,14 @@ cdef extern from "Solve/optimiser_options.h":
         int verbosenessLevel
 
 cdef extern from "test_problem.h":
-    void test_problem_c "test_problem" (
+    int test_problem_c "test_problem" (
         np.ndarray V,
         np.ndarray T,
         np.ndarray X,
         np.ndarray V1,
+        np.ndarray C,
+        np.ndarray P,
+        np.ndarray lambdas,
         OptimiserOptions * opt)
 
 # additional_optimiser_options
@@ -45,11 +48,11 @@ cdef int additional_optimiser_options(OptimiserOptions * options, dict kwargs) e
     for key in kwargs:
         if key not in DEFAULT_OPTIMISER_OPTIONS:
             raise ValueError("'%s' not an optimiser option" % key)
-            return -1
 
     additional_options = DEFAULT_OPTIMISER_OPTIONS.copy()
     additional_options.update(kwargs)
 
+    options.maxIterations = additional_options['maxIterations']
     options.minIterations = additional_options['minIterations']
     options.tau = additional_options['tau']
     options.lambda_ = additional_options['lambda']
@@ -61,15 +64,28 @@ cdef int additional_optimiser_options(OptimiserOptions * options, dict kwargs) e
 
     return 0
 
+STATUS_CODES = ['OPTIMIZER_TIMEOUT',
+                'OPTIMIZER_SMALL_UPDATE',
+                'OPTIMIZER_SMALL_IMPROVEMENT',
+                'OPTIMIZER_CONVERGED']
+
 # test_problem
 def test_problem(np.ndarray[np.float64_t, ndim=2, mode='c'] V,
                  np.ndarray[np.int32_t, ndim=2, mode='c'] T,
                  np.ndarray[np.float64_t, ndim=2, mode='c'] X,
                  np.ndarray[np.float64_t, ndim=2, mode='c'] V1,
+                 np.ndarray[np.int32_t, ndim=1] C,
+                 np.ndarray[np.float64_t, ndim=2, mode='c'] P,
+                 np.ndarray[np.float64_t, ndim=1] lambdas,
                  **kwargs):
 
     cdef OptimiserOptions options
     additional_optimiser_options(&options, kwargs)
 
-    test_problem_c(V, T, X, V1, &options)
+    if lambdas.shape[0] != 2:
+        raise ValueError('lambdas.shape[0] != 2')
+
+    cdef int status = test_problem_c(V, T, X, V1, C, P, lambdas, &options)
+
+    return STATUS_CODES[status]
     

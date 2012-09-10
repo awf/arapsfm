@@ -2,6 +2,9 @@
 #include "optimiser.h"
 #include <cmath>
 
+#include <iostream>
+using namespace std;
+
 void Problem::AddNode(Node * node)
 {
     const int id = node->TypeId();
@@ -78,6 +81,18 @@ int Problem::Minimise(const OptimiserOptions & options)
     opt.useAsymmetricLambda = options.useAsymmetricLambda;
 
     optimizerVerbosenessLevel = options.verbosenessLevel;
+
+    if (optimizerVerbosenessLevel > 0)
+    {
+        cout << "opt.maxIterations: " << opt.maxIterations << endl;
+        cout << "opt.minIterations: " << opt.minIterations << endl;
+        cout << "opt.tau: " << opt.tau << endl;
+        cout << "opt.lambda: " << opt.lambda << endl;
+        cout << "opt.gradientThreshold: " << opt.gradientThreshold << endl;
+        cout << "opt.updateThreshold: " << opt.updateThreshold << endl;
+        cout << "opt.improvementThreshold: " << opt.improvementThreshold << endl;
+        cout << "opt.useAsymmetricLambda: " << opt.useAsymmetricLambda << endl;
+    }
 
     opt.minimize();
 

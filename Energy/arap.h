@@ -5,6 +5,7 @@
 using namespace V3D;
 
 #include "Math/static_linear.h"
+#include "Solve/node.h"
 #include "Energy/energy.h"
 #include "Geometry/mesh.h"
 #include "Geometry/quaternion.h"
