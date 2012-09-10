@@ -10,13 +10,16 @@ using namespace V3D;
 // test_problem
 void test_problem()
 {
-    __asm {int 0x3};
     Matrix<double> V(100, 3);
     Matrix<double> V1(100, 3);
+    Matrix<double> X(100, 3);
 
     Problem problem;
     problem.AddNode(new VertexNode(V));
     problem.AddNode(new VertexNode(V1));
+    problem.AddNode(new RotationNode(X));
+    problem.InitialiseParamDesc();
+
 }
 
 #endif

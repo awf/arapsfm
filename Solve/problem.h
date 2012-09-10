@@ -8,6 +8,7 @@
 using namespace std;
 
 #include "node.h"
+#include "Energy/energy.h"
 
 // Problem
 class Problem
@@ -17,12 +18,12 @@ public:
     {
         const int id = node->Id();
 
-        auto i = allNodes.find(id);
-        if (i == allNodes.end())
+        auto i = _allNodes.find(id);
+        if (i == _allNodes.end())
         {
             vector<Node *> nodePointers;
             nodePointers.push_back(node);
-            allNodes.insert(pair<int, vector<Node *>>(id, nodePointers));
+            _allNodes.insert(pair<int, vector<Node *>>(id, nodePointers));
         }
         else
         {
@@ -32,9 +33,34 @@ public:
         }
     }
 
+    void AddEnergy(Energy * energy)
+    {
+
+    }
+
+    void InitialiseParamDesc()
+    {
+        _usedParameters.clear();
+
+        int l = 0;
+        for (auto i = _allNodes.begin(); i != _allNodes.end(); i++)
+        {
+            const Node * node = i->second.back();
+
+            _NLSQ_paramDesc.dimension[l] = node->Dimension();
+            _NLSQ_paramDesc.count[l] = node->GetOffset() + node->GetCount();
+
+            _usedParameters.push_back(node->Id());
+
+            l++;
+        }
+
+        _NLSQ_paramDesc.nParamTypes = l;
+    }
+
     virtual ~Problem()
     {
-        for (auto i = allNodes.begin(); i != allNodes.end(); i++)
+        for (auto i = _allNodes.begin(); i != _allNodes.end(); i++)
         {
             const int n = i->second.size();
 
@@ -46,7 +72,11 @@ public:
     }
 
 protected:
-    map<int, vector<Node *>> allNodes;
+    vector<int> _usedParameters;
+    map<int, vector<Node *>> _allNodes;
+
+    // NLSQ
+    NLSQ_ParamDesc _NLSQ_paramDesc;
 };
 
 #endif

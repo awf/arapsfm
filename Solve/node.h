@@ -39,14 +39,10 @@ public:
     VertexNode(Matrix<double> & v)
         : Node(v.num_rows()),
           _v(v)
-    {
-        cout << "VertexNode" << endl;
-    }
+    {}
 
     virtual ~VertexNode()
-    {
-        cout << "~VertexNode" << endl;
-    }
+    {}
 
     const double * GetVertex(int i) const
     {
@@ -60,4 +56,29 @@ protected:
     Matrix<double> & _v;
 };
 
+// RotationNode
+class RotationNode : public Node
+{
+public:
+    RotationNode(Matrix<double> & x)
+        : Node(x.num_rows()),
+          _x(x)
+    {}
+
+    virtual ~RotationNode()
+    {}
+
+    const double * GetRotation(int i) const
+    {
+        return _x[i];
+    }
+
+    virtual int Id() const { return 1; }
+    virtual int Dimension() const { return 3; }
+
+protected:
+    Matrix<double> & _x;
+};
+
 #endif
+

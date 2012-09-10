@@ -1,8 +1,10 @@
 #ifndef __ENERGY_H__
 #define __ENERGY_H__
 
-// EnergyFactor
-class EnergyFactor
+#include "Math/v3d_nonlinlsq.h"
+
+// Energy
+class Energy
 {
 public:
     virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions) const = 0;
@@ -14,18 +16,19 @@ public:
     virtual void EvaluateJacobian(const int k, const int whichParam, Vector<double> & J) const = 0;
 };
 
-// EnergyFactor_CostFunction
-class EnergyFactor_CostFunction : public NLSQ_CostFunction
+/*
+// Energy_CostFunction
+class Energy_CostFunction : public NLSQ_CostFunction
 {
 public:
-    EnergyFactor_CostFunction(const & EnergyFactor parentEnergy,
+    Energy_CostFunction(const & Energy parentEnergy,
                      const vector<int> * pUsedParamTypes,
                      const vector<int> * pResidualMap = nullptr)
         : _pUsedParamTypes(pUsedParamTypes),
           _pResidualMap(pResidualMap),
           NLSQ_CostFunction(*pUsedParamTypes, 3, nullptr)
                      
-    virtual ~EnergyFactor_CostFunction()
+    virtual ~Energy_CostFunction()
     {
         delete _pUsedParamTypes;
         if (pResidualMap != nullptr)
@@ -64,13 +67,13 @@ protected:
         return (*_pResidualMap)[k];
     }
 
-    const EnergyFactor & _parentEnergy;
+    const Energy & _parentEnergy;
     const vector<int> * _pUsedParamTypes;
     const vector<int> * _pResidualMap;
 };
 
 // ARAPEnergy
-class ARAPEnergy : public EnergyFactor
+class ARAPEnergy : public Energy
 {
 public:
     ARAPEnergy(const VertexNode & V,  const RotationNode & X, const VertexNode & V1,
@@ -85,7 +88,7 @@ public:
         pUsedParamTypes->push_back(_V1.GetId());
         pUsedParamTypes->push_back(_X.GetId());
 
-        costFunctions.push_back(new EnergyFactor_CostFunction(*this, pUsedParamTypes));
+        costFunctions.push_back(new Energy_CostFunction(*this, pUsedParamTypes));
     }
 
     virtual int GetCorrespondingParam(const int k, const int i) const
@@ -116,12 +119,12 @@ public:
         double q[4];
         quat_Unsafe(X.GetRotation(i), q);
 
-        /* TODO */
+        // TODO
     }
 
     virtual void EvaluateJacobian(const int k, const int whichParam, Vector<double> & J) const
     {
-        /* TODO */
+        // TODO
     }
 
 protected:
@@ -134,7 +137,7 @@ protected:
 };
 
 // LaplacianEnergy
-class LaplacianEnergy : public EnergyFactor
+class LaplacianEnergy : public Energy
 {
 public:
     LaplacianEnergy(const VertexNode & V, const Mesh & mesh, const double w)
@@ -171,10 +174,10 @@ public:
             for (int l = 0; l < i->first; l ++)
                 pUsedParamTypes->push_back(_V.GetId());
 
-            costFunctions.push_back(new EnergyFactor_CostFunction(*this, pUsedParamTypes, i->second));
+            costFunctions.push_back(new Energy_CostFunction(*this, pUsedParamTypes, i->second));
         }
 
-        // no clean-up required (handled by EnergyFactor_CostFunction)
+        // no clean-up required (handled by Energy_CostFunction)
     }
 
     virtual int GetCorrespondingParam(const int k, const int i) const
@@ -191,12 +194,12 @@ public:
 
     virtual void EvaluateResidual(const int k, Vector<double> & e) const
     {
-        /* TODO */
+        // TODO
     }
     
     virtual void EvaluateJacobian(const int k, const int whichParam, Matrix<double> & Jdst) const
     {
-        /* TODO */
+        // TODO
     }
 
 protected:
@@ -206,7 +209,7 @@ protected:
 }
 
 // ProjectionEnergy
-class ProjectionEnergy : public EnergyFactor
+class ProjectionEnergy : public Energy
 {
 public:
     ProjectionEnergy(const VertexNode & V, const Vector<int> & C, const Matrix<double> & P,
@@ -219,7 +222,7 @@ public:
         vector<int> * pUsedParamTypes = new vector<int>;
         pUsedParamTypes->push_back(_V.GetId());
 
-        costFunctions.push_back(new EnergyFactor_CostFunction(*this, pUsedParamTypes));
+        costFunctions.push_back(new Energy_CostFunction(*this, pUsedParamTypes));
     }
 
     virtual int GetCorrespondingParam(const int k, const int i) const
@@ -234,12 +237,12 @@ public:
 
     virtual void EvaluateResidual(const int k, Vector<double> & e) const
     {
-        /* TODO */
+        // TODO
     }
 
     virtual void EvaluateJacobian(const int k, const in whichParam, Vector<double> & J) const
     {
-        /* TODO */
+        // TODO
     }
 
 protected:
@@ -248,5 +251,6 @@ protected:
     const Matrix<double> & _P;
     const double _w;
 };
+*/
 
 #endif
