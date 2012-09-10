@@ -9,6 +9,8 @@ using namespace V3D;
 #include "Geometry/mesh.h"
 #include "Geometry/quaternion.h"
 
+#include <cmath>
+
 // arapResiduals_Unsafe
 inline void arapResiduals_Unsafe(const double * Vi, const double * Vj,
            const double * V1i, const double * V1j,
@@ -143,21 +145,21 @@ inline void arapJac_V_Unsafe(bool isVi, const double & w, const double * q, doub
     scaleVectorIP_Static<double, 9>(w_, J);
 }
 
-// DualARAPEnergy
-class DualARAPEnergy : public Energy
+// ARAPEnergy
+class ARAPEnergy : public Energy
 {
 public:
-    DualARAPEnergy(const VertexNode & V,  const RotationNode & X, const VertexNode & V1,
+    ARAPEnergy(const VertexNode & V,  const RotationNode & X, const VertexNode & V1,
                const Mesh & mesh, const double w)
-        : _V(V), _X(X), _V1(V), _mesh(mesh), _w(w)
+        : _V(V), _X(X), _V1(V1), _mesh(mesh), _w(w)
     {}
 
     virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions) const
     {
         vector<int> * pUsedParamTypes = new vector<int>;
-        pUsedParamTypes->push_back(_V.GetParamId());
-        pUsedParamTypes->push_back(_V1.GetParamId());
         pUsedParamTypes->push_back(_X.GetParamId());
+        pUsedParamTypes->push_back(_V1.GetParamId());
+        pUsedParamTypes->push_back(_V1.GetParamId());
 
         costFunctions.push_back(new Energy_CostFunction(*this, pUsedParamTypes));
     }
@@ -167,14 +169,16 @@ public:
         switch (i)
         {
         case 0:
-            return _mesh.GetHalfEdge(k, 0) + _V.GetOffset();
-        case 1:
-            return _mesh.GetHalfEdge(k, 1) + _V1.GetOffset();
-        case 2:
             return _mesh.GetHalfEdge(k, 0) + _X.GetOffset();
+        case 1:
+            return _mesh.GetHalfEdge(k, 0) + _V1.GetOffset();
+        case 2:
+            return _mesh.GetHalfEdge(k, 1) + _V1.GetOffset();
         }
 
         assert(false);
+
+        return -1;
     }
 
     virtual int GetNumberOfMeasurements() const
@@ -185,19 +189,47 @@ public:
     virtual void EvaluateResidual(const int k, Vector<double> & e) const
     {
         int i = _mesh.GetHalfEdge(k, 0), j = _mesh.GetHalfEdge(k, 1);
-        const double & edgeWeight = _mesh.GetCotanWeight(_V.GetVertices(), k);
+        const double w = _w * sqrt(_mesh.GetCotanWeight(_V.GetVertices(), k));
 
         double q[4];
         quat_Unsafe(_X.GetRotation(i), q);
 
         arapResiduals_Unsafe(_V.GetVertex(i), _V.GetVertex(j),
                              _V1.GetVertex(i), _V1.GetVertex(j),
-                             _w, q, &e[0]);
+                             w, q, &e[0]);
     }
 
-    virtual void EvaluateJacobian(const int k, const int whichParam, Vector<double> & J) const
+    virtual void EvaluateJacobian(const int k, const int whichParam, Matrix<double> & J) const
     {
-        /* TODO */
+        int i = _mesh.GetHalfEdge(k, 0), j = _mesh.GetHalfEdge(k, 1);
+        const double w = _w * sqrt(_mesh.GetCotanWeight(_V.GetVertices(), k));
+
+        double q[4];
+        quat_Unsafe(_X.GetRotation(i), q);
+    
+        double D[12];
+        quatDx_Unsafe(_X.GetRotation(i), D);
+
+        switch (whichParam)
+        {
+        case 0:
+            {
+                arapJac_X_Unsafe(_V.GetVertex(i), _V.GetVertex(j), w, q, D, J[0]);
+                return;
+            }
+        case 1:
+            {
+                arapJac_V1_Unsafe(true, w, J[0]);
+                return;
+            }
+        case 2:
+            {
+                arapJac_V1_Unsafe(false, w, J[0]);
+                return;
+            }
+        }
+
+        assert(false);
     }
 
 protected:
@@ -210,3 +242,4 @@ protected:
 };
 
 #endif
+

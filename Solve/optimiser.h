@@ -1,9 +1,16 @@
 #ifndef __OPTIMISER_H__
 #define __OPTIMISER_H__
 
+#include "Math/v3d_nonlinlsq.h"
+using namespace V3D;
+
+#include <algorithm>
+using namespace std;
+
 #include "Solve/problem.h"
 
-class Optimiser : NLSQ_LM_Optimizer
+// Optimiser
+class Optimiser : public NLSQ_LM_Optimizer
 {
 public:
     Optimiser(const NLSQ_ParamDesc & paramDesc,
@@ -26,6 +33,11 @@ public:
     virtual void restoreAllParameters()
     {
         _problem.Restore();
+    }
+
+    virtual double getParameterLength() const
+    {
+        return _problem.GetParameterLength();
     }
 
     virtual void increaseLambda()
@@ -57,9 +69,9 @@ public:
 
     bool useAsymmetricLambda;
 
-
 protected:
     Problem & _problem;
 };
+
 
 #endif

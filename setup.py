@@ -66,8 +66,13 @@ setup(
         #           language='c++'),
 
         Extension('Test.test_problem',
-                  ['Test/test_problem.pyx'],
-                  include_dirs=include_dirs + [SSLM_ROOT],
+                  ['Test/test_problem.pyx',
+                   'Solve/problem.cpp'] +
+                  SSLM_BASE_SRC + 
+                  SSLM_MATH_SRC,
+                  include_dirs=include_dirs + [SSLM_ROOT, COLAMD_INC],
+                  library_dirs=[COLAMD_LIB],
+                  libraries=['colamd'],
                   # library_dirs=[COLAMD_LIB],
                   # libraries=['colamd'],
                   define_macros=REMOVE_EXCEPTION_MACROS,
