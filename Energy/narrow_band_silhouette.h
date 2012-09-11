@@ -14,44 +14,18 @@ using namespace V3D;
 #include <set>
 using namespace std;
 
-// silhouetteProjResiduals_Unsafe
-inline void silhouetteProjResiduals_Unsafe(const double * V1i, const double * V1j, const double * V1k, const double * u, const double * S, const double & w, double * e)
-{
-    e[0] = w*(S[0] - (u[0]*(V1i[0] - V1k[0]) + u[1]*(V1j[0] - V1k[0]) + V1k[0]));
-    e[1] = w*(S[1] - (u[0]*(V1i[1] - V1k[1]) + u[1]*(V1j[1] - V1k[1]) + V1k[1]));
-}
-
-// silhouetteProjJac_V1l_Unsafe
-inline void silhouetteProjJac_V1l_Unsafe(const double & u, const double & w, double * J)
-{
-    J[0] = -w*u;
-    J[1] = 0;
-    J[2] = 0;
-    J[3] = 0;
-    J[4] = -w*u;
-    J[5] = 0;
-}
-
-// silhouetteProjJac_u_Unsafe
-inline void silhouetteProjJac_u_Unsafe(const double * V1i, const double * V1j, const double * V1k, const double & w, double * J)
-{
-    J[0] = -w*(V1i[0] - V1k[0]);
-    J[1] = -w*(V1j[0] - V1k[0]);
-    J[2] = -w*(V1i[1] - V1k[1]);
-    J[3] = -w*(V1j[1] - V1k[1]);
-}
-
-// SilhouetteProjectionEnergy
-class SilhouetteProjectionEnergy : public Energy
+// SilhouetteBaseEnergy
+class SilhouetteBaseEnergy : public Energy
 {
 public:
-    SilhouetteProjectionEnergy(const VertexNode & V, const BarycentricNode & U, 
-                        const Matrix<double> & S, const Mesh & mesh, 
-                        const double w, const int narrowBand)
-        : _V(V), _U(U), _S(S), _mesh(mesh), _w(w), _narrowBand(narrowBand)
+    SilhouetteBaseEnergy(const VertexNode & V, const BarycentricNode & U,    
+                         const Mesh & mesh, const double w, const int narrowBand,
+                         const int measurementDim)
+    
+        : _V(V), _U(U), _mesh(mesh), _w(w), _narrowBand(narrowBand), _measurementDim(measurementDim)
     {}
 
-    virtual ~SilhouetteProjectionEnergy()
+    virtual ~SilhouetteBaseEnergy()
     {
         for (int i = 0; i < _allNarrowBands.size(); i++)
             if (_allNarrowBands[i] != nullptr) delete _allNarrowBands[i];
@@ -95,7 +69,7 @@ public:
             vector<int> * pUsedParamTypes = new vector<int>(n + 1, _V.GetParamId());
             (*pUsedParamTypes)[0] = _U.GetParamId();
 
-            costFunctions.push_back(new Energy_CostFunction(*this, pUsedParamTypes, 2, i->second));
+            costFunctions.push_back(new Energy_CostFunction(*this, pUsedParamTypes, _measurementDim, i->second));
         }
     }
 
@@ -112,6 +86,81 @@ public:
         assert(false);
         return -1;
     }
+
+    virtual bool CanBeginIteration() const
+    {
+        // check that vertices of each face are in the narrow bands
+        const Vector<int> & L = _U.GetFaceIndices();
+
+        for (int i=0; i < L.size(); i++)
+        {
+            const int * Ti = _mesh.GetTriangle(L[i]);
+            const vector<int> * narrowBand = _allNarrowBands[i];
+
+            for (int j=0; j<3; j++)
+            {
+                auto l = find(narrowBand->begin(), narrowBand->end(), Ti[j]);
+
+                if (l == narrowBand->end())
+                {
+                    // face vertex is not in the narrow band
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+protected:
+    const VertexNode & _V;
+    const BarycentricNode & _U;
+    const double _w;
+    const int _narrowBand;
+
+    const Mesh & _mesh;
+
+    vector<vector<int> *> _allNarrowBands;
+
+    const int _measurementDim;
+};
+
+// silhouetteProjResiduals_Unsafe
+inline void silhouetteProjResiduals_Unsafe(const double * V1i, const double * V1j, const double * V1k, const double * u, const double * S, const double & w, double * e)
+{
+    e[0] = w*(S[0] - (u[0]*(V1i[0] - V1k[0]) + u[1]*(V1j[0] - V1k[0]) + V1k[0]));
+    e[1] = w*(S[1] - (u[0]*(V1i[1] - V1k[1]) + u[1]*(V1j[1] - V1k[1]) + V1k[1]));
+}
+
+// silhouetteProjJac_V1l_Unsafe
+inline void silhouetteProjJac_V1l_Unsafe(const double & u, const double & w, double * J)
+{
+    J[0] = -w*u;
+    J[1] = 0;
+    J[2] = 0;
+    J[3] = 0;
+    J[4] = -w*u;
+    J[5] = 0;
+}
+
+// silhouetteProjJac_u_Unsafe
+inline void silhouetteProjJac_u_Unsafe(const double * V1i, const double * V1j, const double * V1k, const double & w, double * J)
+{
+    J[0] = -w*(V1i[0] - V1k[0]);
+    J[1] = -w*(V1j[0] - V1k[0]);
+    J[2] = -w*(V1i[1] - V1k[1]);
+    J[3] = -w*(V1j[1] - V1k[1]);
+}
+
+// SilhouetteProjectionEnergy
+class SilhouetteProjectionEnergy : public SilhouetteBaseEnergy
+{
+public:
+    SilhouetteProjectionEnergy(const VertexNode & V, const BarycentricNode & U, 
+                               const Matrix<double> & S, const Mesh & mesh, 
+                               const double w, const int narrowBand)
+        : SilhouetteBaseEnergy(V, U, mesh, w, narrowBand, 2), _S(S)
+    {}
 
     virtual void EvaluateResidual(const int k, Vector<double> & e) const
     {
@@ -168,40 +217,8 @@ public:
         }
     }
 
-    virtual bool CanBeginIteration() const
-    {
-        // check that vertices of each face are in the narrow bands
-        const Vector<int> & L = _U.GetFaceIndices();
-
-        for (int i=0; i < L.size(); i++)
-        {
-            const int * Ti = _mesh.GetTriangle(L[i]);
-            const vector<int> * narrowBand = _allNarrowBands[i];
-
-            for (int j=0; j<3; j++)
-            {
-                auto l = find(narrowBand->begin(), narrowBand->end(), Ti[j]);
-
-                if (l == narrowBand->end())
-                {
-                    // face vertex is not in the narrow band
-                    return false;
-                }
-            }
-        }
-
-        return true;
-    }
-
 protected:
-    const VertexNode & _V;
-    const BarycentricNode & _U;
     const Matrix<double> & _S;
-    const Mesh & _mesh;
-    const double _w;
-    const int _narrowBand;
-
-    vector<vector<int> *> _allNarrowBands;
 };
 
 // Silhouette normal residual and derivatives (UNSAFE)
@@ -387,76 +404,14 @@ inline void silhouetteNormalResidualsJac_u_Unsafe(const Mesh & mesh, const Matri
 }
 
 // SilhouetteNormalEnergy
-class SilhouetteNormalEnergy : public Energy
+class SilhouetteNormalEnergy : public SilhouetteBaseEnergy
 {
 public:
     SilhouetteNormalEnergy(const VertexNode & V, const BarycentricNode & U, 
-                        const Matrix<double> & SN, const Mesh & mesh, 
-                        const double w, const int narrowBand)
-        : _V(V), _U(U), _SN(SN), _mesh(mesh), _w(w), _narrowBand(narrowBand)
+                           const Matrix<double> & SN, const Mesh & mesh, 
+                           const double w, const int narrowBand)
+        : SilhouetteBaseEnergy(V, U, mesh, w, narrowBand, 3), _SN(SN)
     {}
-
-    virtual ~SilhouetteNormalEnergy()
-    {
-        for (int i = 0; i < _allNarrowBands.size(); i++)
-            if (_allNarrowBands[i] != nullptr) delete _allNarrowBands[i];
-    }
-
-    virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions) 
-    {
-        const Vector<int> & L = _U.GetFaceIndices();
-
-        // mapping from n -> [k0, k1, ...]
-        map<int, vector<int> *> narrowBandSizeToResidual;
-        
-        for (int i=0; i < L.size(); i++)
-        {
-            // source for the narrow band is taken as the first vertex in each face
-            int sourceVertex = _mesh.GetTriangle(L[i])[0];
-
-            // save the narrow band
-            vector<int> * narrowBand = new vector<int>(_mesh.GetNRing(sourceVertex, _narrowBand, true));
-            _allNarrowBands.push_back(narrowBand);
-
-            // save the mapping from size to residual index
-            int n = narrowBand->size();
-
-            auto j = narrowBandSizeToResidual.find(n);
-            if (j == narrowBandSizeToResidual.end())
-            {
-                vector<int> * residualMap = new vector<int>(1, i);
-                narrowBandSizeToResidual.insert(pair<int, vector<int> *>(n, residualMap));
-            }
-            else
-            {
-                j->second->push_back(i);
-            }
-        }
-
-        // construct cost functions
-        for (auto i = narrowBandSizeToResidual.begin(); i != narrowBandSizeToResidual.end(); i++)
-        {
-            int n = i->first;
-            vector<int> * pUsedParamTypes = new vector<int>(n + 1, _V.GetParamId());
-            (*pUsedParamTypes)[0] = _U.GetParamId();
-
-            costFunctions.push_back(new Energy_CostFunction(*this, pUsedParamTypes, 3, i->second));
-        }
-    }
-
-    virtual int GetCorrespondingParam(const int k, const int i) const
-    {
-        if (i == 0)
-            return k + _U.GetOffset();
-
-        return (*_allNarrowBands[k])[i-1] + _V.GetOffset();
-    }
-
-    virtual int GetNumberOfMeasurements() const
-    {
-        assert(false);
-        return -1;
-    }
 
     virtual void EvaluateResidual(const int k, Vector<double> & e) const
     {
@@ -496,40 +451,8 @@ public:
         }
     }
 
-    virtual bool CanBeginIteration() const
-    {
-        // check that vertices of each face are in the narrow bands
-        const Vector<int> & L = _U.GetFaceIndices();
-
-        for (int i=0; i < L.size(); i++)
-        {
-            const int * Ti = _mesh.GetTriangle(L[i]);
-            const vector<int> * narrowBand = _allNarrowBands[i];
-
-            for (int j=0; j<3; j++)
-            {
-                auto l = find(narrowBand->begin(), narrowBand->end(), Ti[j]);
-
-                if (l == narrowBand->end())
-                {
-                    // face vertex is not in the narrow band
-                    return false;
-                }
-            }
-        }
-
-        return true;
-    }
-
 protected:
-    const VertexNode & _V;
-    const BarycentricNode & _U;
     const Matrix<double> & _SN;
-    const Mesh & _mesh;
-    const double _w;
-    const int _narrowBand;
-
-    vector<vector<int> *> _allNarrowBands;
 };
 
 #endif
