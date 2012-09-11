@@ -35,12 +35,9 @@ public:
         : _V(V), _C(C), _P(P), _w(w)
     {}
 
-    virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions) const
+    virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
     {
-        vector<int> * pUsedParamTypes = new vector<int>;
-
-        pUsedParamTypes->push_back(_V.GetParamId());
-
+        vector<int> * pUsedParamTypes = new vector<int>(1, _V.GetParamId());
         costFunctions.push_back(new Energy_CostFunction(*this, pUsedParamTypes));
     }
 

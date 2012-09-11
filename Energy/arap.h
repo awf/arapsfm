@@ -155,7 +155,7 @@ public:
         : _V(V), _X(X), _V1(V1), _mesh(mesh), _w(w)
     {}
 
-    virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions) const
+    virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
     {
         vector<int> * pUsedParamTypes = new vector<int>;
         pUsedParamTypes->push_back(_X.GetParamId());
