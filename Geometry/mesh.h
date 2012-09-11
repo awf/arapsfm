@@ -63,7 +63,12 @@ public:
             const int l1 = halfEdges[0];
 
             if (halfEdges.size() == 1)
+            {
                 _oppositeHalfEdge[l1] = -1;
+
+                // mesh is open so store extra adjacent vertex in map
+                _boundaryVertices.insert(pair<int, int>(GetHalfEdge(l1, 1), GetHalfEdge(l1, 0)));
+            }
             else
             {
                 const int l2 = halfEdges[1];
@@ -132,12 +137,31 @@ public:
         return triangles;
     }
 
-    vector<int> GetNRing(int vertexIndex, int N, bool includeSource=true) const
+    vector<int> GetAdjacentVertices(int vertexIndex, bool includeSource = false) const
     {
-        vector<int> nring;
+        vector<int> adjVertices;
+        if (includeSource) adjVertices.push_back(vertexIndex);
 
-        Vector<unsigned char> explored(_numVertices);
-        fillVector(0, explored);
+        auto halfEdges = GetHalfEdgesFromVertex(vertexIndex);
+
+        for (auto i = halfEdges.begin(); i != halfEdges.end(); i++)
+            adjVertices.push_back(GetHalfEdge(*i, 1));
+
+        auto j = _boundaryVertices.find(vertexIndex);
+        if (j != _boundaryVertices.end())
+            adjVertices.push_back(j->second);
+
+        return adjVertices;
+    }
+
+    vector<int> GetNRing(int vertexIndex, int N, bool includeSource = true) const
+    {
+        // special case
+        if (N == 1) return GetAdjacentVertices(vertexIndex, includeSource);
+
+        vector<int> nring;
+        Vector<bool> explored(_numVertices);
+        fillVector(false, explored);
 
         priority_queue<pair<int, int>, vector<pair<int, int>>, NRingComparison> pq;
         pq.push(pair<int, int>(0, vertexIndex));
@@ -167,17 +191,17 @@ public:
             pastFirst = true;
 
             // add other half edges to the queue
-            auto halfEdges = GetHalfEdgesFromVertex(nextVertex);
-            for (auto i = halfEdges.begin(); i != halfEdges.end(); i++)
+            vector<int> adjVertices = GetAdjacentVertices(nextVertex);
+            for (auto i = adjVertices.begin(); i != adjVertices.end(); i++)
             {
-                int adjVertex = GetHalfEdge((*i), 1);
+                int adjVertex = *i;
                 if (explored[adjVertex]) continue;
 
                 pq.push(pair<int, int>(depth + 1, adjVertex));
             }
 
             // mark as explored
-            explored[nextVertex] = 1;
+            explored[nextVertex] = true;
         }
 
         return nring;
@@ -249,7 +273,110 @@ protected:
     const Matrix<int> & _triangles;
     vector<vector<int>> _vertexToHalfEdges;
     Vector<int> _oppositeHalfEdge;
+    map<int, int> _boundaryVertices;
 };
+
+// Geometric functions
+
+// faceNormal_Unsafe (UNNORMALISED)
+inline void faceNormal_Unsafe(const double * a, const double * b, const double * c, double * n)
+{
+    double ac[3], bc[3];
+    subtractVectors_Static<double, 3>(a, c, ac);
+    subtractVectors_Static<double, 3>(b, c, bc);
+
+    crossProduct_Static(ac, bc, n);
+}
+
+// faceNormalJac_Unsafe
+inline void faceNormalJac_Unsafe(const double * a, const double * b, const double * c, double * J)
+{
+    J[0] = 0;
+    J[1] = b[2] - c[2];
+    J[2] = -b[1] + c[1];
+    J[3] = 0;
+    J[4] = -a[2] + c[2];
+    J[5] = a[1] - c[1];
+    J[6] = 0;
+    J[7] = a[2] - b[2];
+    J[8] = -a[1] + b[1];
+    J[9] = -b[2] + c[2];
+    J[10] = 0;
+    J[11] = b[0] - c[0];
+    J[12] = a[2] - c[2];
+    J[13] = 0;
+    J[14] = -a[0] + c[0];
+    J[15] = -a[2] + b[2];
+    J[16] = 0;
+    J[17] = a[0] - b[0];
+    J[18] = b[1] - c[1];
+    J[19] = -b[0] + c[0];
+    J[20] = 0;
+    J[21] = -a[1] + c[1];
+    J[22] = a[0] - c[0];
+    J[23] = 0;
+    J[24] = a[1] - b[1];
+    J[25] = -a[0] + b[0];
+    J[26] = 0;
+}
+
+// vertexNormal_Unsafe (UNNORMALISED)
+inline void vertexNormal_Unsafe(const Mesh & mesh, const Matrix<double> & V1, int vertexId, double * n)
+{
+    fillVector_Static<double, 3>(0, n);
+
+    vector<int> adjacentTriangles = mesh.GetTrianglesAtVertex(vertexId);
+
+    for (int i=0; i < adjacentTriangles.size(); i++)
+    {
+        const int * Tj = mesh.GetTriangle(adjacentTriangles[i]);
+
+        double faceNormal[3];
+        faceNormal_Unsafe(V1[Tj[0]], V1[Tj[1]], V1[Tj[2]], faceNormal);
+
+        addVectors_Static<double, 3>(faceNormal, n, n);
+    }
+}
+
+// vertexNormalJac
+inline Matrix<double> vertexNormalJac(const Mesh & mesh, const Matrix<double> & V1, int vertexId)
+{
+    // get the summed face normals jacobian
+    vector<int> incOneRing = mesh.GetNRing(vertexId, 1, true);
+    vector<int> adjTriangles = mesh.GetTrianglesAtVertex(vertexId);
+
+    Matrix<double> sumFaceNormalsJac(3, 3*incOneRing.size(), 0.);
+
+    // build an index mapping for `incOneRing` (which is ordered)
+    std::map<int, int> indexIncOneRing;
+    auto it = incOneRing.begin();
+    for (int l=0; it != incOneRing.end(); l++, it++)
+        indexIncOneRing.insert(std::pair<int, int>(*it, l));
+
+    for (int i=0; i < adjTriangles.size(); i++)
+    {
+        // calculate the face normal Jacobian for the vertices in the face
+        const int * Ti = mesh.GetTriangle(adjTriangles[i]);
+
+        double faceNormalJac[27];
+        faceNormalJac_Unsafe(V1[Ti[0]], V1[Ti[1]], V1[Ti[2]], faceNormalJac);
+        
+        // add the columns into the appropriate columns in sumFaceNormalsJac
+        for (int j=0; j < 3; j++)
+        {
+            auto indexPairPointer = indexIncOneRing.find(Ti[j]);
+            assert(indexPairPointer != indexIncOneRing.end());
+
+            int columnIndex = indexPairPointer->second;
+
+            for (int r=0; r < 3; r++)
+                for (int c=0; c < 3; c++)
+                    sumFaceNormalsJac[r][3*columnIndex + c] += faceNormalJac[9*r + 3*j + c];
+        }
+    }
+
+    return sumFaceNormalsJac;
+}
 
 #endif
 
