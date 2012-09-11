@@ -70,10 +70,15 @@ public:
         }
     }
 
+    const int * GetTriangle(int triangleIndex) const
+    {
+        return _triangles[triangleIndex];
+    }
+
     int GetNumberOfVertices() const { return _numVertices; }
     int GetNumberOfHalfEdges() const { return _oppositeHalfEdge.size(); }
 
-    int GetHalfEdgeFace(int halfEdgeIndex) const
+    int GetHalfEdgeTriangle(int halfEdgeIndex) const
     {
         return halfEdgeIndex / 3;
     }
@@ -85,7 +90,7 @@ public:
 
     int GetHalfEdge(int halfEdgeIndex, int whichVertex) const
     {
-        int triangleIndex = GetHalfEdgeFace(halfEdgeIndex);
+        int triangleIndex = GetHalfEdgeTriangle(halfEdgeIndex);
         int offset = GetHalfEdgeOffset(halfEdgeIndex);
 
         if (whichVertex == 0)
@@ -116,7 +121,7 @@ public:
             if (halfEdgeIndex == -1)
                 continue;
 
-            int halfEdgeFace = GetHalfEdgeFace(halfEdgeIndex);
+            int halfEdgeFace = GetHalfEdgeTriangle(halfEdgeIndex);
             int oppositeOffset = (GetHalfEdgeOffset(halfEdgeIndex) + 2) % 3;
 
             double l[3];
@@ -146,6 +151,14 @@ public:
         }
 
         return w;
+    }
+
+    int GetAdjacentTriangle(int triangleIndex, int edgeIndex) const
+    {
+        int halfEdgeIndex = 3*triangleIndex + edgeIndex;
+        int oppositeIndex = _oppositeHalfEdge[halfEdgeIndex];
+
+        return oppositeIndex != -1 ? GetHalfEdgeTriangle(oppositeIndex) : -1;
     }
 
 protected:
