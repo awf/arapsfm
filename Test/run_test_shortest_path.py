@@ -34,7 +34,7 @@ def main_test_shortest_path():
     z = np.load('MAIN_TEST_PROBLEM.npz')
     V = z['V1'].copy()
 
-    lambdas = np.array([1, 1e-3, 1e3], dtype=np.float64)
+    lambdas = np.array([1e-3, 1e1, 1e3], dtype=np.float64)
 
     silhouette = load_silhouette_information()
 
@@ -45,6 +45,7 @@ def main_test_shortest_path():
     SilCandAssignedFaces = silhouette['SilCandAssignedFaces']
     SilCandU = silhouette['SilCandU']
     S = silhouette['S']
+    SN = silhouette['SN']
 
     Q = np.empty((SilCandAssignedFaces.shape[0], 3), dtype=np.float64)
     for i, face_index in enumerate(SilCandAssignedFaces):
@@ -52,6 +53,8 @@ def main_test_shortest_path():
 
     # get assigned faces
     L = SilCandAssignedFaces[path]
+    U = SilCandU[path]
+    np.savez_compressed('MAIN_TEST_SHORTEST_PATH.npz', L=L, U=U, S=S, SN=SN)
 
     vis = visualise.VisualiseMesh(V, T, L)
     vis.add_image('Frames/0.png')
