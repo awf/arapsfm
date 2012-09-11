@@ -142,8 +142,8 @@ def test_problem3(np.ndarray[np.float64_t, ndim=2, mode='c'] V,
     cdef OptimiserOptions options
     additional_optimiser_options(&options, kwargs)
 
-    if lambdas.shape[0] != 2:
-        raise ValueError('lambdas.shape[0] != 2')
+    if lambdas.shape[0] != 3:
+        raise ValueError('lambdas.shape[0] != 3')
 
     cdef int status = test_problem3_c(V, T, U, L, S, SN, lambdas, preconditioners, narrowBand, &options)
 

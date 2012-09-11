@@ -3,6 +3,7 @@
 # Imports
 from test_problem import *
 from visualise import visualise
+from time import clock
 
 # Barycentric conversion
 
@@ -76,13 +77,25 @@ def main_test_problem3():
     U = z['U']
     L = z['L']
     
-    lambdas = np.array([1e1, 1e1], dtype=np.float64)
-    preconditioners = np.array([1.0, 100.0], dtype=np.float64)
+    lambdas = np.array([1e1, 1e1, 1e3], dtype=np.float64)
+    preconditioners = np.array([1.0, 200.0], dtype=np.float64)
+    narrow_band = 2
+    kwargs = dict(gradientThreshold=1e-6, maxIterations=30, verbosenessLevel=1)
 
-    status, status_string = test_problem3(V, T, U, L, S, SN, lambdas, preconditioners, 3,
-        gradientThreshold=1e-6,
-        maxIterations=30,
-        verbosenessLevel=1)
+    # solve
+    t1 = clock()
+
+    status, status_string = test_problem3(V, T, U, L, S, SN, lambdas,
+        preconditioners, narrow_band, **kwargs)
+
+    # restart if out of the narrow band
+    while status == 4:
+        status, status_string = test_problem3(V, T, U, L, S, SN, lambdas,
+            preconditioners, narrow_band, **kwargs)
+
+    t2 = clock()
+
+    print 'Time taken: %.3fs' % (t2 - t1)
 
     Q = np.empty((U.shape[0], 3), dtype=np.float64)
     for i, face_index in enumerate(L):

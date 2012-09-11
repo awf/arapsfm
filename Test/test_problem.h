@@ -120,11 +120,16 @@ int test_problem3(PyArrayObject * npy_V,
     problem.AddNode(nodeU);
 
     LaplacianEnergy * lapEnergy = new LaplacianEnergy(*nodeV, mesh, sqrt(lambdas[0]));
+
     SilhouetteProjectionEnergy * silProjEnergy = new SilhouetteProjectionEnergy(*nodeV, *nodeU, S, mesh,
         sqrt(lambdas[1]), narrowBand);
 
+    SilhouetteNormalEnergy * silNormalEnergy = new SilhouetteNormalEnergy(*nodeV, *nodeU, SN, mesh,
+        sqrt(lambdas[2]), narrowBand);
+
     problem.AddEnergy(lapEnergy);
     problem.AddEnergy(silProjEnergy);
+    problem.AddEnergy(silNormalEnergy);
 
     return problem.Minimise(*options);
 }
