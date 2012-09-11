@@ -125,7 +125,7 @@ class VisualiseMesh(object):
         self.keys['l'] = 'laplacian'
         self.actors['laplacian'] = laplacian_actor
 
-    def add_silhouette(self, filename, Q, facelookup, path, bounds, S):
+    def add_silhouette(self, Q, path, bounds, S):
         path_length = path.shape[0]
 
         proj_points = vtk.vtkPoints()
