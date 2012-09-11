@@ -6,11 +6,14 @@ using namespace V3D;
 
 #include <utility>
 #include <map>
+#include <set>
+#include <queue>
 #include <algorithm>
 using namespace std;
 
 #include <cmath>
 #include "Math/static_linear.h"
+#include "Util/debug_messages.h"
 
 // Mesh
 class Mesh
@@ -33,9 +36,9 @@ public:
             for (int j=0; j < 3; j++)
             {
                 int halfEdgeIndex = 3*i + j;
-                int vertexId = _triangles[i][j];
+                int vertexIndex = _triangles[i][j];
 
-                _vertexToHalfEdges[vertexId].push_back(halfEdgeIndex);
+                _vertexToHalfEdges[vertexIndex].push_back(halfEdgeIndex);
 
                 int v0 = GetHalfEdge(halfEdgeIndex, 0);
                 int v1 = GetHalfEdge(halfEdgeIndex, 1);
@@ -70,6 +73,7 @@ public:
         }
     }
 
+    // Topological queries
     const int * GetTriangle(int triangleIndex) const
     {
         return _triangles[triangleIndex];
@@ -104,11 +108,71 @@ public:
         return _oppositeHalfEdge[halfEdgeIndex];
     }
 
-    const vector<int> & GetHalfEdgesFromVertex(int vertexId) const
+    const vector<int> & GetHalfEdgesFromVertex(int vertexIndex) const
     {
-        return _vertexToHalfEdges[vertexId];
+        return _vertexToHalfEdges[vertexIndex];
     }
 
+    int GetAdjacentTriangle(int triangleIndex, int edgeIndex) const
+    {
+        int halfEdgeIndex = 3*triangleIndex + edgeIndex;
+        int oppositeIndex = _oppositeHalfEdge[halfEdgeIndex];
+
+        return oppositeIndex != -1 ? GetHalfEdgeTriangle(oppositeIndex) : -1;
+    }
+
+    vector<int> GetNRing(int vertexIndex, int N, bool includeSource=true) const
+    {
+        vector<int> nring;
+
+        Vector<unsigned char> explored(_numVertices);
+        fillVector(0, explored);
+
+        priority_queue<pair<int, int>, vector<pair<int, int>>, NRingComparison> pq;
+        pq.push(pair<int, int>(0, vertexIndex));
+
+        bool pastFirst = false;
+
+        while (pq.size() > 0)
+        {
+            // pop the top item
+            auto next = pq.top();
+            int depth = next.first;
+            int nextVertex = next.second;
+            pq.pop();
+
+            // continue if already explored
+            if (explored[nextVertex]) 
+                continue;
+
+            // no need to explore further
+            if (depth > N)
+                break;
+
+            // add the vertex to the nring
+            if (pastFirst || includeSource)
+                nring.push_back(nextVertex);
+
+            pastFirst = true;
+
+            // add other half edges to the queue
+            auto halfEdges = GetHalfEdgesFromVertex(nextVertex);
+            for (auto i = halfEdges.begin(); i != halfEdges.end(); i++)
+            {
+                int adjVertex = GetHalfEdge((*i), 1);
+                if (explored[adjVertex]) continue;
+
+                pq.push(pair<int, int>(depth + 1, adjVertex));
+            }
+
+            // mark as explored
+            explored[nextVertex] = 1;
+        }
+
+        return nring;
+    }
+
+    // Geometry queries
     double GetCotanWeight(const Matrix<double> & V, int halfEdgeIndex) const
     {
         int halfEdges [] = { halfEdgeIndex, GetOppositeHalfEdge(halfEdgeIndex) };
@@ -153,15 +217,23 @@ public:
         return w;
     }
 
-    int GetAdjacentTriangle(int triangleIndex, int edgeIndex) const
-    {
-        int halfEdgeIndex = 3*triangleIndex + edgeIndex;
-        int oppositeIndex = _oppositeHalfEdge[halfEdgeIndex];
-
-        return oppositeIndex != -1 ? GetHalfEdgeTriangle(oppositeIndex) : -1;
-    }
-
 protected:
+    // NRingComparison
+    struct NRingComparison
+    {
+        bool operator()(const pair<int, int> & l, const pair<int, int> & r)
+        {
+            if (r.first < l.first)
+                return true;
+            else if (r.first == l.first)
+            {
+                return r.second < l.second;
+            }
+
+            return false;
+        }
+    };
+
     const int _numVertices;
     const Matrix<int> & _triangles;
     vector<vector<int>> _vertexToHalfEdges;

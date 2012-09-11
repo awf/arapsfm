@@ -61,4 +61,29 @@ int test_mesh(PyArrayObject * npy_vertices,
     return 0;
 }
 
+PyArrayObject * get_nring(PyArrayObject * npy_vertices,
+                          PyArrayObject * npy_triangles,
+                          int vertex,
+                          int N,
+                          bool includeSource)
+{
+    PYARRAY_AS_MATRIX(double, npy_vertices, vertices);
+    PYARRAY_AS_MATRIX(int, npy_triangles, triangles);
+    const int numVertices = vertices.num_rows();
+
+    Mesh mesh(numVertices, triangles);
+
+    vector<int> nring = mesh.GetNRing(vertex, N, includeSource);
+
+    npy_intp dim = nring.size();
+
+    PyArrayObject * npy_retNRing = (PyArrayObject *)PyArray_SimpleNew(1, &dim, NPY_INT32);
+    PYARRAY_AS_VECTOR(int, npy_retNRing, retNRing);
+
+    for (int i=0; i < nring.size(); i++)
+        retNRing[i] = nring[i];
+
+    return npy_retNRing;
+}
+
 #endif
