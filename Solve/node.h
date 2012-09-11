@@ -7,6 +7,8 @@ using namespace V3D;
 #include <iostream>
 using namespace std;
 
+#include "Geometry/mesh_walker.h"
+
 // Node
 class Node
 {
@@ -47,7 +49,9 @@ protected:
           _count(X.num_rows()), 
           _offset(offset),
           _paramId(paramId)
-    {}
+    {
+       this->Save(); 
+    }
 
     int _count;
     int _offset;
@@ -93,5 +97,46 @@ public:
     virtual int Dimension() const { return 3; }
 };
 
+// BarycentricNode
+class BarycentricNode : public Node
+{
+public:
+    BarycentricNode(Matrix<double> & U, Vector<int> & L, const MeshWalker & meshWalker)
+        : _L(L), _savedL(L.size()),
+          _meshWalker(meshWalker),
+          Node(U)
+    {}
+
+    virtual int TypeId() const { return 2; }
+    virtual int Dimension() const { return 2; }
+
+    const double * GetBarycentriCoordinate(int i) const { return _X[i]; }
+    const Matrix<double> & GetBarycentricCoordinates() const { return _X; }
+
+    int GetFaceIndex(int i) const { return _L[i]; }
+    const Vector<int> & GetFaceIndices() const { return _L; }
+
+    virtual void Update(const VectorArrayAdapter<double> & delta)
+    {
+        _meshWalker.applyDisplacement(_X, _L, delta);
+    }
+
+    virtual void Save()
+    {
+        Node::Save();
+        copyVector(_L, _savedL);
+    }
+
+    virtual void Restore()
+    {
+        Node::Restore();
+        copyVector(_savedL, _L);
+    }
+        
+protected:
+    Vector<int> & _L;
+    Vector<int> _savedL;
+    const MeshWalker & _meshWalker;
+};
 #endif
 
