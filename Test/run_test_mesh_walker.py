@@ -183,44 +183,6 @@ def walk_interface(V, T, walker):
 
         ren_win.Render()
 
-        """
-        # execute the walker 
-        path, first_world_delta = walker(u[:2], i, delta)
-        pprint(path)
-
-        if test_walker is not None:
-            U = np.empty((1, 2), dtype=np.float64)
-            U[0] = u[:2]
-            face_lookup = np.array([i], dtype=np.int32)
-            delta_ = np.empty((1, 2), dtype=np.float64)
-            delta_[0] = delta
-            test_walker(U, face_lookup, delta_)
-            print 'test_walker: face_lookup:', face_lookup
-            print 'test_walker: U:', U
-            print 'path[-1]:', path[-1]
-
-        # set the path
-        path_points.SetNumberOfPoints(len(path))
-        for j, (i, u) in enumerate(path):
-            v = bary2pos(V[T[i]], u)
-            path_points.SetPoint(j, *v)
-
-        # set the implied world delta if available
-        if first_world_delta is not None:
-            v1 = v0 + first_world_delta
-            direction_points.SetPoint(0, *v0)
-            direction_points.SetPoint(1, *v1)
-
-            direction_pd.Modified()
-            direction_actor.VisibilityOn()
-        else:
-            direction_actor.VisibilityOff()
-            
-        path_pd.Modified()
-        glyph_actor.VisibilityOn()
-        ren_win.Render()
-        """
-
     picker.AddObserver('EndPickEvent', annotate_pick)
     iren.SetPicker(picker)
 
