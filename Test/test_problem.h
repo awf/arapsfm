@@ -7,6 +7,8 @@ using namespace V3D;
 #include "Geometry/mesh.h"
 #include "Energy/arap.h"
 #include "Energy/projection.h"
+//#include "Energy/narrow_band_silhouette.h"
+#include "Energy/laplacian.h"
 #include "Solve/node.h"
 #include "Solve/problem.h"
 #include "Solve/optimiser_options.h"
@@ -15,13 +17,13 @@ using namespace V3D;
 
 // test_problem
 int test_problem(PyArrayObject * npy_V,
-                  PyArrayObject * npy_T,
-                  PyArrayObject * npy_X,
-                  PyArrayObject * npy_V1,
-                  PyArrayObject * npy_C,
-                  PyArrayObject * npy_P,
-                  PyArrayObject * npy_lambdas,
-                  const OptimiserOptions * options)
+                 PyArrayObject * npy_T,
+                 PyArrayObject * npy_X,
+                 PyArrayObject * npy_V1,
+                 PyArrayObject * npy_C,
+                 PyArrayObject * npy_P,
+                 PyArrayObject * npy_lambdas,
+                 const OptimiserOptions * options)
 {
     PYARRAY_AS_MATRIX(double, npy_V, V);
     PYARRAY_AS_MATRIX(int, npy_T, T);
@@ -46,6 +48,36 @@ int test_problem(PyArrayObject * npy_V,
     ProjectionEnergy * projEnergy = new ProjectionEnergy(*nodeV1, C, P, sqrt(lambdas[1]));
 
     problem.AddEnergy(arapEnergy);
+    problem.AddEnergy(projEnergy);
+
+    return problem.Minimise(*options);
+}
+
+// test_problem2
+int test_problem2(PyArrayObject * npy_V,
+                  PyArrayObject * npy_T,
+                  PyArrayObject * npy_C,
+                  PyArrayObject * npy_P,
+                  PyArrayObject * npy_lambdas,
+                  const OptimiserOptions * options)
+{
+    PYARRAY_AS_MATRIX(double, npy_V, V);
+    PYARRAY_AS_MATRIX(int, npy_T, T);
+    PYARRAY_AS_VECTOR(int, npy_C, C);
+    PYARRAY_AS_MATRIX(double, npy_P, P);
+    PYARRAY_AS_VECTOR(double, npy_lambdas, lambdas);
+
+    Mesh mesh(V.num_rows(), T);
+
+    VertexNode * nodeV = new VertexNode(V);
+
+    Problem problem;
+    problem.AddNode(nodeV);
+
+    LaplacianEnergy * lapEnergy = new LaplacianEnergy(*nodeV, mesh, sqrt(lambdas[0]));
+    ProjectionEnergy * projEnergy = new ProjectionEnergy(*nodeV, C, P, sqrt(lambdas[1]));
+
+    problem.AddEnergy(lapEnergy);
     problem.AddEnergy(projEnergy);
 
     return problem.Minimise(*options);

@@ -2,23 +2,21 @@
 
 # Imports
 from test_problem import *
-from vtk_ import *
+from visualise import visualise
 
 # load_model_1
 def load_model_1():
     z = np.load('Models/BAR_PROJECTION.npz')
     return z['V'], z['T'], z['C'], z['P']
-    
-# view
-def view(V, T, C):
-    T_ = faces_to_vtkCellArray(T)
-    poly_data = numpy_to_vtkPolyData(V, T_)
-    view_vtkPolyData(poly_data, camera_opt={'ParallelProjection' : False},
-                     highlight=C)
 
-# main
-def main():
-    V, T, C, P = load_model_1()
+# load_model_3
+def load_model_3():
+    z = np.load('Models/CHIHUAHUA_PROJECTION_0B.npz')
+    return z['V'], z['T'], z['C'], z['P']
+    
+# main_test_problem
+def main_test_problem():
+    V, T, C, P = load_model_3()
 
     V1 = V.copy()
 
@@ -26,12 +24,36 @@ def main():
 
     lambdas = np.array([1e+0, 1e+2], dtype=np.float64)
     status = test_problem(V, T, X, V1, C, P, lambdas, 
-                          gradientThreshold=1e-12,
-                          maxIterations=100)
+                          gradientThreshold=1e-6,
+                          maxIterations=200)
 
     print 'Status:', status
-    view(V1, T, C)
+
+    vis = visualise.VisualiseMesh(V1, T)
+    vis.add_projection(C, P)
+    vis.add_image('Frames/0.png')
+    vis.execute()
+
+    np.savez_compressed('MAIN_TEST_PROBLEM.npz', V1=V1)
+
+# main_test_problem2
+def main_test_problem2():
+    _, T, C, P = load_model_3()
+    z = np.load('MAIN_TEST_PROBLEM.npz')
+    V = z['V1'].copy()
+
+    lambdas = np.array([1e+0, 1e+2], dtype=np.float64)
+
+    status = test_problem2(V, T, C, P, lambdas, 
+                           gradientThreshold=1e-6,
+                           maxIterations=5)
+
+    vis = visualise.VisualiseMesh(V, T)
+    vis.add_projection(C, P)
+    vis.add_image('Frames/0.png')
+    vis.execute()
 
 if __name__ == '__main__':
-    main()
+    # main_test_problem()
+    main_test_problem2()
 

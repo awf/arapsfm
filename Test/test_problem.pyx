@@ -31,6 +31,14 @@ cdef extern from "test_problem.h":
         np.ndarray lambdas,
         OptimiserOptions * opt)
 
+    int test_problem2_c "test_problem2" (
+        np.ndarray V,
+        np.ndarray T,
+        np.ndarray C,
+        np.ndarray P,
+        np.ndarray lambdas,
+        OptimiserOptions * opt)
+
 # additional_optimiser_options
 DEFAULT_OPTIMISER_OPTIONS = {
     'maxIterations' : 50,
@@ -89,3 +97,20 @@ def test_problem(np.ndarray[np.float64_t, ndim=2, mode='c'] V,
 
     return STATUS_CODES[status]
     
+# test_problem2
+def test_problem2(np.ndarray[np.float64_t, ndim=2, mode='c'] V,
+                  np.ndarray[np.int32_t, ndim=2, mode='c'] T,
+                  np.ndarray[np.int32_t, ndim=1] C,
+                  np.ndarray[np.float64_t, ndim=2, mode='c'] P,
+                  np.ndarray[np.float64_t, ndim=1] lambdas,
+                  **kwargs):
+
+    cdef OptimiserOptions options
+    additional_optimiser_options(&options, kwargs)
+
+    if lambdas.shape[0] != 2:
+        raise ValueError('lambdas.shape[0] != 2')
+
+    cdef int status = test_problem2_c(V, T, C, P, lambdas, &options)
+
+    return STATUS_CODES[status]
