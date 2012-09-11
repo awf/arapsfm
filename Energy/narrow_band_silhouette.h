@@ -173,7 +173,7 @@ protected:
     const Matrix<double> & _S;
     const Mesh & _mesh;
     const double _w;
-    const double _narrowBand;
+    const int _narrowBand;
 
     vector<vector<int> *> _allNarrowBands;
 };
