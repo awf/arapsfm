@@ -32,13 +32,10 @@ namespace V3D
 //======================================================================
 
    NLSQ_LM_Optimizer::NLSQ_LM_Optimizer(NLSQ_ParamDesc const& paramDesc,
-                                        std::vector<NLSQ_CostFunction *> const& costFunctions,
-                                        bool usingDynamicCostFunctions)
+                                        std::vector<NLSQ_CostFunction *> const& costFunctions)
       : LevenbergOptimizerCommon(),
         _paramDesc(paramDesc), _costFunctions(costFunctions),
-        _hessianIndices(costFunctions.size()), _residuals(costFunctions.size()),
-        _usingDynamicCostFunctions(usingDynamicCostFunctions),
-        _isSetup(false)
+        _hessianIndices(costFunctions.size()), _residuals(costFunctions.size())
    {
       // First, compute the mappings between (paramType, id) pairs and global continuous ids.
       _paramTypeStartID[0] = 0;
@@ -56,9 +53,8 @@ namespace V3D
             _paramIdInverseMap[id].second = ix;
          }
 
-      if (!usingDynamicCostFunctions)
-          // This does the hard work of setting up the sparse data structures.
-          this->setupSparseJtJ();
+      // This does the hard work of setting up the sparse data structures.
+      this->setupSparseJtJ();
 
    } // end NLSQ_LM_Optimizer()
 
@@ -77,17 +73,6 @@ namespace V3D
    NLSQ_LM_Optimizer::setupSparseJtJ()
    {
       int const nObjs = _costFunctions.size();
-
-      if (_isSetup)
-      {
-          _hessian.deallocateMatrices();
-
-          for (int obj = 0; obj < _costFunctions.size(); ++obj)
-          {
-             delete _hessianIndices[obj];
-             delete _residuals[obj];
-          }
-      }
 
       // Note: for logical parameter ids i and j, J^T J has a non-zero block at (i,j) iff
       // there exists at least one measurement depending on i and j.
@@ -310,9 +295,8 @@ namespace V3D
       LDL_symbolic(JtJ_size, (int *)_JtJ.getColumnStarts(), (int *)_JtJ.getRowIndices(),
                    &_JtJ_Lp[0], &_JtJ_Parent[0], &_JtJ_Lnz[0], &workFlags[0]);
 
-      // if (optimizerVerbosenessLevel >= 1)
-      //   cout << "NLSQ_LM_Optimizer: Nonzeros in LDL decomposition: " << _JtJ_Lp[JtJ_size] << endl;
-      _isSetup = true;
+      if (optimizerVerbosenessLevel >= 1)
+        cout << "NLSQ_LM_Optimizer: Nonzeros in LDL decomposition: " << _JtJ_Lp[JtJ_size] << endl;
 
    } // end NLSQ_LM_Optimizer::setupSparseJtJ()
 
@@ -602,6 +586,8 @@ namespace V3D
          // Augment the diagonals
          for (int paramType = 0; paramType < _paramDesc.nParamTypes; ++paramType)
          {
+            const double & p = _paramDesc.preconditioner[paramType];
+
             MatrixArray<double>& Hs = *_hessian.Hs[paramType][paramType];
             vector<pair<int, int> > const& nzPairs = _hessian.nonzeroPairs[paramType][paramType];
             int const dim = Hs.num_cols();
@@ -612,7 +598,7 @@ namespace V3D
             {
                if (nzPairs[n].first != nzPairs[n].second) continue;
                for (int l = 0; l < dim; ++l)
-                  Hs[n][l][l] += lambda;
+                  Hs[n][l][l] += p * lambda;
             }
          } // end for (paramType)
 

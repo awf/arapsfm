@@ -23,6 +23,7 @@ namespace V3D
          int nParamTypes;                     //!< How many different kinds of parameters exist (2 for std. BA, cameras and 3D points)
          int dimension[NLSQ_MAX_PARAM_TYPES]; //!< What is the dimension of each parameter kind
          int count[NLSQ_MAX_PARAM_TYPES];     //!< How many unknowns are there per parameter type
+         double preconditioner[NLSQ_MAX_PARAM_TYPES];   //!< Weighting applied when adding damping
    }; // end struct NLSQ_ParamDesc
 
    //! This structure holds the residuals, weights and Jacobian for a particular cost function.
@@ -177,8 +178,7 @@ namespace V3D
    struct NLSQ_LM_Optimizer : public LevenbergOptimizerCommon
    {
          NLSQ_LM_Optimizer(NLSQ_ParamDesc const& paramDesc,
-                           std::vector<NLSQ_CostFunction *> const& costFunctions,
-                           bool usingDynamicCostFunctions = false);
+                           std::vector<NLSQ_CostFunction *> const& costFunctions);
 
          ~NLSQ_LM_Optimizer();
 
@@ -223,9 +223,6 @@ namespace V3D
 
          int _paramTypeRowStart[NLSQ_MAX_PARAM_TYPES + 1];
          CCS_Matrix<double> _JtJ;
-
-         bool _usingDynamicCostFunctions;
-         bool _isSetup;
 
    }; // end struct NLSQ_LM_Optimizer
 
