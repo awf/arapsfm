@@ -45,6 +45,7 @@ void Problem::InitialiseParamDesc()
 
         _NLSQ_paramDesc.dimension[l] = node->Dimension();
         _NLSQ_paramDesc.count[l] = node->GetOffset() + node->GetCount();
+        _NLSQ_paramDesc.preconditioner[l] = node->GetPreconditioner();
 
         _usedParameters.push_back(node->TypeId());
 

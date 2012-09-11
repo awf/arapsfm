@@ -27,6 +27,9 @@ public:
     virtual void SetOffset(int offset) { _offset = offset; }
     virtual int GetOffset() const { return _offset; }
 
+    virtual void SetPreconditioner(const double & preconditioner) = 0;
+    virtual const double & GetPreconditioner () const = 0;
+
     virtual void Update(const VectorArrayAdapter<double> & delta)
     {
         for (int i=0; i < _X.num_rows(); i++)
@@ -72,11 +75,17 @@ public:
     virtual ~VertexNode()
     {}
 
-    const double * GetVertex(int i) const { return _X[i]; }
-    const Matrix<double> & GetVertices() const { return _X; }
+    virtual const double * GetVertex(int i) const { return _X[i]; }
+    virtual const Matrix<double> & GetVertices() const { return _X; }
 
     virtual int TypeId() const { return 0; }
     virtual int Dimension() const { return 3; }
+
+    virtual void SetPreconditioner(const double & preconditioner) { _preconditioner = preconditioner; }
+    virtual const double & GetPreconditioner () const { return _preconditioner; }
+
+protected:
+    static double _preconditioner;
 };
 
 // RotationNode
@@ -90,11 +99,17 @@ public:
     virtual ~RotationNode()
     {}
 
-    const double * GetRotation(int i) const { return _X[i]; }
-    const Matrix<double> & GetRotations() const { return _X; }
+    virtual const double * GetRotation(int i) const { return _X[i]; }
+    virtual const Matrix<double> & GetRotations() const { return _X; }
 
     virtual int TypeId() const { return 1; }
     virtual int Dimension() const { return 3; }
+
+    virtual void SetPreconditioner(const double & preconditioner) { _preconditioner = preconditioner; }
+    virtual const double & GetPreconditioner () const { return _preconditioner; }
+
+protected:
+    static double _preconditioner;
 };
 
 // BarycentricNode
@@ -110,11 +125,11 @@ public:
     virtual int TypeId() const { return 2; }
     virtual int Dimension() const { return 2; }
 
-    const double * GetBarycentriCoordinate(int i) const { return _X[i]; }
-    const Matrix<double> & GetBarycentricCoordinates() const { return _X; }
+    virtual const double * GetBarycentriCoordinate(int i) const { return _X[i]; }
+    virtual const Matrix<double> & GetBarycentricCoordinates() const { return _X; }
 
-    int GetFaceIndex(int i) const { return _L[i]; }
-    const Vector<int> & GetFaceIndices() const { return _L; }
+    virtual int GetFaceIndex(int i) const { return _L[i]; }
+    virtual const Vector<int> & GetFaceIndices() const { return _L; }
 
     virtual void Update(const VectorArrayAdapter<double> & delta)
     {
@@ -132,11 +147,17 @@ public:
         Node::Restore();
         copyVector(_savedL, _L);
     }
+
+    virtual void SetPreconditioner(const double & preconditioner) { _preconditioner = preconditioner; }
+    virtual const double & GetPreconditioner () const { return _preconditioner; }
         
 protected:
     Vector<int> & _L;
     Vector<int> _savedL;
     const MeshWalker & _meshWalker;
+
+    static double _preconditioner;
 };
+
 #endif
 

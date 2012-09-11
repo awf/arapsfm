@@ -16,7 +16,7 @@ public:
     Optimiser(const NLSQ_ParamDesc & paramDesc,
               vector<NLSQ_CostFunction *> & costFunctions,
               Problem & problem)
-        : NLSQ_LM_Optimizer(paramDesc, costFunctions, false),
+        : NLSQ_LM_Optimizer(paramDesc, costFunctions),
           _problem(problem)
     {}
 
