@@ -24,7 +24,7 @@ def main():
 
     X = np.zeros_like(V)
 
-    lambdas = np.array([1e+0, 1e+0], dtype=np.float64)
+    lambdas = np.array([1e+0, 1e+2], dtype=np.float64)
     status = test_problem(V, T, X, V1, C, P, lambdas, 
                           gradientThreshold=1e-12,
                           maxIterations=100)

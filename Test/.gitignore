@@ -1,2 +1,3 @@
 test_mesh.cpp
 test_problem.cpp
+test_mesh_walker.cpp
