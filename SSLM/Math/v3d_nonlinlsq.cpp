@@ -475,7 +475,12 @@ namespace V3D
          return;
       }
 
-      beginIteration(-1);
+      if (!beginIteration(-1))
+      {
+         // Can't begin the iteration 
+         status = LEVENBERG_OPTIMIZER_CANT_BEGIN_ITERATION;
+         return;
+      };
 
       int const totalParamDimension = _JtJ.num_cols();
 
@@ -490,7 +495,12 @@ namespace V3D
 
       for (currentIteration = 0; currentIteration < maxIterations; ++currentIteration)
       {
-         beginIteration(currentIteration);
+         if(!beginIteration(currentIteration))
+         {
+             // Can't begin the iteration 
+             status = LEVENBERG_OPTIMIZER_CANT_BEGIN_ITERATION;
+             goto end;
+         }
 
          if (optimizerVerbosenessLevel >= 2)
             cout << "ExtSparseLevenbergOptimizer: currentIteration: " << currentIteration << endl;
