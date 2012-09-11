@@ -162,7 +162,7 @@ public:
         pUsedParamTypes->push_back(_V1.GetParamId());
         pUsedParamTypes->push_back(_V1.GetParamId());
 
-        costFunctions.push_back(new Energy_CostFunction(*this, pUsedParamTypes));
+        costFunctions.push_back(new Energy_CostFunction(*this, pUsedParamTypes, 3));
     }
 
     virtual int GetCorrespondingParam(const int k, const int i) const

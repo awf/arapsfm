@@ -98,7 +98,7 @@ public:
         for (auto i = mapIncOneRingToVertex.begin(); i != mapIncOneRingToVertex.end(); i++)
         {
             vector<int> * pUsedParamTypes = new vector<int>(i->first, _V.GetParamId());
-            costFunctions.push_back(new Energy_CostFunction(*this, pUsedParamTypes, i->second));
+            costFunctions.push_back(new Energy_CostFunction(*this, pUsedParamTypes, 3, i->second));
         }
     }
 

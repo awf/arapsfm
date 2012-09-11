@@ -25,11 +25,12 @@ class Energy_CostFunction : public NLSQ_CostFunction
 public:
     Energy_CostFunction(const Energy & parentEnergy,
                         const vector<int> * pUsedParamTypes,
+                        int measurementDim,
                         const vector<int> * pResidualMap = nullptr)
         : _parentEnergy(parentEnergy),
           _pUsedParamTypes(pUsedParamTypes),
           _pResidualMap(pResidualMap),
-          NLSQ_CostFunction(*pUsedParamTypes, 3, nullptr)
+          NLSQ_CostFunction(*pUsedParamTypes, measurementDim, nullptr)
     {}
                      
     virtual ~Energy_CostFunction()
