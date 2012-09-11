@@ -91,6 +91,7 @@ int test_problem3(PyArrayObject * npy_V,
                   PyArrayObject * npy_S,
                   PyArrayObject * npy_SN,
                   PyArrayObject * npy_lambdas,
+                  PyArrayObject * npy_preconditioners,
                   int narrowBand,
                   const OptimiserOptions * options)
 {
@@ -103,13 +104,16 @@ int test_problem3(PyArrayObject * npy_V,
     PYARRAY_AS_MATRIX(double, npy_SN, SN);
 
     PYARRAY_AS_VECTOR(double, npy_lambdas, lambdas);
+    PYARRAY_AS_VECTOR(double, npy_preconditioners, preconditioners);
 
     Mesh mesh(V.num_rows(), T);
 
     VertexNode * nodeV = new VertexNode(V);
+    nodeV->SetPreconditioner(preconditioners[0]);
 
     MeshWalker meshWalker(mesh, V);
     BarycentricNode * nodeU = new BarycentricNode(U, L, meshWalker);
+    nodeU->SetPreconditioner(preconditioners[1]);
 
     Problem problem;
     problem.AddNode(nodeV);

@@ -76,9 +76,10 @@ def main_test_problem3():
     U = z['U']
     L = z['L']
     
-    lambdas = np.array([1e2, 1e1], dtype=np.float64)
+    lambdas = np.array([1e1, 1e1], dtype=np.float64)
+    preconditioners = np.array([1.0, 100.0], dtype=np.float64)
 
-    status = test_problem3(V, T, U, L, S, SN, lambdas, 2,
+    status = test_problem3(V, T, U, L, S, SN, lambdas, preconditioners, 3,
         gradientThreshold=1e-6,
         maxIterations=15,
         verbosenessLevel=1)

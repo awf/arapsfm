@@ -46,6 +46,7 @@ cdef extern from "test_problem.h":
                   np.ndarray S,
                   np.ndarray SN,
                   np.ndarray lambdas,
+                  np.ndarray preconditioners,
                   int narrowBand,
                   OptimiserOptions * options)
 
@@ -133,6 +134,7 @@ def test_problem3(np.ndarray[np.float64_t, ndim=2, mode='c'] V,
                   np.ndarray[np.float64_t, ndim=2, mode='c'] S,  
                   np.ndarray[np.float64_t, ndim=2, mode='c'] SN,  
                   np.ndarray[np.float64_t, ndim=1] lambdas,
+                  np.ndarray[np.float64_t, ndim=1] preconditioners,
                   int narrowBand,
                   **kwargs):
 
@@ -142,6 +144,7 @@ def test_problem3(np.ndarray[np.float64_t, ndim=2, mode='c'] V,
     if lambdas.shape[0] != 2:
         raise ValueError('lambdas.shape[0] != 2')
 
-    cdef int status = test_problem3_c(V, T, U, L, S, SN, lambdas, narrowBand, &options)
+    cdef int status = test_problem3_c(V, T, U, L, S, SN, lambdas, preconditioners, narrowBand, &options)
 
     return STATUS_CODES[status]
+

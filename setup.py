@@ -75,6 +75,7 @@ setup(
         Extension('Test.test_problem',
                   ['Test/test_problem.pyx',
                    'Solve/problem.cpp',
+                   'Solve/node.cpp',
                    'Geometry/mesh_walker.cpp'] +
                   SSLM_BASE_SRC + 
                   SSLM_MATH_SRC,
