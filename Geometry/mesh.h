@@ -121,6 +121,17 @@ public:
         return oppositeIndex != -1 ? GetHalfEdgeTriangle(oppositeIndex) : -1;
     }
 
+    vector<int> GetTrianglesAtVertex(int vertexIndex) const
+    {
+        auto halfEdges = GetHalfEdgesFromVertex(vertexIndex); 
+
+        vector<int> triangles(halfEdges.size());
+        for (int i = 0; i < halfEdges.size(); i++)
+            triangles[i] = GetHalfEdgeTriangle(halfEdges[i]);
+
+        return triangles;
+    }
+
     vector<int> GetNRing(int vertexIndex, int N, bool includeSource=true) const
     {
         vector<int> nring;

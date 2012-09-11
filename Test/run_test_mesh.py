@@ -2,6 +2,7 @@
 
 # Imports
 import numpy as np
+from visualise import visualise
 from vtk_ import *
 from test_mesh import *
 
@@ -154,6 +155,105 @@ def main_test_nring():
 
     nring_interface(V, T, get_ring)
 
+# triangles_at_vertex_interface
+def triangles_at_vertex_interface(V, T, get_faces):
+    T_ = faces_to_vtkCellArray(T)
+    model_pd = numpy_to_vtkPolyData(V, T_)
+
+    L = []
+
+    # setup the programmable filter to color specific faces
+    color_face = vtk.vtkProgrammableFilter()
+    color_face.SetInput(model_pd)
+
+    def color_face_callback():
+        input_ = color_face.GetInput()
+        output = color_face.GetOutput()
+        output.ShallowCopy(input_)
+
+        color_lookup = vtk.vtkIntArray()
+        color_lookup.SetNumberOfValues(model_pd.GetNumberOfPolys())
+
+        npy_cl = vtk_to_numpy(color_lookup)
+        npy_cl.fill(0)
+
+        if L is not None:
+            npy_cl[L] = 1
+
+        output.GetCellData().SetScalars(color_lookup)
+
+    color_face.SetExecuteMethod(color_face_callback)
+
+    # setup the lookup table for coloring the different cells
+    lut = vtk.vtkLookupTable()
+    lut.SetNumberOfTableValues(2)
+    lut.Build()
+
+    lut.SetTableValue(0, *visualise.int2dbl(31, 120, 180))
+    lut.SetTableValue(1, *visualise.int2dbl(178, 223, 138))
+
+    # model
+    model_mapper = vtk.vtkPolyDataMapper()
+    model_mapper.SetInputConnection(color_face.GetOutputPort())
+    model_mapper.SetScalarRange(0, 1)
+    model_mapper.SetLookupTable(lut)
+
+    model_actor = vtk.vtkActor()
+    model_actor.SetMapper(model_mapper)
+    model_actor.GetProperty().SetColor(0.26, 0.58, 0.76)
+
+    # renderer
+    ren = vtk.vtkRenderer()
+    ren.SetBackground(1.0, 1.0, 1.0)
+    ren.AddActor(model_actor)
+
+    # render window
+    ren_win = vtk.vtkRenderWindow()
+    ren_win.AddRenderer(ren)
+    ren_win.SetSize(600, 600)
+
+    # render window interaction
+    iren = vtk.vtkRenderWindowInteractor()
+    iren.SetRenderWindow(ren_win)
+
+    style = vtk.vtkInteractorStyleTrackballCamera()
+    style.SetCurrentRenderer(ren)
+    iren.SetInteractorStyle(style)
+
+    # interface
+    picker = vtk.vtkPointPicker()
+
+    def annotate_pick(obj, event):
+        i = picker.GetPointId()
+        if i == -1: return
+
+        faces = get_faces(i)
+        print 'faces:', faces
+
+        del L[:]
+        L.extend(faces)
+        print 'L:', L
+
+        # force update
+        model_pd.Modified()
+        ren_win.Render()
+
+    picker.AddObserver('EndPickEvent', annotate_pick)
+    iren.SetPicker(picker)
+
+    iren.Initialize()
+    iren.Start()
+
+# main_test_triangles_at_vertex
+def main_test_triangles_at_vertex():
+    V, T = load_model_2()
+    
+    def get_faces(vertex):
+        return get_triangles_at_vertex(V, T, vertex)
+
+    triangles_at_vertex_interface(V, T, get_faces)
+
 if __name__ == '__main__':
     # main_test_mesh()
-    main_test_nring()
+    # main_test_nring()
+    main_test_triangles_at_vertex()

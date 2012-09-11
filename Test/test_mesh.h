@@ -86,4 +86,27 @@ PyArrayObject * get_nring(PyArrayObject * npy_vertices,
     return npy_retNRing;
 }
 
+PyArrayObject * get_triangles_at_vertex(PyArrayObject * npy_vertices,
+                                        PyArrayObject * npy_triangles,
+                                        int vertex)
+{
+    PYARRAY_AS_MATRIX(double, npy_vertices, vertices);
+    PYARRAY_AS_MATRIX(int, npy_triangles, triangles);
+    const int numVertices = vertices.num_rows();
+
+    Mesh mesh(numVertices, triangles);
+
+    vector<int> adjTriangles = mesh.GetTrianglesAtVertex(vertex);
+
+    npy_intp dim = adjTriangles.size();
+
+    PyArrayObject * npy_ret = (PyArrayObject *)PyArray_SimpleNew(1, &dim, NPY_INT32);
+    PYARRAY_AS_VECTOR(int, npy_ret, ret);
+
+    for (int i=0; i < adjTriangles.size(); i++)
+        ret[i] = adjTriangles[i];
+
+    return npy_ret;
+}
+
 #endif
