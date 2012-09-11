@@ -20,6 +20,11 @@ public:
           _problem(problem)
     {}
 
+    virtual bool beginIteration(const int currentIteration)
+    {
+        return _problem.BeginIteration(currentIteration);
+    }
+
     virtual void updateParameters(const int paramType, const VectorArrayAdapter<double> & delta)
     {
         _problem.UpdateParameter(paramType, delta);

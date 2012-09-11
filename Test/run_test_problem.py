@@ -79,16 +79,16 @@ def main_test_problem3():
     lambdas = np.array([1e1, 1e1], dtype=np.float64)
     preconditioners = np.array([1.0, 100.0], dtype=np.float64)
 
-    status = test_problem3(V, T, U, L, S, SN, lambdas, preconditioners, 3,
+    status, status_string = test_problem3(V, T, U, L, S, SN, lambdas, preconditioners, 3,
         gradientThreshold=1e-6,
-        maxIterations=15,
+        maxIterations=30,
         verbosenessLevel=1)
 
     Q = np.empty((U.shape[0], 3), dtype=np.float64)
     for i, face_index in enumerate(L):
         Q[i] = bary2pos(V[T[face_index]], make_bary(U[i]))
 
-    print 'Status:', status
+    print 'Status (%d):' % status, status_string
     vis = visualise.VisualiseMesh(V, T, L)
     vis.add_image('Frames/0.png')
     vis.add_silhouette(Q, np.arange(Q.shape[0]), [0, S.shape[0] - 1], S)

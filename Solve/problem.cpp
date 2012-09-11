@@ -65,6 +65,13 @@ void Problem::InitialiseCostFunctions()
         (*i)->GetCostFunctions(_costFunctions);
 }
 
+bool Problem::BeginIteration(const int currentIteration)
+{
+    for (auto energy = _allEnergies.begin(); energy != _allEnergies.end(); energy++)
+        if (!(*energy)->CanBeginIteration()) 
+            return false;
+}
+
 int Problem::Minimise(const OptimiserOptions & options)
 {
     InitialiseParamDesc();

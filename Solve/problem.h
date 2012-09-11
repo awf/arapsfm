@@ -23,6 +23,8 @@ public:
 
     virtual int Minimise(const OptimiserOptions & options);
 
+    virtual bool BeginIteration(const int currentIteration);
+
     virtual void UpdateParameter(const int paramType, const VectorArrayAdapter<double> & delta);
 
     virtual void Save();

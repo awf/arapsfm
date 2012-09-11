@@ -86,7 +86,8 @@ cdef int additional_optimiser_options(OptimiserOptions * options, dict kwargs) e
 STATUS_CODES = ['OPTIMIZER_TIMEOUT',
                 'OPTIMIZER_SMALL_UPDATE',
                 'OPTIMIZER_SMALL_IMPROVEMENT',
-                'OPTIMIZER_CONVERGED']
+                'OPTIMIZER_CONVERGED',
+                'OPTIMIZER_CANT_BEGIN_ITERATION']
 
 # test_problem
 def test_problem(np.ndarray[np.float64_t, ndim=2, mode='c'] V,
@@ -106,7 +107,7 @@ def test_problem(np.ndarray[np.float64_t, ndim=2, mode='c'] V,
 
     cdef int status = test_problem_c(V, T, X, V1, C, P, lambdas, &options)
 
-    return STATUS_CODES[status]
+    return status, STATUS_CODES[status]
     
 # test_problem2
 def test_problem2(np.ndarray[np.float64_t, ndim=2, mode='c'] V,
@@ -124,7 +125,7 @@ def test_problem2(np.ndarray[np.float64_t, ndim=2, mode='c'] V,
 
     cdef int status = test_problem2_c(V, T, C, P, lambdas, &options)
 
-    return STATUS_CODES[status]
+    return status, STATUS_CODES[status]
 
 # test_problem3
 def test_problem3(np.ndarray[np.float64_t, ndim=2, mode='c'] V,
@@ -146,5 +147,5 @@ def test_problem3(np.ndarray[np.float64_t, ndim=2, mode='c'] V,
 
     cdef int status = test_problem3_c(V, T, U, L, S, SN, lambdas, preconditioners, narrowBand, &options)
 
-    return STATUS_CODES[status]
+    return status, STATUS_CODES[status]
 
