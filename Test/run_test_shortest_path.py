@@ -34,7 +34,7 @@ def main_test_shortest_path():
     z = np.load('MAIN_TEST_PROBLEM.npz')
     V = z['V1'].copy()
 
-    lambdas = np.array([1.0, 1.0], dtype=np.float64)
+    lambdas = np.array([1, 1e-3, 1e3], dtype=np.float64)
 
     silhouette = load_silhouette_information()
 
