@@ -10,6 +10,7 @@ using namespace V3D;
 #include "Geometry/mesh.h"
 
 #include <map>
+#include <algorithm>
 using namespace std;
 
 // silhouetteProjResiduals_Unsafe
@@ -57,7 +58,6 @@ public:
 
     virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions) 
     {
-        const Matrix<double> & U = _U.GetBarycentricCoordinates();
         const Vector<int> & L = _U.GetFaceIndices();
 
         // mapping from n -> [k0, k1, ...]
@@ -163,6 +163,29 @@ public:
             {
                 // other vertex in the narrow band
                 fillMatrix(J, 0);
+            }
+        }
+    }
+
+    virtual bool CanBeginIteration() const
+    {
+        // check that vertices of each face are in the narrow bands
+        const Vector<int> & L = _U.GetFaceIndices();
+
+        for (int i=0; i < L.size(); i++)
+        {
+            const int * Ti = _mesh.GetTriangle(L[i]);
+            const vector<int> * narrowBand = _allNarrowBands[i];
+
+            for (int j=0; j<3; j++)
+            {
+                auto l = find(narrowBand->begin(), narrowBand->end(), Ti[j]);
+
+                if (l == narrowBand->end())
+                {
+                    // face vertex is not in the narrow band
+                    return false;
+                }
             }
         }
     }

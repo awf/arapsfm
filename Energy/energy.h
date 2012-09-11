@@ -17,6 +17,8 @@ public:
 
     virtual void EvaluateResidual(const int k, Vector<double> & e) const = 0;
     virtual void EvaluateJacobian(const int k, const int whichParam, Matrix<double> & J) const = 0;
+
+    virtual bool CanBeginIteration() const { return true; }
 };
 
 // Energy_CostFunction
