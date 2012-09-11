@@ -1,7 +1,6 @@
 /* shortest_path.cpp */
 #include "Silhouette/shortest_path.h"
 #include "Math/static_linear.h"
-#include "Math/static_geometry.h"
 
 #include <utility>
 #include <limits>
