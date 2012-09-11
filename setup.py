@@ -59,12 +59,12 @@ include_dirs = [NUMPY_INC, '.', 'shared/']
 setup(
     ext_modules=[
         
-        Extension('Test.test_shortest_path',
-                  ['Test/test_shortest_path.pyx',
-                   'Silhouette/shortest_path.cpp'],
-                  include_dirs=include_dirs + [SSLM_ROOT],
-                  define_macros=REMOVE_EXCEPTION_MACROS,
-                  language='c++'),
+        # Extension('Test.test_shortest_path',
+        #           ['Test/test_shortest_path.pyx',
+        #            'Silhouette/shortest_path.cpp'],
+        #           include_dirs=include_dirs + [SSLM_ROOT],
+        #           define_macros=REMOVE_EXCEPTION_MACROS,
+        #           language='c++'),
 
         # Extension('Test.test_mesh',
         #           ['Test/test_mesh.pyx'],
@@ -72,19 +72,17 @@ setup(
         #           define_macros=REMOVE_EXCEPTION_MACROS,
         #           language='c++'),
 
-        # Extension('Test.test_problem',
-        #           ['Test/test_problem.pyx',
-        #            'Solve/problem.cpp',
-        #            'Geometry/mesh_walker.cpp'] +
-        #           SSLM_BASE_SRC + 
-        #           SSLM_MATH_SRC,
-        #           include_dirs=include_dirs + [SSLM_ROOT, COLAMD_INC],
-        #           library_dirs=[COLAMD_LIB],
-        #           libraries=['colamd'],
-        #           # library_dirs=[COLAMD_LIB],
-        #           # libraries=['colamd'],
-        #           define_macros=REMOVE_EXCEPTION_MACROS,
-        #           language='c++'),
+        Extension('Test.test_problem',
+                  ['Test/test_problem.pyx',
+                   'Solve/problem.cpp',
+                   'Geometry/mesh_walker.cpp'] +
+                  SSLM_BASE_SRC + 
+                  SSLM_MATH_SRC,
+                  include_dirs=include_dirs + [SSLM_ROOT, COLAMD_INC],
+                  library_dirs=[COLAMD_LIB],
+                  libraries=['colamd'],
+                  define_macros=REMOVE_EXCEPTION_MACROS + [('NO_HELPER', 1)],
+                  language='c++'),
 
         # Extension('Test.test_mesh_walker',
         #           ['Test/test_mesh_walker.pyx',

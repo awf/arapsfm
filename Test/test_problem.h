@@ -7,7 +7,7 @@ using namespace V3D;
 #include "Geometry/mesh.h"
 #include "Energy/arap.h"
 #include "Energy/projection.h"
-//#include "Energy/narrow_band_silhouette.h"
+#include "Energy/narrow_band_silhouette.h"
 #include "Energy/laplacian.h"
 #include "Solve/node.h"
 #include "Solve/problem.h"
@@ -83,4 +83,50 @@ int test_problem2(PyArrayObject * npy_V,
     return problem.Minimise(*options);
 }
 
+// test_problem3
+int test_problem3(PyArrayObject * npy_V,
+                  PyArrayObject * npy_T,
+                  PyArrayObject * npy_U,
+                  PyArrayObject * npy_L,
+                  PyArrayObject * npy_S,
+                  PyArrayObject * npy_SN,
+                  PyArrayObject * npy_lambdas,
+                  int narrowBand,
+                  const OptimiserOptions * options)
+{
+    PYARRAY_AS_MATRIX(double, npy_V, V);
+    PYARRAY_AS_MATRIX(int, npy_T, T);
+    PYARRAY_AS_MATRIX(double, npy_U, U);
+    PYARRAY_AS_VECTOR(int, npy_L, L);
+
+    PYARRAY_AS_MATRIX(double, npy_S, S);
+    PYARRAY_AS_MATRIX(double, npy_SN, SN);
+
+    PYARRAY_AS_VECTOR(double, npy_lambdas, lambdas);
+
+    Mesh mesh(V.num_rows(), T);
+
+    VertexNode * nodeV = new VertexNode(V);
+
+    MeshWalker meshWalker(mesh, V);
+    BarycentricNode * nodeU = new BarycentricNode(U, L, meshWalker);
+
+    Problem problem;
+    problem.AddNode(nodeV);
+    problem.AddNode(nodeU);
+
+    LaplacianEnergy * lapEnergy = new LaplacianEnergy(*nodeV, mesh, sqrt(lambdas[0]));
+    SilhouetteProjectionEnergy * silProjEnergy = new SilhouetteProjectionEnergy(*nodeV, *nodeU, S, mesh,
+        sqrt(lambdas[1]), narrowBand);
+
+    problem.AddEnergy(lapEnergy);
+    problem.AddEnergy(silProjEnergy);
+
+    return problem.Minimise(*options);
+}
+
 #endif
+
+
+
+

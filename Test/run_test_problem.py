@@ -4,6 +4,17 @@
 from test_problem import *
 from visualise import visualise
 
+# Barycentric conversion
+
+# make_bary
+def make_bary(u):
+    u = u[:2]
+    return np.r_[u, 1.0 - np.sum(u)]
+
+# bary2pos
+def bary2pos(V, u):
+    return np.dot(u, V)
+
 # load_model_1
 def load_model_1():
     z = np.load('Models/BAR_PROJECTION.npz')
@@ -53,7 +64,37 @@ def main_test_problem2():
     vis.add_image('Frames/0.png')
     vis.execute()
 
+# main_test_problem3
+def main_test_problem3():
+    _, T, C, P = load_model_3()
+    z = np.load('MAIN_TEST_PROBLEM.npz')
+    V = z['V1'].copy()
+
+    z = np.load('MAIN_TEST_SHORTEST_PATH.npz')
+    S = z['S']
+    SN = z['SN']
+    U = z['U']
+    L = z['L']
+    
+    lambdas = np.array([1e2, 1e1], dtype=np.float64)
+
+    status = test_problem3(V, T, U, L, S, SN, lambdas, 2,
+        gradientThreshold=1e-6,
+        maxIterations=15,
+        verbosenessLevel=1)
+
+    Q = np.empty((U.shape[0], 3), dtype=np.float64)
+    for i, face_index in enumerate(L):
+        Q[i] = bary2pos(V[T[face_index]], make_bary(U[i]))
+
+    print 'Status:', status
+    vis = visualise.VisualiseMesh(V, T, L)
+    vis.add_image('Frames/0.png')
+    vis.add_silhouette(Q, np.arange(Q.shape[0]), [0, S.shape[0] - 1], S)
+    vis.execute()
+
 if __name__ == '__main__':
     # main_test_problem()
-    main_test_problem2()
+    # main_test_problem2()
+    main_test_problem3()
 

@@ -39,6 +39,16 @@ cdef extern from "test_problem.h":
         np.ndarray lambdas,
         OptimiserOptions * opt)
 
+    int test_problem3_c "test_problem3" (np.ndarray V,
+                  np.ndarray T,
+                  np.ndarray U,
+                  np.ndarray L,
+                  np.ndarray S,
+                  np.ndarray SN,
+                  np.ndarray lambdas,
+                  int narrowBand,
+                  OptimiserOptions * options)
+
 # additional_optimiser_options
 DEFAULT_OPTIMISER_OPTIONS = {
     'maxIterations' : 50,
@@ -112,5 +122,26 @@ def test_problem2(np.ndarray[np.float64_t, ndim=2, mode='c'] V,
         raise ValueError('lambdas.shape[0] != 2')
 
     cdef int status = test_problem2_c(V, T, C, P, lambdas, &options)
+
+    return STATUS_CODES[status]
+
+# test_problem3
+def test_problem3(np.ndarray[np.float64_t, ndim=2, mode='c'] V,
+                  np.ndarray[np.int32_t, ndim=2, mode='c'] T,
+                  np.ndarray[np.float64_t, ndim=2, mode='c'] U,  
+                  np.ndarray[np.int32_t, ndim=1] L,
+                  np.ndarray[np.float64_t, ndim=2, mode='c'] S,  
+                  np.ndarray[np.float64_t, ndim=2, mode='c'] SN,  
+                  np.ndarray[np.float64_t, ndim=1] lambdas,
+                  int narrowBand,
+                  **kwargs):
+
+    cdef OptimiserOptions options
+    additional_optimiser_options(&options, kwargs)
+
+    if lambdas.shape[0] != 2:
+        raise ValueError('lambdas.shape[0] != 2')
+
+    cdef int status = test_problem3_c(V, T, U, L, S, SN, lambdas, narrowBand, &options)
 
     return STATUS_CODES[status]
