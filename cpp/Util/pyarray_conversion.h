@@ -65,9 +65,9 @@ vector<Matrix<Elem> *> PyList_to_vector_of_Matrix(PyObject * list)
     return vec;
 }
 
-// PyList_vector_dealloc
+// dealloc_vector
 template <typename T>
-void PyList_vector_dealloc(vector<T *> & vec)
+void dealloc_vector(vector<T *> & vec)
 {
     for (int i=0; i < vec.size(); i++)
     {
