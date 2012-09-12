@@ -19,6 +19,8 @@ from core_recovery.silhouette_global_solver import \
 
 from visualise import visualise
 
+from time import clock
+
 # Constants
 DATA_ROOT = 'data'
 INPUT_MODEL = os.path.join(DATA_ROOT, 'models', 'chihuahua.npz')
@@ -121,10 +123,10 @@ def main_fit_single_silhouette():
                                      1e3],  # silhouette normal
                                      dtype=np.float64)
 
-    lm_lamdas = np.r_[1.0,  # laplacian regularisation
+    lm_lambdas = np.r_[1.0,  # laplacian regularisation
                       global_solve_lambdas[1:]]
 
-    lm_lamdas = np.asarray(lm_lamdas, dtype=np.float64)
+    lm_lambdas = np.asarray(lm_lambdas, dtype=np.float64)
     lm_preconditioners = np.array([1.0, 100.0], dtype=np.float64)
 
     for index, user_constraints in INPUT_SELECTION:
@@ -148,7 +150,7 @@ def main_fit_single_silhouette():
         # fit under laplacian
         def solve_iteration():
             status = solve_single_lap_silhouette(V, T, U, L, S, SN, 
-                lm_lamdas, 
+                lm_lambdas, 
                 lm_preconditioners, 
                 narrowBand=3, 
                 maxIterations=20,
@@ -189,7 +191,7 @@ def main_fit_joint_arap_silhouette():
                                      1e3],  # silhouette normal
                                      dtype=np.float64)
 
-    lm_lamdas = np.asarray(np.r_[1.0,  # as-rigid-as-possible
+    lm_lambdas = np.asarray(np.r_[1.0,  # as-rigid-as-possible
                                  global_solve_lambdas[1:]], 
                            dtype=np.float64)
     
@@ -228,7 +230,7 @@ def main_fit_joint_arap_silhouette():
     # solve_iteration
     def solve_iteration():
         status = solve_multiview_arap_silhouette(
-            T, V, multiX, multiV, multiU, multiL, multiS, multiSN, lm_lamdas,
+            T, V, multiX, multiV, multiU, multiL, multiS, multiSN, lm_lambdas,
             lm_preconditioners,
             narrowBand=2, 
             maxIterations=50,
@@ -270,17 +272,27 @@ def main_fit_joint_lap_silhouette():
     # information for silhouette specific only to the model (approx)
     silhouette_info = load_silhouette_info()
 
+    # weighting lambdas
     global_solve_lambdas = np.array([1e-3,  # geodesic between preimage
                                      1e0,   # silhouette projection
                                      1e3],  # silhouette normal
                                      dtype=np.float64)
 
-    lm_lamdas = np.asarray(np.r_[1.0,  # as-rigid-as-possible
+    lm_lambdas = np.asarray(np.r_[1.0,  # as-rigid-as-possible
                                  global_solve_lambdas[1:], 
                                  1e1], # laplacian
                            dtype=np.float64)
     
+    # preconditioning for the joint minimisation
     lm_preconditioners = np.array([1.0, 1.0, 100.0], dtype=np.float64)
+
+    # other solver options
+    solver_options = dict(narrowBand=2, 
+                          uniformWeights=True,
+                          maxIterations=20,
+                          gradientThreshold=1e-6,
+                          updateThreshold=1e-6,
+                          improvementThreshold=1e-6)
 
     # construct lists for minimisation
     multiX, multiV , multiU, multiL, multiS, multiSN = [list() for i in range(6)]
@@ -314,22 +326,32 @@ def main_fit_joint_lap_silhouette():
     # solve_iteration
     def solve_iteration():
         status = solve_multiview_lap_silhouette(
-            T, V, multiX, multiV, multiU, multiL, multiS, multiSN, lm_lamdas,
-            lm_preconditioners,
-            narrowBand=2, 
-            uniformWeights=True,
-            maxIterations=100,
-            gradientThreshold=1e-6,
-            updateThreshold=1e-6,
-            improvementThreshold=1e-6)
+            T, V, multiX, multiV, multiU, multiL, multiS, multiSN, lm_lambdas,
+            lm_preconditioners, **solver_options)
 
         print 'LM Status (%d): ' % status[0], status[1]
 
         return status
 
+    # solve
+    t1 = clock()
+
     status = solve_iteration()
     while status[0] in (0, 4):
         status = solve_iteration()
+
+    t2 = clock()
+    print 'Time taken: %.3fs' % (t2 - t1)
+
+    np.savez_compressed(os.path.join(OUTPUT_ROOT,
+        'chihuahua_lap_silhouette.npz'),
+        T=T,
+        V=V,
+        multiV=multiV,
+        multiS=multiS,
+        multiSN=multiSN,
+        lm_lambdas=lm_lambdas,
+        solver_options=solver_options)
 
     # visualise ?
     if True:
