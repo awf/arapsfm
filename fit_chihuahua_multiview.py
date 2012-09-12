@@ -7,10 +7,13 @@ from mesh import faces, geometry
 
 from core_recovery.silhouette_candidates import \
     generate_silhouette_candidate_info
+
 from core_recovery.lm_solvers import \
     solve_single_arap_proj, \
     solve_single_lap_silhouette, \
-    solve_multiview_arap_silhouette
+    solve_multiview_arap_silhouette, \
+    solve_multiview_lap_silhouette
+
 from core_recovery.silhouette_global_solver import \
     shortest_path_solve
 
@@ -258,11 +261,99 @@ def main_fit_joint_arap_silhouette():
 
             vis.execute()
 
+# main_fit_joint_lap_silhouette
+def main_fit_joint_lap_silhouette():
+    # use '0b' for initial core geometry
+    V = load_projection('0b')[0]
+    T = load_triangles()
 
+    # information for silhouette specific only to the model (approx)
+    silhouette_info = load_silhouette_info()
+
+    global_solve_lambdas = np.array([1e-3,  # geodesic between preimage
+                                     1e0,   # silhouette projection
+                                     1e3],  # silhouette normal
+                                     dtype=np.float64)
+
+    lm_lamdas = np.asarray(np.r_[1.0,  # as-rigid-as-possible
+                                 global_solve_lambdas[1:], 
+                                 1e1], # laplacian
+                           dtype=np.float64)
+    
+    lm_preconditioners = np.array([1.0, 1.0, 100.0], dtype=np.float64)
+
+    # construct lists for minimisation
+    multiX, multiV , multiU, multiL, multiS, multiSN = [list() for i in range(6)]
+
+    for index, user_constraints in INPUT_SELECTION:
+        print 'index:', index
+
+        # load geometry from initial projection
+        z = np.load(
+            os.path.join(OUTPUT_ROOT, 'chihuahua_single_projection_%s.npz' % 
+            user_constraints))
+        X = z['X']
+        V1 = z['V1']
+
+        # get the silhouette information for the frame
+        S, SN = load_silhouette(index)
+
+        # solve for the initial silhouette positions
+        U, L = shortest_path_solve(V1, T, S, SN, 
+                                   lambdas=global_solve_lambdas,
+                                   isCircular=False, 
+                                   **silhouette_info)
+
+        multiX.append(X)
+        multiV.append(V1)
+        multiU.append(U)
+        multiL.append(L)
+        multiS.append(S)
+        multiSN.append(SN)
+
+    # solve_iteration
+    def solve_iteration():
+        status = solve_multiview_lap_silhouette(
+            T, V, multiX, multiV, multiU, multiL, multiS, multiSN, lm_lamdas,
+            lm_preconditioners,
+            narrowBand=2, 
+            uniformWeights=True,
+            maxIterations=100,
+            gradientThreshold=1e-6,
+            updateThreshold=1e-6,
+            improvementThreshold=1e-6)
+
+        print 'LM Status (%d): ' % status[0], status[1]
+
+        return status
+
+    status = solve_iteration()
+    while status[0] in (0, 4):
+        status = solve_iteration()
+
+    # visualise ?
+    if True:
+        vis = visualise.VisualiseMesh(V, T)
+        vis.execute()
+
+        for i in xrange(len(multiV)):
+            V1 = multiV[i]
+            U = multiU[i]
+            L = multiL[i]
+
+            Q = geometry.path2pos(V1, T, L, U)
+            N = Q.shape[0]
+
+            vis = visualise.VisualiseMesh(V1, T, L)
+            vis.add_silhouette(Q, np.arange(N), [0, N-1], multiS[i])
+            vis.add_image(get_frame_path(INPUT_SELECTION[i][0]))
+
+            vis.execute()
 
 if __name__ == '__main__':
     #main_silhouette_candidate_info()
     #main_fit_single_projections()
     #main_fit_single_silhouette()
-    main_fit_joint_arap_silhouette()
+    #main_fit_joint_arap_silhouette()
+    main_fit_joint_lap_silhouette()
 

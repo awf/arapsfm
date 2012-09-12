@@ -64,6 +64,21 @@ cdef extern from "lm_solvers.h":
         int narrowBand,
         OptimiserOptions * options)
 
+    int solve_multiview_lap_silhouette_c "solve_multiview_lap_silhouette" (
+        np.ndarray npy_T,
+        np.ndarray npy_V,
+        list multiX,
+        list multiV,
+        list multiU,
+        list multiL,
+        list multiS,
+        list multiSN,
+        np.ndarray npy_lambdas,
+        np.ndarray npy_preconditioners,
+        int narrowBand,
+        bint uniformWeights,
+        OptimiserOptions * options)
+
 # additional_optimiser_options
 DEFAULT_OPTIMISER_OPTIONS = {
     'maxIterations' : 50,
@@ -189,6 +204,35 @@ def solve_multiview_arap_silhouette(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
 
     cdef int status = solve_multiview_arap_silhouette_c(T, V, multiX, multiV, multiU, multiL,
         multiS, multiSN, lambdas, preconditioners, narrowBand, &options)
+
+    return status, STATUS_CODES[status]
+
+# solve_multiview_lap_silhouette
+def solve_multiview_lap_silhouette(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
+                                   np.ndarray[np.float64_t, ndim=2, mode='c'] V, 
+                                   list multiX,
+                                   list multiV,
+                                   list multiU,
+                                   list multiL,
+                                   list multiS,
+                                   list multiSN,
+                                   np.ndarray[np.float64_t, ndim=1] lambdas,
+                                   np.ndarray[np.float64_t, ndim=1] preconditioners,
+                                   int narrowBand,
+                                   bint uniformWeights,
+                                   **kwargs):
+
+    cdef OptimiserOptions options
+    additional_optimiser_options(&options, kwargs)
+
+    if lambdas.shape[0] != 4:
+        raise ValueError('lambdas.shape[0] != 3')
+
+    if preconditioners.shape[0] != 3:
+        raise ValueError('preconditioners.shape[0] != 3')
+
+    cdef int status = solve_multiview_lap_silhouette_c(T, V, multiX, multiV, multiU, multiL,
+        multiS, multiSN, lambdas, preconditioners, narrowBand, uniformWeights, &options)
 
     return status, STATUS_CODES[status]
 
