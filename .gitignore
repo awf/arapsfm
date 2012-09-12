@@ -2,3 +2,5 @@
 *.pyd
 *.pyc
 build/
+data/
+working/
