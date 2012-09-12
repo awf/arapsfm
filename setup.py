@@ -35,7 +35,7 @@ SSLM_MATH_SRC = [
     'Math/v3d_optimization_lm.cpp',
 ]
 
-SSLM_ROOT = 'SSLM'
+SSLM_ROOT = 'cpp/SSLM'
 
 def sslm_full_path(path):
     return os.path.join(SSLM_ROOT, path)
@@ -53,7 +53,7 @@ try:
 except AttributeError:
     NUMPY_INC = np.get_numpy_include()
 
-include_dirs = [NUMPY_INC, '.', 'shared/']
+include_dirs = [NUMPY_INC, '.', 'cpp/']
 
 # Extensions
 setup(
@@ -72,11 +72,31 @@ setup(
         #           define_macros=REMOVE_EXCEPTION_MACROS,
         #           language='c++'),
 
-        Extension('Test.test_problem',
-                  ['Test/test_problem.pyx',
-                   'Solve/problem.cpp',
-                   'Solve/node.cpp',
-                   'Geometry/mesh_walker.cpp'] +
+        # Extension('test.test_problem',
+        #           ['test/test_problem.pyx',
+        #            'cpp/Solve/problem.cpp',
+        #            'cpp/Solve/node.cpp',
+        #            'cpp/Geometry/mesh_walker.cpp'] +
+        #           SSLM_BASE_SRC + 
+        #           SSLM_MATH_SRC,
+        #           include_dirs=include_dirs + [SSLM_ROOT, COLAMD_INC],
+        #           library_dirs=[COLAMD_LIB],
+        #           libraries=['colamd'],
+        #           define_macros=REMOVE_EXCEPTION_MACROS + [('NO_HELPER', 1)],
+        #           language='c++'),
+        Extension('core_recovery.silhouette_global_solver',
+                  ['core_recovery/silhouette_global_solver.pyx',
+                   'cpp/Silhouette/shortest_path.cpp'],
+                   include_dirs=include_dirs + [SSLM_ROOT],
+                   define_macros=REMOVE_EXCEPTION_MACROS,
+                   language='c++'),
+
+        Extension('core_recovery.lm_solvers',
+                  ['core_recovery/lm_solvers.pyx',
+                   'cpp/Solve/problem.cpp',
+                   'cpp/Solve/node.cpp',
+                   'cpp/Geometry/mesh_walker.cpp'
+                  ] +
                   SSLM_BASE_SRC + 
                   SSLM_MATH_SRC,
                   include_dirs=include_dirs + [SSLM_ROOT, COLAMD_INC],
