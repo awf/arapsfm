@@ -39,6 +39,20 @@ cdef extern from "lm_solvers.h":
         np.ndarray lambdas,
         OptimiserOptions * opt)
 
+    int solve_single_lap_proj_silhouette_c "solve_single_lap_proj_silhouette" (
+                  np.ndarray T,
+                  np.ndarray V,
+                  np.ndarray U,
+                  np.ndarray L,
+                  np.ndarray C,
+                  np.ndarray P,
+                  np.ndarray S,
+                  np.ndarray SN,
+                  np.ndarray lambdas,
+                  np.ndarray preconditioners,
+                  int narrowBand,
+                  OptimiserOptions * options)
+
     int solve_single_lap_silhouette_c "solve_single_lap_silhouette" (np.ndarray V,
                   np.ndarray T,
                   np.ndarray U,
@@ -65,16 +79,16 @@ cdef extern from "lm_solvers.h":
         OptimiserOptions * options)
 
     int solve_multiview_lap_silhouette_c "solve_multiview_lap_silhouette" (
-        np.ndarray npy_T,
-        np.ndarray npy_V,
+        np.ndarray T,
+        np.ndarray V,
         list multiX,
         list multiV,
         list multiU,
         list multiL,
         list multiS,
         list multiSN,
-        np.ndarray npy_lambdas,
-        np.ndarray npy_preconditioners,
+        np.ndarray lambdas,
+        np.ndarray preconditioners,
         int narrowBand,
         bint uniformWeights,
         OptimiserOptions * options)
@@ -176,6 +190,31 @@ def solve_single_lap_silhouette(np.ndarray[np.float64_t, ndim=2, mode='c'] V,
 
     cdef int status = solve_single_lap_silhouette_c(V, T, U, L, S, SN, lambdas, 
         preconditioners, narrowBand, &options)
+
+    return status, STATUS_CODES[status]
+
+# solve_single_lap_proj_silhouette
+def solve_single_lap_proj_silhouette(np.ndarray[np.float64_t, ndim=2, mode='c'] V,
+                                     np.ndarray[np.int32_t, ndim=2, mode='c'] T,
+                                     np.ndarray[np.float64_t, ndim=2, mode='c'] U,  
+                                     np.ndarray[np.int32_t, ndim=1] L,
+                                     np.ndarray[np.int32_t, ndim=1] C,
+                                     np.ndarray[np.float64_t, ndim=2, mode='c'] P,
+                                     np.ndarray[np.float64_t, ndim=2, mode='c'] S,  
+                                     np.ndarray[np.float64_t, ndim=2, mode='c'] SN,  
+                                     np.ndarray[np.float64_t, ndim=1] lambdas,
+                                     np.ndarray[np.float64_t, ndim=1] preconditioners,
+                                     int narrowBand,
+                                     **kwargs):
+
+    cdef OptimiserOptions options
+    additional_optimiser_options(&options, kwargs)
+
+    if lambdas.shape[0] != 4:
+        raise ValueError('lambdas.shape[0] != 4')
+
+    cdef int status = solve_single_lap_proj_silhouette_c(V, T, U, L, C, P, S, SN,
+        lambdas, preconditioners, narrowBand, &options)
 
     return status, STATUS_CODES[status]
 

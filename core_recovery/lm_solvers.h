@@ -83,6 +83,64 @@ int solve_single_lap_proj(PyArrayObject * npy_V,
     return problem.Minimise(*options);
 }
 
+// solve_single_lap_proj_silhouette
+int solve_single_lap_proj_silhouette(PyArrayObject * npy_V,
+                  PyArrayObject * npy_T,
+                  PyArrayObject * npy_U,
+                  PyArrayObject * npy_L,
+                  PyArrayObject * npy_C,
+                  PyArrayObject * npy_P,
+                  PyArrayObject * npy_S,
+                  PyArrayObject * npy_SN,
+                  PyArrayObject * npy_lambdas,
+                  PyArrayObject * npy_preconditioners,
+                  int narrowBand,
+                  const OptimiserOptions * options)
+{
+    PYARRAY_AS_MATRIX(double, npy_V, V);
+    PYARRAY_AS_MATRIX(int, npy_T, T);
+    PYARRAY_AS_MATRIX(double, npy_U, U);
+    PYARRAY_AS_VECTOR(int, npy_L, L);
+
+    PYARRAY_AS_VECTOR(int, npy_C, C);
+    PYARRAY_AS_MATRIX(double, npy_P, P);
+
+    PYARRAY_AS_MATRIX(double, npy_S, S);
+    PYARRAY_AS_MATRIX(double, npy_SN, SN);
+
+    PYARRAY_AS_VECTOR(double, npy_lambdas, lambdas);
+    PYARRAY_AS_VECTOR(double, npy_preconditioners, preconditioners);
+
+    Mesh mesh(V.num_rows(), T);
+
+    VertexNode * nodeV = new VertexNode(V);
+    nodeV->SetPreconditioner(preconditioners[0]);
+
+    MeshWalker meshWalker(mesh, V);
+    BarycentricNode * nodeU = new BarycentricNode(U, L, meshWalker);
+    nodeU->SetPreconditioner(preconditioners[1]);
+
+    Problem problem;
+    problem.AddNode(nodeV);
+    problem.AddNode(nodeU);
+
+    LaplacianEnergy * lapEnergy = new LaplacianEnergy(*nodeV, mesh, sqrt(lambdas[0]));
+    // ProjectionEnergy * projEnergy = new ProjectionEnergy(*nodeV, C, P, sqrt(lambdas[1]));
+
+    SilhouetteProjectionEnergy * silProjEnergy = new SilhouetteProjectionEnergy(*nodeV, *nodeU, S, mesh,
+        sqrt(lambdas[2]), narrowBand);
+
+    SilhouetteNormalEnergy * silNormalEnergy = new SilhouetteNormalEnergy(*nodeV, *nodeU, SN, mesh,
+        sqrt(lambdas[3]), narrowBand);
+
+    problem.AddEnergy(lapEnergy);
+    // problem.AddEnergy(projEnergy);
+    problem.AddEnergy(silProjEnergy);
+    problem.AddEnergy(silNormalEnergy);
+
+    return problem.Minimise(*options);
+}
+
 // solve_single_lap_silhouette
 int solve_single_lap_silhouette(PyArrayObject * npy_V,
                   PyArrayObject * npy_T,
