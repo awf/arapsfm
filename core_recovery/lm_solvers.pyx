@@ -93,6 +93,19 @@ cdef extern from "lm_solvers.h":
         bint uniformWeights,
         OptimiserOptions * options)
 
+    object solve_single_lap_silhouette_with_Jte_c "solve_single_lap_silhouette_with_Jte" (
+                      np.ndarray  npy_V,
+                      np.ndarray  npy_T,
+                      np.ndarray  npy_U,
+                      np.ndarray  npy_L,
+                      np.ndarray  npy_S,
+                      np.ndarray  npy_SN,
+                      np.ndarray  npy_lambdas,
+                      np.ndarray  npy_preconditioners,
+                      int narrowBand,
+                      int maxJteStore,
+                      OptimiserOptions * options)
+
 # additional_optimiser_options
 DEFAULT_OPTIMISER_OPTIONS = {
     'maxIterations' : 50,
@@ -274,4 +287,28 @@ def solve_multiview_lap_silhouette(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
         multiS, multiSN, lambdas, preconditioners, narrowBand, uniformWeights, &options)
 
     return status, STATUS_CODES[status]
+
+# solve_single_lap_silhouette_with_Jte
+def solve_single_lap_silhouette_with_Jte(np.ndarray[np.float64_t, ndim=2, mode='c'] V,
+                                         np.ndarray[np.int32_t, ndim=2, mode='c'] T,
+                                         np.ndarray[np.float64_t, ndim=2, mode='c'] U,  
+                                         np.ndarray[np.int32_t, ndim=1] L,
+                                         np.ndarray[np.float64_t, ndim=2, mode='c'] S,  
+                                         np.ndarray[np.float64_t, ndim=2, mode='c'] SN,  
+                                         np.ndarray[np.float64_t, ndim=1] lambdas,
+                                         np.ndarray[np.float64_t, ndim=1] preconditioners,
+                                         int narrowBand,
+                                         int maxJteStore,
+                                         **kwargs):
+
+    cdef OptimiserOptions options
+    additional_optimiser_options(&options, kwargs)
+
+    if lambdas.shape[0] != 3:
+        raise ValueError('lambdas.shape[0] != 3')
+
+    status, storedJte = solve_single_lap_silhouette_with_Jte_c(V, T, U, L, S, SN, lambdas, 
+        preconditioners, narrowBand, maxJteStore, &options)
+
+    return (status, STATUS_CODES[status]), storedJte
 

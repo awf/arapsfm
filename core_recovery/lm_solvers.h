@@ -192,6 +192,86 @@ int solve_single_lap_silhouette(PyArrayObject * npy_V,
     return problem.Minimise(*options);
 }
 
+// solve_single_lap_silhouette_with_Jte
+PyObject * solve_single_lap_silhouette_with_Jte(PyArrayObject * npy_V,
+                  PyArrayObject * npy_T,
+                  PyArrayObject * npy_U,
+                  PyArrayObject * npy_L,
+                  PyArrayObject * npy_S,
+                  PyArrayObject * npy_SN,
+                  PyArrayObject * npy_lambdas,
+                  PyArrayObject * npy_preconditioners,
+                  int narrowBand,
+                  int maxJteStore,
+                  const OptimiserOptions * options)
+{
+    PYARRAY_AS_MATRIX(double, npy_V, V);
+    PYARRAY_AS_MATRIX(int, npy_T, T);
+    PYARRAY_AS_MATRIX(double, npy_U, U);
+    PYARRAY_AS_VECTOR(int, npy_L, L);
+
+    PYARRAY_AS_MATRIX(double, npy_S, S);
+    PYARRAY_AS_MATRIX(double, npy_SN, SN);
+
+    PYARRAY_AS_VECTOR(double, npy_lambdas, lambdas);
+    PYARRAY_AS_VECTOR(double, npy_preconditioners, preconditioners);
+
+    Mesh mesh(V.num_rows(), T);
+
+    VertexNode * nodeV = new VertexNode(V);
+    nodeV->SetPreconditioner(preconditioners[0]);
+
+    MeshWalker meshWalker(mesh, V);
+    BarycentricNode * nodeU = new BarycentricNode(U, L, meshWalker);
+    nodeU->SetPreconditioner(preconditioners[1]);
+
+    Problem problem;
+    problem.AddNode(nodeV);
+    problem.AddNode(nodeU);
+
+    LaplacianEnergy * lapEnergy = new LaplacianEnergy(*nodeV, mesh, sqrt(lambdas[0]));
+
+    SilhouetteProjectionEnergy * silProjEnergy = new SilhouetteProjectionEnergy(*nodeV, *nodeU, S, mesh,
+        sqrt(lambdas[1]), narrowBand);
+
+    SilhouetteNormalEnergy * silNormalEnergy = new SilhouetteNormalEnergy(*nodeV, *nodeU, SN, mesh,
+        sqrt(lambdas[2]), narrowBand);
+
+    problem.AddEnergy(lapEnergy);
+    problem.AddEnergy(silProjEnergy);
+    problem.AddEnergy(silNormalEnergy);
+    problem.SetMaximumJteToStore(maxJteStore);
+
+    int optimiserStatus = problem.Minimise(*options);
+
+    // return status with stored gradient vectors
+    PyObject * tup = PyTuple_New(2);
+    PyTuple_SetItem(tup, 0, PyInt_FromLong(optimiserStatus));
+
+    const deque<Vector<double> *> & storedJte = problem.GetStoredJte();
+
+    if (storedJte.size() == 0)
+    {
+        Py_INCREF(Py_None);
+        PyTuple_SetItem(tup, 1, Py_None);
+    }
+    else
+    {
+        int numJte = storedJte.size();
+        int lenJte = storedJte.front()->size();
+        int dims[2] = {numJte, lenJte};
+        PyArrayObject * npy_allJte = (PyArrayObject *)PyArray_SimpleNew(2, dims, NPY_DOUBLE);
+
+        Matrix<double> allJte(dims[0], dims[1], (double *)PyArray_DATA(npy_allJte));
+        for (int i=0; i < numJte; i++)
+            copyVector(*storedJte[i], Vector<double>(lenJte, allJte[i]));
+
+        PyTuple_SetItem(tup, 1, (PyObject *)npy_allJte);
+    }
+
+    return tup;
+}
+
 // solve_multiview_arap_silhouette
 int solve_multiview_arap_silhouette(
     PyArrayObject * npy_T,

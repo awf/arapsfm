@@ -1,6 +1,9 @@
 # test_sphere.py
 
 # Imports
+import numpy as np
+import matplotlib.pyplot as plt
+
 from visualise.visualise import *
 from visualise.vtk_ import *
 from mesh import faces, geometry
@@ -12,7 +15,8 @@ from core_recovery.silhouette_global_solver import \
     shortest_path_solve
 
 from core_recovery.lm_solvers import \
-    solve_single_lap_silhouette
+    solve_single_lap_silhouette, \
+    solve_single_lap_silhouette_with_Jte
 
 # generate_sphere
 def generate_sphere(**options):
@@ -90,24 +94,42 @@ def main():
 
     lm_lambdas = np.r_[1.0, sil_lambdas[1:]]
     lm_lambdas = np.array(lm_lambdas, dtype=np.float64)
-    lm_precond = np.array([1, 1e4], dtype=np.float64)
+    lm_precond = np.array([1, 1e2], dtype=np.float64)
 
     print 'LM lambdas:', lm_lambdas
     print 'LM preconditioners:', lm_precond
 
     V1 = V.copy()
-    status = solve_single_lap_silhouette(V1, T, U, L, S, SN,
-                                         lm_lambdas, lm_precond, 
-                                         narrowBand=3,
-                                         maxIterations=100)
+    status, saved_Jte = solve_single_lap_silhouette_with_Jte(V1, T, U, L, S, SN,
+                                                             lm_lambdas, lm_precond, 
+                                                             narrowBand=3,
+                                                             maxJteStore=100,
+                                                             maxIterations=50)
 
-    count = 0
-    while status[0] in (4,0) and count < 3:
-        status = solve_single_lap_silhouette(V1, T, U, L, S, SN,
-                                             lm_lambdas, lm_precond, 
-                                             narrowBand=3,
-                                             maxIterations=100)
-        count += 1
+    # np.save('saved_Jte.npy', saved_Jte)
+    indices = np.linspace(0, saved_Jte.shape[0] - 1, 4, 
+                          endpoint=True).astype(int)
+
+    max_y = np.amax(saved_Jte[0])
+    min_y = np.amin(saved_Jte[0]) 
+    max_y += 0.1 * np.abs(max_y)
+    min_y -= 0.1 * np.abs(min_y)
+
+    f, axs = plt.subplots(indices.shape[0], 1)
+    for i, index in enumerate(indices):
+        axs[i].plot(saved_Jte[index], 'r.')
+        axs[i].set_title('Index: %d' % index)
+        axs[i].set_ylim(min_y, max_y)
+
+    plt.show(block=False)
+
+    # count = 0
+    # while status[0] in (4,0) and count < 3:
+    #     status = solve_single_lap_silhouette(V1, T, U, L, S, SN,
+    #                                          lm_lambdas, lm_precond, 
+    #                                          narrowBand=3,
+    #                                          maxIterations=100)
+    #     count += 1
 
     print 'Status (%d):' % status[0], status[1]
 

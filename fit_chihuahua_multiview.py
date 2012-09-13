@@ -274,17 +274,17 @@ def main_fit_joint_lap_silhouette():
 
     # weighting lambdas
     global_solve_lambdas = np.array([1e-3,  # geodesic between preimage
-                                     1e0,   # silhouette projection
-                                     1e3],  # silhouette normal
+                                     1e1,   # silhouette projection
+                                     1e4],  # silhouette normal
                                      dtype=np.float64)
 
     lm_lambdas = np.asarray(np.r_[1.0,  # as-rigid-as-possible
                                  global_solve_lambdas[1:], 
-                                 1e1], # laplacian
+                                 1e2], # laplacian
                            dtype=np.float64)
     
     # preconditioning for the joint minimisation
-    lm_preconditioners = np.array([1.0, 1.0, 100.0], dtype=np.float64)
+    lm_preconditioners = np.array([1e0, 1.0, 100.0], dtype=np.float64)
 
     # other solver options
     solver_options = dict(narrowBand=2, 
@@ -292,7 +292,8 @@ def main_fit_joint_lap_silhouette():
                           maxIterations=20,
                           gradientThreshold=1e-6,
                           updateThreshold=1e-6,
-                          improvementThreshold=1e-6)
+                          improvementThreshold=1e-6,
+                          verbosenessLevel=1)
 
     # construct lists for minimisation
     multiX, multiV , multiU, multiL, multiS, multiSN = [list() for i in range(6)]
@@ -313,7 +314,7 @@ def main_fit_joint_lap_silhouette():
         # solve for the initial silhouette positions
         U, L = shortest_path_solve(V1, T, S, SN, 
                                    lambdas=global_solve_lambdas,
-                                   isCircular=False, 
+                                   isCircular=True, 
                                    **silhouette_info)
 
         multiX.append(X)
@@ -336,9 +337,11 @@ def main_fit_joint_lap_silhouette():
     # solve
     t1 = clock()
 
+    count = 0
     status = solve_iteration()
-    while status[0] in (0, 4):
+    while status[0] in (0, 4) and count < 3:
         status = solve_iteration()
+        count += 1
 
     t2 = clock()
     print 'Time taken: %.3fs' % (t2 - t1)
