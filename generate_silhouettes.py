@@ -1,4 +1,4 @@
-# generate_cheetah0_silhouettes.py
+# generate_silhouettes.py
 
 # Imports
 import os
@@ -6,12 +6,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 from core_recovery.silhouette_generation import generate_silhouette
 
+# Change `DATA_SOURCE` and `BACKGROUND_COLOR` for different sources
+
 # Constants
 DATA_ROOT = 'data'
-INPUT_DIR = os.path.join(DATA_ROOT, 'segmentations', 'cheetah0')
-OUTPUT_DIR = os.path.join(DATA_ROOT, 'silhouettes', 'cheetah0')
+# DATA_SOURCE = 'cheetah'
+DATA_SOURCE = 'circle'
+INPUT_DIR = os.path.join(DATA_ROOT, 'segmentations', DATA_SOURCE)
+OUTPUT_DIR = os.path.join(DATA_ROOT, 'silhouettes', DATA_SOURCE)
 
-BACKGROUND_COLOUR = np.array([255, 242, 0, 255], dtype=np.uint8)
+#BACKGROUND_COLOUR = np.array([255, 242, 0, 255], dtype=np.uint8)
+BACKGROUND_COLOUR = np.array([255, 242, 0], dtype=np.uint8)
 SUBSAMPLE = 20
 FLIP_NORMALS = True
 SHOW_SILHOUETTES = True
@@ -20,6 +25,8 @@ SHOW_SILHOUETTES = True
 
 # load_inverse_segmentation
 def load_inverse_segmentation(index):
+    import pdb
+    pdb.set_trace()
     path = os.path.join(INPUT_DIR, '%d-INV_S.png' % index)
     print '<- %s' % path
     color_mask = (plt.imread(path)*255.).astype(np.uint8)
