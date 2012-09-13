@@ -268,6 +268,8 @@ int MeshWalker::whichEdgeBroke(const double * u, const double * delta,
         return (zeroIndices[0] + 1) % 3;
 
     assert(false);
+
+    return -2;
 }
 
 void MeshWalker::baryToPosition(int faceIndex, const double * u, double * p) const
