@@ -328,6 +328,8 @@ double ShortestPathSolver::solveCircularShortestPath(const pair<int, int> & boun
             pq.push(e);
         }
     }
+
+    return numeric_limits<double>::max();
 }
 
 double ShortestPathSolver::solve(Vector<int> & shortestPath, bool isCircular) const
