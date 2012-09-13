@@ -534,7 +534,9 @@ namespace V3D
 			}
             if (optimizerVerbosenessLevel >= 2) cout << "NLSQ_LM_Optimizer: lambda = " << lambda << endl;
 
+            if (optimizerVerbosenessLevel >= 2) cout << "NLSQ_LM_Optimizer: fillJacobians" << endl;
             this->fillJacobians(jacobianEvaluationIteration);
+            if (optimizerVerbosenessLevel >= 2) cout << "NLSQ_LM_Optimizer: evalJt_e" << endl;
             this->evalJt_e(Jt_e);
 
             if (this->applyGradientStoppingCriteria(norm_Linf(Jt_e)))
@@ -725,7 +727,11 @@ namespace V3D
          if (success && rho > 0)
          {
             if (optimizerVerbosenessLevel >= 2)
+            {
                cout << "NLSQ_LM_Optimizer: Improved solution - decreasing lambda." << endl;
+               cout << "NLSQ_LM_Optimizer: lambda = " << lambda << endl;
+            }
+
             // Improvement in the new solution
             decreaseLambda(rho);
             if (optimizerVerbosenessLevel >= 2) cout << "NLSQ_LM_Optimizer: new lambda = " << lambda << endl;
