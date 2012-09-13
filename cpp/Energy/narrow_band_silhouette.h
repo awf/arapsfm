@@ -352,6 +352,15 @@ public:
         int faceIndex = _U.GetFaceIndex(k);
         const int * Ti = _mesh.GetTriangle(faceIndex);
 
+        /*
+        lengthAdjustedSilhouetteProjResiduals_Unsafe(_V.GetVertex(Ti[0]), 
+                                                     _V.GetVertex(Ti[1]),
+                                                     _V.GetVertex(Ti[2]),
+                                                     _Q.GetLengthAdjustedBarycentricCoordinate(k),
+                                                     _S[k],
+                                                     _w, 
+                                                     &e[0]);
+        */
         silhouetteProjResiduals_Unsafe(_V.GetVertex(Ti[0]), 
                                        _V.GetVertex(Ti[1]),
                                        _V.GetVertex(Ti[2]),
@@ -359,6 +368,7 @@ public:
                                        _S[k],
                                        _w, 
                                        &e[0]);
+
     }
 
     virtual void EvaluateJacobian(const int k, const int whichParam, Matrix<double> & J) const
@@ -368,10 +378,10 @@ public:
         if (whichParam == 0)
         {
             // barycentric coordinate
-            silhouetteProjJac_u_Unsafe(_V.GetVertex(Ti[0]), 
-                                       _V.GetVertex(Ti[1]),
-                                       _V.GetVertex(Ti[2]),
-                                       _w, J[0]);
+            lengthAdjustedSilhouetteProjJac_q_Unsafe(_V.GetVertex(Ti[0]), 
+                                                     _V.GetVertex(Ti[1]),
+                                                     _V.GetVertex(Ti[2]),
+                                                     _w, J[0]);
         }
         else
         {
@@ -381,18 +391,25 @@ public:
             // if face vertex
             if (j == Ti[0])
             {
-                double u = _U.GetBarycentricCoordinate(k)[0];
-                silhouetteProjJac_V1l_Unsafe(u, _w, J[0]);
+                lengthAdjustedSilhouetteProjJac_V1i_Unsafe(_V.GetVertex(Ti[0]),
+                                                           _V.GetVertex(Ti[2]), 
+                                                           _Q.GetLengthAdjustedBarycentricCoordinate(k),
+                                                           _w, J[0]);
             }
             else if (j == Ti[1])
             {
-                double u = _U.GetBarycentricCoordinate(k)[1];
-                silhouetteProjJac_V1l_Unsafe(u, _w, J[0]);
+                lengthAdjustedSilhouetteProjJac_V1j_Unsafe(_V.GetVertex(Ti[1]),
+                                                           _V.GetVertex(Ti[2]), 
+                                                           _Q.GetLengthAdjustedBarycentricCoordinate(k),
+                                                           _w, J[0]);
             }
             else if (j == Ti[2])
             {
-                double u = 1.0 - _U.GetBarycentricCoordinate(k)[0] - _U.GetBarycentricCoordinate(k)[1];
-                silhouetteProjJac_V1l_Unsafe(u, _w, J[0]);
+                lengthAdjustedSilhouetteProjJac_V1k_Unsafe(_V.GetVertex(Ti[0]),
+                                                           _V.GetVertex(Ti[1]),
+                                                           _V.GetVertex(Ti[2]), 
+                                                           _Q.GetLengthAdjustedBarycentricCoordinate(k),
+                                                           _w, J[0]);
             }
             else
             {

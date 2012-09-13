@@ -177,7 +177,31 @@ public:
 
     virtual void Update(const VectorArrayAdapter<double> & delta)
     {
-        BarycentricNode::Update(delta);
+        const Mesh & mesh = _meshWalker.getMesh();
+        const Matrix<double> & V = _meshWalker.getVertices();
+
+        Vector<double> newDelta_(delta.count() * delta.size());
+        VectorArrayAdapter<double> newDelta(delta.count(), delta.size(), newDelta_.begin());
+
+        for (int i = 0; i < delta.count(); i++)
+        {
+            // get target face
+            const int * Ti = mesh.GetTriangle(_L[i]);
+
+            // get face edge vectors
+            const double * Vi = V[Ti[0]], * Vj = V[Ti[1]], * Vk = V[Ti[2]];
+
+            double Vik[3], Vjk[3];
+            subtractVectors_Static<double, 3>(Vi, Vk, Vik);
+            subtractVectors_Static<double, 3>(Vj, Vk, Vjk);
+
+            // set new delta for barycentric coordinates
+            newDelta[i][0] = delta[i][0] / norm_L2_Static<double, 3>(Vik);
+            newDelta[i][1] = delta[i][1] / norm_L2_Static<double, 3>(Vjk);
+        }
+
+        BarycentricNode::Update(newDelta);
+
         UpdateInternalLengths();
     }
 
@@ -202,6 +226,8 @@ protected:
         const Mesh & mesh = _meshWalker.getMesh();
         const Matrix<double> & V = _meshWalker.getVertices();
 
+        // convert barycentric coordinates to lengths along the edges which
+        // make up a triangle
         for (int i = 0; i < _L.size(); i++)
         {
             const int * Ti = mesh.GetTriangle(_L[i]);

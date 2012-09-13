@@ -16,7 +16,8 @@ from core_recovery.silhouette_global_solver import \
 
 from core_recovery.lm_solvers import \
     solve_single_lap_silhouette, \
-    solve_single_lap_silhouette_with_Jte
+    solve_single_lap_silhouette_with_Jte, \
+    solve_single_lap_sil_len_adj_with_Jte
 
 # generate_sphere
 def generate_sphere(**options):
@@ -77,7 +78,7 @@ def main():
     print '# Vertices:', V.shape[0]
     print '# Triangles:', T.shape[0]
 
-    test_visualise(V, T)
+    # test_visualise(V, T)
 
     sil_lambdas = np.array([1e-3, 1.0, 0.], dtype=np.float64)
     print 'Silhouette lambdas:', sil_lambdas
@@ -94,19 +95,32 @@ def main():
 
     lm_lambdas = np.r_[1.0, sil_lambdas[1:]]
     lm_lambdas = np.array(lm_lambdas, dtype=np.float64)
-    lm_precond = np.array([1, 1e2], dtype=np.float64)
+    lm_precond = np.array([1.0, 1.0], dtype=np.float64)
 
     print 'LM lambdas:', lm_lambdas
     print 'LM preconditioners:', lm_precond
 
     V1 = V.copy()
-    status, saved_Jte = solve_single_lap_silhouette_with_Jte(V1, T, U, L, S, SN,
-                                                             lm_lambdas, lm_precond, 
-                                                             narrowBand=3,
-                                                             maxJteStore=100,
-                                                             maxIterations=50)
+
+    status, saved_Jte = solve_single_lap_sil_len_adj_with_Jte(V1, T, U, L, S, SN,
+                                                              lm_lambdas, lm_precond, 
+                                                              narrowBand=3,
+                                                              maxJteStore=100,
+                                                              maxIterations=100,
+                                                              verbosenessLevel=1)
+
+    count = 0
+    while status[0] in (4,) and count < 3:
+        status, saved_Jte = solve_single_lap_sil_len_adj_with_Jte(V1, T, U, L, S, SN,
+                                                                  lm_lambdas, lm_precond, 
+                                                                  narrowBand=3,
+                                                                  maxJteStore=100,
+                                                                  maxIterations=100,
+                                                                  verbosenessLevel=1)
+        count += 1
 
     # np.save('saved_Jte.npy', saved_Jte)
+
     indices = np.linspace(0, saved_Jte.shape[0] - 1, 4, 
                           endpoint=True).astype(int)
 
@@ -119,17 +133,9 @@ def main():
     for i, index in enumerate(indices):
         axs[i].plot(saved_Jte[index], 'r.')
         axs[i].set_title('Index: %d' % index)
-        axs[i].set_ylim(min_y, max_y)
+        # axs[i].set_ylim(min_y, max_y)
 
     plt.show(block=False)
-
-    # count = 0
-    # while status[0] in (4,0) and count < 3:
-    #     status = solve_single_lap_silhouette(V1, T, U, L, S, SN,
-    #                                          lm_lambdas, lm_precond, 
-    #                                          narrowBand=3,
-    #                                          maxIterations=100)
-    #     count += 1
 
     print 'Status (%d):' % status[0], status[1]
 
