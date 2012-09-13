@@ -11,6 +11,9 @@ from core_recovery.silhouette_candidates import \
 from core_recovery.silhouette_global_solver import \
     shortest_path_solve
 
+from core_recovery.lm_solvers import \
+    solve_single_lap_silhouette
+
 # generate_sphere
 def generate_sphere(**options):
     sphere_source = vtk.vtkSphereSource()
@@ -52,29 +55,63 @@ def test_silhouette():
     z = np.load('data/silhouettes/circle/0_S.npz')
     return z['S'], z['SN']
 
+# test_visualise
+def test_visualise(V, T, U=None, L=None, S=None):
+    vis = VisualiseMesh(V, T, L)
+    vis.add_image('data/segmentations/circle/0-INV_S.png')
+    
+    if U is not None:
+        Q = geometry.path2pos(V, T, L, U)
+        N = Q.shape[0]
+        vis.add_silhouette(Q, np.arange(N), [0, N-1], S)
+
+    vis.execute()
+
 # main
 def main():
     V, T = test_sphere()
     print '# Vertices:', V.shape[0]
     print '# Triangles:', T.shape[0]
 
-    sil_lambdas = np.array([1e-3, 1.0, 1e3], dtype=np.float64)
+    test_visualise(V, T)
+
+    sil_lambdas = np.array([1e-3, 1.0, 0.], dtype=np.float64)
     print 'Silhouette lambdas:', sil_lambdas
 
     S, SN = test_silhouette()
+    print '# Silhouette points:', S.shape[0]
 
     U, L = shortest_path_solve(V, T, S, SN,
                                lambdas=sil_lambdas,
                                isCircular=True,
                                **test_sphere_silhouette_info())
 
-    Q = geometry.path2pos(V, T, L, U)
-    N = Q.shape[0]
+    test_visualise(V, T, U, L, S)
 
-    vis = VisualiseMesh(V, T)
-    vis.add_image('data/segmentations/circle/0-INV_S.png')
-    vis.add_silhouette(Q, np.arange(N), [0, N-1], S)
-    vis.execute()
+    lm_lambdas = np.r_[1.0, sil_lambdas[1:]]
+    lm_lambdas = np.array(lm_lambdas, dtype=np.float64)
+    lm_precond = np.array([1, 1e4], dtype=np.float64)
+
+    print 'LM lambdas:', lm_lambdas
+    print 'LM preconditioners:', lm_precond
+
+    V1 = V.copy()
+    status = solve_single_lap_silhouette(V1, T, U, L, S, SN,
+                                         lm_lambdas, lm_precond, 
+                                         narrowBand=3,
+                                         maxIterations=100)
+
+    count = 0
+    while status[0] in (4,0) and count < 3:
+        status = solve_single_lap_silhouette(V1, T, U, L, S, SN,
+                                             lm_lambdas, lm_precond, 
+                                             narrowBand=3,
+                                             maxIterations=100)
+        count += 1
+
+    print 'Status (%d):' % status[0], status[1]
+
+    test_visualise(V1, T, U, L, S)
 
 if __name__ == '__main__':
     main()
