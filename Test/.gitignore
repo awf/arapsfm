@@ -2,3 +2,4 @@ test_mesh.cpp
 test_problem.cpp
 test_mesh_walker.cpp
 test_shortest_path.cpp
+test_residuals.cpp
