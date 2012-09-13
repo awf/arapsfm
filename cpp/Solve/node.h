@@ -27,7 +27,6 @@ public:
     virtual void SetOffset(int offset) { _offset = offset; }
     virtual int GetOffset() const { return _offset; }
 
-    virtual void SetPreconditioner(const double & preconditioner) = 0;
     virtual const double & GetPreconditioner () const = 0;
 
     virtual void Update(const VectorArrayAdapter<double> & delta)
@@ -125,7 +124,7 @@ public:
     virtual int TypeId() const { return 2; }
     virtual int Dimension() const { return 2; }
 
-    virtual const double * GetBarycentriCoordinate(int i) const { return _X[i]; }
+    virtual const double * GetBarycentricCoordinate(int i) const { return _X[i]; }
     virtual const Matrix<double> & GetBarycentricCoordinates() const { return _X; }
 
     virtual int GetFaceIndex(int i) const { return _L[i]; }
@@ -156,6 +155,69 @@ protected:
     Vector<int> _savedL;
     const MeshWalker & _meshWalker;
 
+    static double _preconditioner;
+};
+
+// LengthAdjustedBarycentricNode
+class LengthAdjustedBarycentricNode : public BarycentricNode
+{
+public:
+    LengthAdjustedBarycentricNode(Matrix<double> & U, Vector<int> & L, const MeshWalker & meshWalker)
+        : BarycentricNode(U, L, meshWalker), 
+          _Q(U.num_rows(), U.num_cols()),
+          _savedQ(U.num_rows(), U.num_cols())
+    {
+        UpdateInternalLengths();
+    }
+
+    virtual int TypeId() const { return 3; }
+
+    virtual const double * GetLengthAdjustedBarycentricCoordinate(int i) const { return _Q[i]; }
+    virtual const Matrix<double> & GetLengthAdjustedBarycentricCoordinates() const { return _Q; }
+
+    virtual void Update(const VectorArrayAdapter<double> & delta)
+    {
+        BarycentricNode::Update(delta);
+        UpdateInternalLengths();
+    }
+
+    virtual void Save()
+    {
+        BarycentricNode::Save();
+        copyMatrix(_Q, _savedQ);
+    }
+
+    virtual void Restore()
+    {
+        BarycentricNode::Restore();
+        copyMatrix(_savedQ, _Q);
+    }
+
+    virtual void SetPreconditioner(const double & preconditioner) { _preconditioner = preconditioner; }
+    virtual const double & GetPreconditioner () const { return _preconditioner; }
+
+protected:
+    void UpdateInternalLengths()
+    {
+        const Mesh & mesh = _meshWalker.getMesh();
+        const Matrix<double> & V = _meshWalker.getVertices();
+
+        for (int i = 0; i < _L.size(); i++)
+        {
+            const int * Ti = mesh.GetTriangle(_L[i]);
+            const double * Vi = V[Ti[0]], * Vj = V[Ti[1]], * Vk = V[Ti[2]];
+
+            double Vik[3], Vjk[3];
+            subtractVectors_Static<double, 3>(Vi, Vk, Vik);
+            subtractVectors_Static<double, 3>(Vj, Vk, Vjk);
+
+            _Q[i][0] = _X[i][0] * norm_L2_Static<double, 3>(Vik);
+            _Q[i][1] = _X[i][1] * norm_L2_Static<double, 3>(Vjk);
+        }
+    }
+
+    Matrix<double> _Q; 
+    Matrix<double> _savedQ;
     static double _preconditioner;
 };
 

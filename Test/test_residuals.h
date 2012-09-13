@@ -99,4 +99,48 @@ void silhouetteNormalResidualsJac_u_(PyArrayObject * npy_Triangles,
     silhouetteNormalResidualsJac_u_Unsafe(mesh, V1, faceIndex, u.begin(), w, J);
 }
 
+// 
+void lengthAdjustedSilhouetteProjResiduals_(PyArrayObject * npy_V1,
+                                PyArrayObject * npy_q,
+                                PyArrayObject * npy_S,
+                                double w,
+                                PyArrayObject * npy_e)
+{
+    PYARRAY_AS_MATRIX(double, npy_V1, V1);
+    PYARRAY_AS_VECTOR(double, npy_q, q);
+    PYARRAY_AS_VECTOR(double, npy_S, S);
+    PYARRAY_AS_VECTOR(double, npy_e, e);
+
+    lengthAdjustedSilhouetteProjResiduals_Unsafe(V1[0], V1[1], V1[2], 
+                                                 q.begin(), &S[0], w, e.begin());
+}
+
+void lengthAdjustedSilhouetteProjJac_All_(PyArrayObject * npy_V1,
+                                          PyArrayObject * npy_q,
+                                          double w,
+                                          PyArrayObject * npy_J)
+{
+    PYARRAY_AS_MATRIX(double, npy_V1, V1);
+    PYARRAY_AS_VECTOR(double, npy_q, q);
+    PYARRAY_AS_MATRIX(double, npy_J, J);
+
+    double Ji[6], Jj[6], Jk[6], Jq[4]; 
+    lengthAdjustedSilhouetteProjJac_V1i_Unsafe(V1[0], V1[2], q.begin(), w, Ji);
+    lengthAdjustedSilhouetteProjJac_V1j_Unsafe(V1[1], V1[2], q.begin(), w, Jj);
+    lengthAdjustedSilhouetteProjJac_V1k_Unsafe(V1[0], V1[1], V1[2], q.begin(), w, Jk);
+    lengthAdjustedSilhouetteProjJac_q_Unsafe(V1[0], V1[1], V1[2], w, Jq);
+
+    for (int i=0; i<2; i++)
+    {
+        for (int j=0; j<3; j++)
+        {
+            J[i][j] = Ji[3*i + j];
+            J[i][3 + j] = Jj[3*i + j];
+            J[i][6 + j] = Jk[3*i + j];
+        }
+        J[i][9] = Jq[2*i + 0];
+        J[i][10] = Jq[2*i + 1];
+    }
+}
+
 #endif

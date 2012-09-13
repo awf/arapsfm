@@ -1,6 +1,6 @@
 # test_residuals.py
 import numpy as np
-from test_residuals import *
+from test.test_residuals import *
 from scipy.optimize import approx_fprime
 from scipy.linalg import norm
 
@@ -179,9 +179,43 @@ def test_silhouetteNormalResiduals():
 
     print 'allclose? ', np.allclose(approx_J, J, atol=1e-3)
 
+# test_lengthAdjustedSilhouetteProjResiduals
+def test_lengthAdjustedSilhouetteProjResiduals():
+    # V1 = np.array([[1., 0., 0.],
+    #                [0., 1., 0.],
+    #                [0., 0., 0.]], dtype=np.float64)
+    # q = np.array([0.5, 0.5], dtype=np.float64)
+
+    V1 = np.random.rand(9).reshape(3,3).astype(np.float64)
+    q = np.random.rand(2)
+
+    S = np.array([0., 0.], dtype=np.float64)
+    w = 1.0
+
+    e = lengthAdjustedSilhouetteProjResiduals(V1, q, S, w)
+    print 'e:', np.around(e, decimals=3)
+
+    J = lengthAdjustedSilhouetteProjJac_All(V1, q, w)
+    print 'J:'
+    print np.around(J, decimals=3)
+
+    def f(x):
+        V1, q = x[:9], x[9:]
+        V1 = np.ascontiguousarray(V1.reshape(3,3))
+        q = np.ascontiguousarray(q)
+        return lengthAdjustedSilhouetteProjResiduals(V1, q, S, w)
+
+    x = np.r_[V1.flat, q]
+    approx_J = approx_jac(f, x, epsilon=1e-6)
+    print 'approx_J:'
+    print np.around(approx_J, decimals=3)
+
+    print 'allclose? ', np.allclose(approx_J, J, atol=1e-3)
+    
 if __name__ == '__main__':
     #test_faceNormal()
     #test_faceNormalJac()
     #test_vertexNormal()
-    test_silhouetteNormalResiduals()
+    #test_silhouetteNormalResiduals()
+    test_lengthAdjustedSilhouetteProjResiduals()
 

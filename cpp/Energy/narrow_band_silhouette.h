@@ -170,7 +170,7 @@ public:
         silhouetteProjResiduals_Unsafe(_V.GetVertex(Ti[0]), 
                                        _V.GetVertex(Ti[1]),
                                        _V.GetVertex(Ti[2]),
-                                       _U.GetBarycentriCoordinate(k),
+                                       _U.GetBarycentricCoordinate(k),
                                        _S[k],
                                        _w, 
                                        &e[0]);
@@ -196,17 +196,17 @@ public:
             // if face vertex
             if (j == Ti[0])
             {
-                double u = _U.GetBarycentriCoordinate(k)[0];
+                double u = _U.GetBarycentricCoordinate(k)[0];
                 silhouetteProjJac_V1l_Unsafe(u, _w, J[0]);
             }
             else if (j == Ti[1])
             {
-                double u = _U.GetBarycentriCoordinate(k)[1];
+                double u = _U.GetBarycentricCoordinate(k)[1];
                 silhouetteProjJac_V1l_Unsafe(u, _w, J[0]);
             }
             else if (j == Ti[2])
             {
-                double u = 1.0 - _U.GetBarycentriCoordinate(k)[0] - _U.GetBarycentriCoordinate(k)[1];
+                double u = 1.0 - _U.GetBarycentricCoordinate(k)[0] - _U.GetBarycentricCoordinate(k)[1];
                 silhouetteProjJac_V1l_Unsafe(u, _w, J[0]);
             }
             else
@@ -220,31 +220,6 @@ public:
 protected:
     const Matrix<double> & _S;
 };
-
-// Silhouette normal residual and derivatives (UNSAFE)
-
-// silhouetteNormalResiduals_Unsafe
-inline void silhouetteNormalResiduals_Unsafe(const Mesh & mesh, const Matrix<double> & V1, int faceIndex, const double * u_, const double * SN, const double & w, double * e)
-{
-    const int * Ti = mesh.GetTriangle(faceIndex);
-    double vertexNormals[3][3];
-
-    for (int i=0; i < 3; i++)
-    {
-        vertexNormal_Unsafe(mesh, V1, Ti[i], vertexNormals[i]);
-        normalizeVector_Static<double, 3>(vertexNormals[i]);
-    }
-
-    double u[3] = { u_[0], u_[1], 1.0 - u_[0] - u_[1] };
-
-    double normal[3];
-    makeTriInterpolatedVector_Static<double, 3>(u, vertexNormals[0], vertexNormals[1], vertexNormals[2], normal);
-    normalizeVector_Static<double, 3>(normal);
-
-    e[0] = w*(SN[0] - normal[0]);
-    e[1] = w*(SN[1] - normal[1]);
-    e[2] = w*(- normal[2]);
-}
 
 // normalizationJac_Unsafe
 inline void normalizationJac_Unsafe(const double * v, double * J)
@@ -273,6 +248,188 @@ inline void normalizationJac_Unsafe(const double * v, double * J)
     J[6] = -x[8];
     J[7] = -x[9];
     J[8] = -x[2]*x[4] + x[5];
+}
+
+// lengthAdjustedSilhouetteProjResiduals_Unsafe
+inline void lengthAdjustedSilhouetteProjResiduals_Unsafe(const double * V1i, const double * V1j, const double * V1k, const double * q, const double * S, const double & w, double * e)
+{
+    double V1ik[3], V1jk[3];
+    subtractVectors_Static<double, 3>(V1i, V1k, V1ik);
+    subtractVectors_Static<double, 3>(V1j, V1k, V1jk);
+
+    double u[2] = {q[0] / norm_L2_Static<double, 3>(V1ik),
+                   q[1] / norm_L2_Static<double, 3>(V1jk)};
+
+    e[0] = w*(S[0] - (u[0]*(V1i[0] - V1k[0]) + u[1]*(V1j[0] - V1k[0]) + V1k[0]));
+    e[1] = w*(S[1] - (u[0]*(V1i[1] - V1k[1]) + u[1]*(V1j[1] - V1k[1]) + V1k[1]));
+}
+
+// lengthAdjustedSilhouetteProjJac_V1i_Unsafe
+inline void lengthAdjustedSilhouetteProjJac_V1i_Unsafe(const double * V1i, const double * V1k, const double * q, const double & w, double * J)
+{
+    double V1ik[3];
+    subtractVectors_Static<double, 3>(V1i, V1k, V1ik);
+
+    double nJ[9];
+    normalizationJac_Unsafe(V1ik, nJ);
+
+    scaleVectorIP_Static<double, 9>(-w * q[0], nJ);
+
+    for (int i=0; i<6; i++)
+        J[i] = nJ[i];
+}
+
+// lengthAdjustedSilhouetteProjJac_V1j_Unsafe
+inline void lengthAdjustedSilhouetteProjJac_V1j_Unsafe(const double * V1j, const double * V1k, const double * q, const double & w, double * J)
+{
+    double V1jk[3];
+    subtractVectors_Static<double, 3>(V1j, V1k, V1jk);
+
+    double nJ[9];
+    normalizationJac_Unsafe(V1jk, nJ);
+
+    scaleVectorIP_Static<double, 9>(-w * q[1], nJ);
+
+    for (int i=0; i<6; i++)
+        J[i] = nJ[i];
+}
+
+// lengthAdjustedSilhouetteProjJac_V1k_Unsafe
+inline void lengthAdjustedSilhouetteProjJac_V1k_Unsafe(const double * V1i, const double * V1j, const double * V1k, 
+                                                       const double * q, const double & w, double * J)
+{
+    double V1ik[3], V1jk[3];
+    subtractVectors_Static<double, 3>(V1i, V1k, V1ik);
+    subtractVectors_Static<double, 3>(V1j, V1k, V1jk);
+
+    double nJik[9], nJjk[9];
+    normalizationJac_Unsafe(V1ik, nJik);
+    normalizationJac_Unsafe(V1jk, nJjk);
+
+    scaleVectorIP_Static<double, 9>(-w * q[0], nJik);
+    scaleVectorIP_Static<double, 9>(-w * q[1], nJjk);
+
+    for (int i=0; i<6; i++)
+        J[i] = - nJik[i] - nJjk[i];
+
+    J[0] -= 1.0;
+    J[4] -= 1.0;
+}
+
+
+// lengthAdjustedSilhouetteProjJac_q_Unsafe
+inline void lengthAdjustedSilhouetteProjJac_q_Unsafe(const double * V1i, const double * V1j, const double * V1k, 
+                                                const double & w, double * J)
+{
+    double V1ik[3], V1jk[3], lenV1ik, lenV1jk;
+
+    subtractVectors_Static<double, 3>(V1i, V1k, V1ik);
+    lenV1ik = norm_L2_Static<double, 3>(V1ik);
+
+    subtractVectors_Static<double, 3>(V1j, V1k, V1jk);
+    lenV1jk = norm_L2_Static<double, 3>(V1jk);
+
+    J[0] = V1ik[0] / lenV1ik;
+    J[1] = V1jk[0] / lenV1jk;
+    J[2] = V1ik[1] / lenV1ik;
+    J[3] = V1jk[1] / lenV1jk;
+
+    scaleVectorIP_Static<double, 4>(-w, J);
+}
+
+// LengthAdjustedSilhouetteProjectionEnergy
+class LengthAdjustedSilhouetteProjectionEnergy : public SilhouetteBaseEnergy
+{
+public:
+    LengthAdjustedSilhouetteProjectionEnergy(const VertexNode & V, const LengthAdjustedBarycentricNode & U, 
+                                             const Matrix<double> & S, const Mesh & mesh, 
+                                             const double w, const int narrowBand)
+        : SilhouetteBaseEnergy(V, U, mesh, w, narrowBand, 2), _S(S), _Q(U)
+    {}
+
+    virtual void EvaluateResidual(const int k, Vector<double> & e) const
+    {
+        int faceIndex = _U.GetFaceIndex(k);
+        const int * Ti = _mesh.GetTriangle(faceIndex);
+
+        silhouetteProjResiduals_Unsafe(_V.GetVertex(Ti[0]), 
+                                       _V.GetVertex(Ti[1]),
+                                       _V.GetVertex(Ti[2]),
+                                       _Q.GetBarycentricCoordinate(k),
+                                       _S[k],
+                                       _w, 
+                                       &e[0]);
+    }
+
+    virtual void EvaluateJacobian(const int k, const int whichParam, Matrix<double> & J) const
+    {
+        const int * Ti = _mesh.GetTriangle(_Q.GetFaceIndex(k));
+
+        if (whichParam == 0)
+        {
+            // barycentric coordinate
+            silhouetteProjJac_u_Unsafe(_V.GetVertex(Ti[0]), 
+                                       _V.GetVertex(Ti[1]),
+                                       _V.GetVertex(Ti[2]),
+                                       _w, J[0]);
+        }
+        else
+        {
+            // vertex
+            int j = (*_allNarrowBands[k])[whichParam - 1];
+
+            // if face vertex
+            if (j == Ti[0])
+            {
+                double u = _U.GetBarycentricCoordinate(k)[0];
+                silhouetteProjJac_V1l_Unsafe(u, _w, J[0]);
+            }
+            else if (j == Ti[1])
+            {
+                double u = _U.GetBarycentricCoordinate(k)[1];
+                silhouetteProjJac_V1l_Unsafe(u, _w, J[0]);
+            }
+            else if (j == Ti[2])
+            {
+                double u = 1.0 - _U.GetBarycentricCoordinate(k)[0] - _U.GetBarycentricCoordinate(k)[1];
+                silhouetteProjJac_V1l_Unsafe(u, _w, J[0]);
+            }
+            else
+            {
+                // other vertex in the narrow band
+                fillMatrix(J, 0);
+            }
+        }
+    }
+
+protected:
+    const LengthAdjustedBarycentricNode & _Q;
+    const Matrix<double> & _S;
+};
+
+// Silhouette normal residual and derivatives (UNSAFE)
+
+// silhouetteNormalResiduals_Unsafe
+inline void silhouetteNormalResiduals_Unsafe(const Mesh & mesh, const Matrix<double> & V1, int faceIndex, const double * u_, const double * SN, const double & w, double * e)
+{
+    const int * Ti = mesh.GetTriangle(faceIndex);
+    double vertexNormals[3][3];
+
+    for (int i=0; i < 3; i++)
+    {
+        vertexNormal_Unsafe(mesh, V1, Ti[i], vertexNormals[i]);
+        normalizeVector_Static<double, 3>(vertexNormals[i]);
+    }
+
+    double u[3] = { u_[0], u_[1], 1.0 - u_[0] - u_[1] };
+
+    double normal[3];
+    makeTriInterpolatedVector_Static<double, 3>(u, vertexNormals[0], vertexNormals[1], vertexNormals[2], normal);
+    normalizeVector_Static<double, 3>(normal);
+
+    e[0] = w*(SN[0] - normal[0]);
+    e[1] = w*(SN[1] - normal[1]);
+    e[2] = w*(- normal[2]);
 }
 
 // silhouetteNormalResidualsJac_V1
@@ -421,7 +578,7 @@ public:
         silhouetteNormalResiduals_Unsafe(_mesh, 
                                          _V.GetVertices(),
                                          _U.GetFaceIndex(k),
-                                         _U.GetBarycentriCoordinate(k),
+                                         _U.GetBarycentricCoordinate(k),
                                          _SN[k],
                                          _w,
                                          &e[0]);
@@ -435,7 +592,7 @@ public:
             silhouetteNormalResidualsJac_u_Unsafe(_mesh, 
                 _V.GetVertices(), 
                 _U.GetFaceIndex(k),
-                _U.GetBarycentriCoordinate(k),
+                _U.GetBarycentricCoordinate(k),
                 _w,
                 J[0]);
         }
@@ -447,7 +604,7 @@ public:
             silhouetteNormalResidualsJac_V1_Unsafe(_mesh,
                 _V.GetVertices(),
                 _U.GetFaceIndex(k),
-                _U.GetBarycentriCoordinate(k),
+                _U.GetBarycentricCoordinate(k),
                 vertexIndex,
                 _w,
                 J[0]);

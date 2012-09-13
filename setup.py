@@ -92,19 +92,19 @@ setup(
         #            define_macros=REMOVE_EXCEPTION_MACROS,
         #            language='c++'),
 
-        Extension('core_recovery.lm_solvers',
-                  ['core_recovery/lm_solvers.pyx',
-                   'cpp/Solve/problem.cpp',
-                   'cpp/Solve/node.cpp',
-                   'cpp/Geometry/mesh_walker.cpp'
-                  ] +
-                  SSLM_BASE_SRC + 
-                  SSLM_MATH_SRC,
-                  include_dirs=include_dirs + [SSLM_ROOT, COLAMD_INC],
-                  library_dirs=[COLAMD_LIB],
-                  libraries=['colamd'],
-                  define_macros=REMOVE_EXCEPTION_MACROS + [('NO_HELPER', 1)],
-                  language='c++'),
+        # Extension('core_recovery.lm_solvers',
+        #           ['core_recovery/lm_solvers.pyx',
+        #            'cpp/Solve/problem.cpp',
+        #            'cpp/Solve/node.cpp',
+        #            'cpp/Geometry/mesh_walker.cpp'
+        #           ] +
+        #           SSLM_BASE_SRC + 
+        #           SSLM_MATH_SRC,
+        #           include_dirs=include_dirs + [SSLM_ROOT, COLAMD_INC],
+        #           library_dirs=[COLAMD_LIB],
+        #           libraries=['colamd'],
+        #           define_macros=REMOVE_EXCEPTION_MACROS + [('NO_HELPER', 1)],
+        #           language='c++'),
 
         # Extension('Test.test_mesh_walker',
         #           ['Test/test_mesh_walker.pyx',
@@ -113,11 +113,11 @@ setup(
         #           define_macros=REMOVE_EXCEPTION_MACROS,
         #           language='c++'),
 
-        # Extension('Test.test_residuals',
-        #           ['Test/test_residuals.pyx'],
-        #           include_dirs=include_dirs + [SSLM_ROOT],
-        #           define_macros=REMOVE_EXCEPTION_MACROS,
-        #           language='c++'),
+        Extension('Test.test_residuals',
+                  ['Test/test_residuals.pyx'],
+                  include_dirs=include_dirs + [SSLM_ROOT],
+                  define_macros=REMOVE_EXCEPTION_MACROS,
+                  language='c++'),
         ],
 
     cmdclass = {'build_ext' : build_ext},

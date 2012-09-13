@@ -45,6 +45,17 @@ cdef extern from "test_residuals.h":
                                          double w,
                                          double * J)
 
+    void lengthAdjustedSilhouetteProjResiduals_(np.ndarray npy_V1,
+                                    np.ndarray npy_q,
+                                    np.ndarray npy_S,
+                                    double w,
+                                    np.ndarray npy_e)
+
+    void lengthAdjustedSilhouetteProjJac_All_(np.ndarray npy_V1,
+                                              np.ndarray npy_q,
+                                              double w,
+                                              np.ndarray npy_J)
+
 def faceNormal(np.ndarray[DTYPE_t, ndim=1] V1i,
                np.ndarray[DTYPE_t, ndim=1] V1j,
                np.ndarray[DTYPE_t, ndim=1] V1k):
@@ -93,7 +104,19 @@ def silhouetteNormalResidualsJac_u(T, V1, faceIndex, u, w):
 
     return J
 
+def lengthAdjustedSilhouetteProjResiduals(np.ndarray npy_V1,
+                                          np.ndarray npy_q,
+                                          np.ndarray npy_S,
+                                          double w):
+    cdef np.ndarray[DTYPE_t, ndim=1] e = np.empty(2, dtype=DTYPE)
+    lengthAdjustedSilhouetteProjResiduals_(npy_V1, npy_q, npy_S, w, e)
+    return e
 
+def lengthAdjustedSilhouetteProjJac_All(np.ndarray npy_V1,
+                                        np.ndarray npy_q,
+                                        double w):
+    cdef np.ndarray[DTYPE_t, ndim=2, mode='c'] J = np.empty((2, 11), dtype=DTYPE)
+    lengthAdjustedSilhouetteProjJac_All_(npy_V1, npy_q, w, J)
 
-    
+    return J
 
