@@ -300,7 +300,6 @@ void silhouetteNormalResidualsJac_V1_Unsafe(const Mesh & mesh, const Matrix<doub
         fillVector_Static<double, 9>(0., J);
         return;
     }
-    int desiredIndex = *j;
 
     // build an index mapping for `allVertices` (which is ordered)
     std::map<int, int> indexAllVertices;
@@ -362,8 +361,12 @@ void silhouetteNormalResidualsJac_V1_Unsafe(const Mesh & mesh, const Matrix<doub
     scaleMatrixIP(-w, finalJ);
 
     // return slice for the vertex of interest
+    auto p = indexAllVertices.find(vertexIndex);
+    assert(p != indexAllVertices.end());
+    int desiredIndex = p->second;
+
     Matrix<double> outJ(3, 3, J);
-    copyMatrixSlice(outJ, 0, 3*desiredIndex, 3, 3, outJ, 0, 0);
+    copyMatrixSlice(finalJ, 0, 3*desiredIndex, 3, 3, outJ, 0, 0);
 }
 
 // silhouetteNormalResidualsJac_u_Unsafe
