@@ -746,12 +746,14 @@ namespace V3D
             // Undo the augmentation of the diagonals
             for (int paramType = 0; paramType < _paramDesc.nParamTypes; ++paramType)
             {
+               const double & p = _paramDesc.preconditioner[paramType];
+
                MatrixArray<double>& Hs = *_hessian.Hs[paramType][paramType];
                int const dim = Hs.num_cols();
                int const count = Hs.count();
                for (int n = 0; n < count; ++n)
                   for (int l = 0; l < dim; ++l)
-                     Hs[n][l][l] -= lambda;
+                     Hs[n][l][l] -= p * lambda;
             } // end for (paramType)
 
             increaseLambda();
