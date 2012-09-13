@@ -5,6 +5,10 @@
 #include <iostream>
 using namespace std;
 
+Problem::Problem()
+    : _maxJteStore(0)
+{}
+
 void Problem::AddNode(Node * node)
 {
     const int id = node->TypeId();
@@ -152,6 +156,25 @@ double Problem::GetParameterLength() const
     return sqrt(squareLength);
 }
 
+void Problem::EvaluateJteCallback(const Vector<double> & Jt_e)
+{
+    if (_maxJteStore > 0)
+    {
+        while (_storedJte.size() > _maxJteStore)
+        {
+            Vector<double> * oldJt_e = _storedJte.front();
+            delete oldJt_e;
+
+            _storedJte.pop_front();
+        }
+
+        Vector<double> * copyJt_e = new Vector<double>(Jt_e.size());
+        copyVector(Jt_e, *copyJt_e);
+
+        _storedJte.push_back(copyJt_e);
+    }
+}
+
 Problem::~Problem()
 {
     for (int i = 0; i < _allEnergies.size(); i++)
@@ -163,5 +186,8 @@ Problem::~Problem()
 
     for (int i = 0; i < _fixedNodes.size(); i++)
         delete _fixedNodes[i];
+
+    for (int i = 0; i < _storedJte.size(); i++)
+        delete _storedJte[i];
 }
 

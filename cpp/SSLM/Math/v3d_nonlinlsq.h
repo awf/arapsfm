@@ -199,7 +199,7 @@ namespace V3D
          void fillJtJ();
          void fillJacobians(const int iteration);
          void fillHessian();
-         void evalJt_e(Vector<double>& Jt_e);
+         virtual void evalJt_e(Vector<double>& Jt_e);
 
          //! Map (paramType,ix) pairs to a continuous range of global ids.
          int getParamId(int const paramType, int const paramIx) const { return _paramTypeStartID[paramType] + paramIx; }

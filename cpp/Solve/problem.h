@@ -4,6 +4,7 @@
 #include <vector>
 #include <map>
 #include <utility>
+#include <deque>
 using namespace std;
 
 #include "Solve/node.h"
@@ -14,6 +15,7 @@ using namespace std;
 class Problem
 {
 public:
+    Problem();
     virtual void AddNode(Node * node);
     virtual void AddFixedNode(Node * node);
     virtual void AddEnergy(Energy * energy);
@@ -31,6 +33,11 @@ public:
     virtual void Restore();
 
     virtual double GetParameterLength() const;
+
+    void SetMaximumJteToStore(int maxJteStore) { _maxJteStore = maxJteStore; }
+    const deque<Vector<double> *> GetStoredJte() const { return _storedJte; }
+
+    virtual void EvaluateJteCallback(const Vector<double> & Jt_e);
     virtual ~Problem();
 
 protected:
@@ -38,6 +45,9 @@ protected:
     map<int, vector<Node *>> _allNodes;
     vector<Node *> _fixedNodes;
     vector<Energy *> _allEnergies;
+
+    deque<Vector<double> *> _storedJte;
+    int _maxJteStore;
 
     // NLSQ
     NLSQ_ParamDesc _NLSQ_paramDesc;

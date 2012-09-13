@@ -5,6 +5,7 @@
 using namespace V3D;
 
 #include <algorithm>
+#include <iostream>
 using namespace std;
 
 #include "Solve/problem.h"
@@ -43,6 +44,13 @@ public:
     virtual double getParameterLength() const
     {
         return _problem.GetParameterLength();
+    }
+
+    virtual void evalJt_e(Vector<double> & Jt_e)
+    {
+        NLSQ_LM_Optimizer::evalJt_e(Jt_e);
+
+        _problem.EvaluateJteCallback(Jt_e);
     }
 
     virtual void increaseLambda()
