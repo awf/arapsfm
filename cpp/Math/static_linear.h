@@ -83,14 +83,6 @@ void scaleVector_Static(const Elem a, const Elem * b, Elem * c)
     for (int i=0; i < n; i++) c[i] = b[i] * a;
 }
 
-// norm_L2_Static
-template <typename Elem, int n>
-inline
-Elem norm_L2_Static(const Elem * a)
-{
-    return sqrt(sqrNorm_L2_Static<Elem, n>(a));
-}
-
 // sqrNorm_L2_Static
 template <typename Elem, int n>
 inline
@@ -99,6 +91,14 @@ Elem sqrNorm_L2_Static(const Elem * a)
     Elem acc = 0;
     for (int i=0; i < n; i++) acc += a[i]*a[i];
     return acc;
+}
+
+// norm_L2_Static
+template <typename Elem, int n>
+inline
+Elem norm_L2_Static(const Elem * a)
+{
+    return sqrt(sqrNorm_L2_Static<Elem, n>(a));
 }
 
 // normalizeVector_Static

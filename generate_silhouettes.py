@@ -10,13 +10,17 @@ from core_recovery.silhouette_generation import generate_silhouette
 
 # Constants
 DATA_ROOT = 'data'
-# DATA_SOURCE = 'cheetah'
+
+# DATA_SOURCE = 'cheetah0'
 DATA_SOURCE = 'circle'
+
+# BACKGROUND_COLOUR = np.array([255, 242, 0, 255], dtype=np.uint8)
+BACKGROUND_COLOUR = np.array([255, 242, 0], dtype=np.uint8)
+
 INPUT_DIR = os.path.join(DATA_ROOT, 'segmentations', DATA_SOURCE)
 OUTPUT_DIR = os.path.join(DATA_ROOT, 'silhouettes', DATA_SOURCE)
 
-#BACKGROUND_COLOUR = np.array([255, 242, 0, 255], dtype=np.uint8)
-BACKGROUND_COLOUR = np.array([255, 242, 0], dtype=np.uint8)
+# Options
 SUBSAMPLE = 20
 FLIP_NORMALS = True
 SHOW_SILHOUETTES = True
@@ -25,8 +29,6 @@ SHOW_SILHOUETTES = True
 
 # load_inverse_segmentation
 def load_inverse_segmentation(index):
-    import pdb
-    pdb.set_trace()
     path = os.path.join(INPUT_DIR, '%d-INV_S.png' % index)
     print '<- %s' % path
     color_mask = (plt.imread(path)*255.).astype(np.uint8)

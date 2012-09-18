@@ -416,7 +416,7 @@ namespace V3D
          scale += d2/d1;
       }
       scale /= n;
-      if(isinf(scale)||isnan(scale)||scale==0.0)scale=1.0;
+      if(std::isinf(scale)||std::isnan(scale)||scale==0.0)scale=1.0;
       for (size_t i = 0; i < n; ++i) scaleVectorIP(scale, left[i]);
 
       getEuclideanTransformation(left, right, R, T);

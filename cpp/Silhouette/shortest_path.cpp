@@ -53,7 +53,7 @@ void ShortestPathSolver::updateCandidates(const Matrix<double> & V1)
     for (int i=0; i < _numVertices; i++)
     {
         double * n = _QN[i];
-        vertexNormal_Unsafe(_info.Mesh, V1, i, n);
+        vertexNormal_Unsafe(_info._Mesh, V1, i, n);
         normalizeVector_Static<double, 3>(n);
     }
 

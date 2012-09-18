@@ -7,10 +7,10 @@
 #include <algorithm>
 #include <vector>
 #include <cmath>
-#include "Base\v3d_serialization.h"
+#include "Base/v3d_serialization.h"
 // MSVC
-#define isnan(x) _isnan(x)
-#define isinf(x) (!_finite(x))
+// #define isnan(x) _isnan(x)
+// #define isinf(x) (!_finite(x))
 
 namespace V3D
 {

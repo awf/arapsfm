@@ -14,7 +14,7 @@ struct ShortestPathInfo
                      const Vector<double> & SilEdgeCandParam_,
                      const Vector<int> & SilCandAssignedFaces_,
                      const Matrix<double> & SilCandU_)
-        : Mesh(Mesh_),
+        : _Mesh(Mesh_),
           SilCandDistances(SilCandDistances_),
           SilEdgeCands(SilEdgeCands_),
           SilEdgeCandParam(SilEdgeCandParam_),
@@ -22,7 +22,7 @@ struct ShortestPathInfo
           SilCandU(SilCandU_)
         {}
 
-    const Mesh & Mesh;                          // mesh information is defined on
+    const Mesh & _Mesh;                          // mesh information is defined on
     const Matrix<double> & SilCandDistances;    // (precomputed) truncated geodesic distance matrix
     const Matrix<int> & SilEdgeCands;           // edges which defined preimage points
     const Vector<double> & SilEdgeCandParam;    // linear coordinates along edges which define preimage points
