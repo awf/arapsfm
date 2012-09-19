@@ -4,3 +4,4 @@
 build/
 data/
 working/
+*.so
