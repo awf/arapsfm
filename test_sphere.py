@@ -95,28 +95,28 @@ def main():
 
     lm_lambdas = np.r_[1.0, sil_lambdas[1:]]
     lm_lambdas = np.array(lm_lambdas, dtype=np.float64)
-    lm_precond = np.array([1.0, 1.0], dtype=np.float64)
+    lm_precond = np.array([1.0, 100.0], dtype=np.float64)
 
     print 'LM lambdas:', lm_lambdas
     print 'LM preconditioners:', lm_precond
 
     V1 = V.copy()
 
-    status, saved_Jte = solve_single_lap_sil_len_adj_with_Jte(V1, T, U, L, S, SN,
-                                                              lm_lambdas, lm_precond, 
-                                                              narrowBand=3,
-                                                              maxJteStore=100,
-                                                              maxIterations=100,
-                                                              verbosenessLevel=1)
+    status, saved_Jte = solve_single_lap_silhouette_with_Jte(V1, T, U, L, S, SN,
+                                                             lm_lambdas, lm_precond, 
+                                                             narrowBand=3,
+                                                             maxJteStore=100,
+                                                             maxIterations=100,
+                                                             verbosenessLevel=1)
 
     count = 0
     while status[0] in (4,) and count < 3:
-        status, saved_Jte = solve_single_lap_sil_len_adj_with_Jte(V1, T, U, L, S, SN,
-                                                                  lm_lambdas, lm_precond, 
-                                                                  narrowBand=3,
-                                                                  maxJteStore=100,
-                                                                  maxIterations=100,
-                                                                  verbosenessLevel=1)
+        status, saved_Jte = solve_single_lap_silhouette_with_Jte(V1, T, U, L, S, SN,
+                                                          lm_lambdas, lm_precond, 
+                                                          narrowBand=3,
+                                                          maxJteStore=100,
+                                                          maxIterations=100,
+                                                          verbosenessLevel=1)
         count += 1
 
     # np.save('saved_Jte.npy', saved_Jte)

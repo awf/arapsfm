@@ -359,6 +359,18 @@ namespace V3D
          NLSQ_Residuals& residuals = *_residuals[obj];
          costFun.initializeJacobian();
          costFun.fillAllJacobians(residuals._weights, residuals._Js, iteration);
+
+         // apply preconditioners
+         for (int i=0; i < costFun._usedParamTypes.size(); i++)
+         {
+             int paramType = costFun._usedParamTypes[i];
+             const double & p = _paramDesc.preconditioner[paramType];
+             if (p == 1.0) continue;
+
+             MatrixArray<double>& J = *residuals._Js[i];
+             for (int k = 0; k < costFun.numMeasurements(); ++k)
+                scaleMatrixIP(1.0 / p, J[k]);
+         }
       } // end for (obj)
    } // end NLSQ_LM_Optimizer::fillJacobians()
 
@@ -598,8 +610,6 @@ namespace V3D
          // Augment the diagonals
          for (int paramType = 0; paramType < _paramDesc.nParamTypes; ++paramType)
          {
-            const double & p = _paramDesc.preconditioner[paramType];
-
             MatrixArray<double>& Hs = *_hessian.Hs[paramType][paramType];
             vector<pair<int, int> > const& nzPairs = _hessian.nonzeroPairs[paramType][paramType];
             int const dim = Hs.num_cols();
@@ -610,7 +620,7 @@ namespace V3D
             {
                if (nzPairs[n].first != nzPairs[n].second) continue;
                for (int l = 0; l < dim; ++l)
-                  Hs[n][l][l] += p * lambda;
+                  Hs[n][l][l] += lambda;
             }
          } // end for (paramType)
 
@@ -676,6 +686,14 @@ namespace V3D
                int const paramDim = _paramDesc.dimension[paramType];
                int const count    = _paramDesc.count[paramType];
                int const rowStart = _paramTypeRowStart[paramType];
+
+               // apply preconditioner
+               const double & p = _paramDesc.preconditioner[paramType];
+               if (p != 1.0)
+               {
+                  Vector<double> temp(count * paramDim, &delta[0] + rowStart);
+                  scaleVectorIP(1.0 / p, temp);
+               }
 
                VectorArrayAdapter<double> deltaParam(count, paramDim, &delta[0] + rowStart);
                this->updateParameters(paramType, deltaParam);
@@ -746,14 +764,12 @@ namespace V3D
             // Undo the augmentation of the diagonals
             for (int paramType = 0; paramType < _paramDesc.nParamTypes; ++paramType)
             {
-               const double & p = _paramDesc.preconditioner[paramType];
-
                MatrixArray<double>& Hs = *_hessian.Hs[paramType][paramType];
                int const dim = Hs.num_cols();
                int const count = Hs.count();
                for (int n = 0; n < count; ++n)
                   for (int l = 0; l < dim; ++l)
-                     Hs[n][l][l] -= p * lambda;
+                     Hs[n][l][l] -= lambda;
             } // end for (paramType)
 
             increaseLambda();

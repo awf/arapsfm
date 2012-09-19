@@ -85,28 +85,28 @@ setup(
         #           define_macros=REMOVE_EXCEPTION_MACROS + [('NO_HELPER', 1)],
         #           language='c++'),
 
-        Extension('core_recovery.silhouette_global_solver',
-                  ['core_recovery/silhouette_global_solver.pyx',
-                   'cpp/Silhouette/shortest_path.cpp'],
-                   include_dirs=include_dirs + [SSLM_ROOT],
-                   define_macros=REMOVE_EXCEPTION_MACROS,
-                   extra_compile_args=['-std=c++11', '-Wfatal-errors'],
-                   language='c++'),
+        # Extension('core_recovery.silhouette_global_solver',
+        #           ['core_recovery/silhouette_global_solver.pyx',
+        #            'cpp/Silhouette/shortest_path.cpp'],
+        #            include_dirs=include_dirs + [SSLM_ROOT],
+        #            define_macros=REMOVE_EXCEPTION_MACROS,
+        #            extra_compile_args=['-std=c++11', '-Wfatal-errors'],
+        #            language='c++'),
 
-        # Extension('core_recovery.lm_solvers',
-        #           ['core_recovery/lm_solvers.pyx',
-        #            'cpp/Solve/problem.cpp',
-        #            'cpp/Solve/node.cpp',
-        #            'cpp/Geometry/mesh_walker.cpp'
-        #           ] +
-        #           SSLM_BASE_SRC + 
-        #           SSLM_MATH_SRC,
-        #           include_dirs=include_dirs + [SSLM_ROOT, COLAMD_INC],
-        #           library_dirs=[COLAMD_LIB],
-        #           libraries=['colamd'],
-        #           define_macros=REMOVE_EXCEPTION_MACROS + [('NO_HELPER', 1)],
-        #           extra_compile_args=['-std=c++11', '-Wfatal-errors'],
-        #           language='c++'),
+        Extension('core_recovery.lm_solvers',
+                  ['core_recovery/lm_solvers.pyx',
+                   'cpp/Solve/problem.cpp',
+                   'cpp/Solve/node.cpp',
+                   'cpp/Geometry/mesh_walker.cpp'
+                  ] +
+                  SSLM_BASE_SRC + 
+                  SSLM_MATH_SRC,
+                  include_dirs=include_dirs + [SSLM_ROOT, COLAMD_INC],
+                  library_dirs=[COLAMD_LIB],
+                  libraries=['colamd'],
+                  define_macros=REMOVE_EXCEPTION_MACROS + [('NO_HELPER', 1)],
+                  extra_compile_args=['-std=c++11', '-Wfatal-errors'],
+                  language='c++'),
 
         # Extension('Test.test_mesh_walker',
         #           ['Test/test_mesh_walker.pyx',
