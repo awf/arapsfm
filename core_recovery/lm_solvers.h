@@ -259,7 +259,7 @@ PyObject * solve_single_lap_silhouette_with_Jte(PyArrayObject * npy_V,
     {
         int numJte = storedJte.size();
         int lenJte = storedJte.front()->size();
-        int dims[2] = {numJte, lenJte};
+        npy_intp dims[2] = {numJte, lenJte};
         PyArrayObject * npy_allJte = (PyArrayObject *)PyArray_SimpleNew(2, dims, NPY_DOUBLE);
 
         Matrix<double> allJte(dims[0], dims[1], (double *)PyArray_DATA(npy_allJte));
@@ -338,7 +338,7 @@ PyObject * solve_single_lap_sil_len_adj_with_Jte(PyArrayObject * npy_V,
     {
         int numJte = storedJte.size();
         int lenJte = storedJte.front()->size();
-        int dims[2] = {numJte, lenJte};
+        npy_intp dims[2] = {numJte, lenJte};
         PyArrayObject * npy_allJte = (PyArrayObject *)PyArray_SimpleNew(2, dims, NPY_DOUBLE);
 
         Matrix<double> allJte(dims[0], dims[1], (double *)PyArray_DATA(npy_allJte));
