@@ -12,8 +12,7 @@ from operator import itemgetter
 from mesh.faces import edges_in_face
 
 # Visualisation
-import matplotlib.pyplot as plt
-from vtk_ import *
+from visualise.vtk_ import *
 
 # view_with_distance_matrix
 def view_with_distance_matrix(V, cells, Q, D, N, camera_opt={}, cone_opt={}):
@@ -307,7 +306,8 @@ def generate_silhouette_candidate_info(V, faces, step=np.inf, verbose=True):
     info['SilEdgeCandParam'] = np.array([t for edge, t in edge_points_info], dtype=np.float64)
 
     all_face_info = vertex_face_info + edge_points_face_info
-    info['SilCandAssignedFaces'] = np.array(map(itemgetter(0), all_face_info))
+    info['SilCandAssignedFaces'] = np.array(map(itemgetter(0), all_face_info),
+                                            dtype=np.int32)
     info['SilCandU'] = np.vstack(map(itemgetter(1), all_face_info))
 
     # build adjacency information
