@@ -123,13 +123,15 @@ def main_fit_single_silhouette():
                                      1e3],  # silhouette normal
                                      dtype=np.float64)
 
-    lm_lambdas = np.r_[1.0,  # laplacian regularisation
+    lm_lambdas = np.r_[2.0,  # laplacian regularisation
                       global_solve_lambdas[1:]]
 
     lm_lambdas = np.asarray(lm_lambdas, dtype=np.float64)
-    lm_preconditioners = np.array([1.0, 100.0], dtype=np.float64)
+    lm_preconditioners = np.array([1.0, 5.0], dtype=np.float64)
 
-    for index, user_constraints in INPUT_SELECTION:
+    for i, (index, user_constraints) in enumerate(INPUT_SELECTION):
+        # if i > 0:
+        #     break
         print 'index:', index
     
         # load geometry from initial projection
@@ -154,9 +156,9 @@ def main_fit_single_silhouette():
                 lm_preconditioners, 
                 narrowBand=3, 
                 maxIterations=20,
-                gradientThreshold=1e-6,
-                updateThreshold=1e-6,
-                improvementThreshold=1e-6,
+                gradientThreshold=1e-5,
+                updateThreshold=1e-5,
+                improvementThreshold=1e-5,
                 )
             print 'LM Status (%d): ' % status[0], status[1]
 
@@ -165,6 +167,8 @@ def main_fit_single_silhouette():
         status = solve_iteration()
         while status[0] in (0, 4):
             status = solve_iteration()
+
+        print 'Final Status (%d): ' % status[0], status[1]
 
         # visualise ?
         if True:
@@ -274,25 +278,25 @@ def main_fit_joint_lap_silhouette():
 
     # weighting lambdas
     global_solve_lambdas = np.array([1e-3,  # geodesic between preimage
-                                     1e1,   # silhouette projection
-                                     1e4],  # silhouette normal
+                                     1e0,   # silhouette projection
+                                     1e3],  # silhouette normal
                                      dtype=np.float64)
 
     lm_lambdas = np.asarray(np.r_[1.0,  # as-rigid-as-possible
                                  global_solve_lambdas[1:], 
-                                 1e2], # laplacian
+                                 1e1], # laplacian
                            dtype=np.float64)
     
     # preconditioning for the joint minimisation
-    lm_preconditioners = np.array([1e0, 1.0, 100.0], dtype=np.float64)
+    lm_preconditioners = np.array([1.0, 1.0, 5.0], dtype=np.float64)
 
     # other solver options
     solver_options = dict(narrowBand=2, 
                           uniformWeights=True,
                           maxIterations=20,
-                          gradientThreshold=1e-6,
-                          updateThreshold=1e-6,
-                          improvementThreshold=1e-6,
+                          gradientThreshold=1e-5,
+                          updateThreshold=1e-5,
+                          improvementThreshold=1e-5,
                           verbosenessLevel=1)
 
     # construct lists for minimisation
@@ -314,7 +318,7 @@ def main_fit_joint_lap_silhouette():
         # solve for the initial silhouette positions
         U, L = shortest_path_solve(V1, T, S, SN, 
                                    lambdas=global_solve_lambdas,
-                                   isCircular=True, 
+                                   isCircular=False, 
                                    **silhouette_info)
 
         multiX.append(X)
@@ -339,7 +343,7 @@ def main_fit_joint_lap_silhouette():
 
     count = 0
     status = solve_iteration()
-    while status[0] in (0, 4) and count < 3:
+    while status[0] in (0, 4):
         status = solve_iteration()
         count += 1
 
