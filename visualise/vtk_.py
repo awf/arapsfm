@@ -1,9 +1,15 @@
 # vtk_.py
 
 # Imports
-import vtk
 import numpy as np
-from vtk.util.numpy_support import vtk_to_numpy, numpy_to_vtk 
+
+try:
+    import vtk
+    from vtk.util.numpy_support import vtk_to_numpy, numpy_to_vtk 
+except ImportError:
+    HAS_VTK = False
+else:
+    HAS_VTK= True
 
 # Constants
 ACTOR_OPT = dict(Color=(0.26, 0.58, 0.76),
