@@ -476,6 +476,8 @@ int solve_multiview_lap_silhouette(
     PyObject * list_multiL,
     PyObject * list_multiS,
     PyObject * list_multiSN,
+    PyObject * list_multiRx,
+    PyObject * list_multiRy,
     PyArrayObject * npy_lambdas,
     PyArrayObject * npy_preconditioners,
     int narrowBand,
@@ -492,6 +494,8 @@ int solve_multiview_lap_silhouette(
     auto multiL = PyList_to_vector_of_Vector<int>(list_multiL);
     auto multiS = PyList_to_vector_of_Matrix<double>(list_multiS);
     auto multiSN = PyList_to_vector_of_Matrix<double>(list_multiSN);
+    auto multiRx = PyList_to_vector_of_Matrix<double>(list_multiRx);
+    auto multiRy = PyList_to_vector_of_Matrix<double>(list_multiRy);
 
     PYARRAY_AS_VECTOR(double, npy_lambdas, lambdas);
     PYARRAY_AS_VECTOR(double, npy_preconditioners, preconditioners);
@@ -555,8 +559,14 @@ int solve_multiview_lap_silhouette(
             *multiSN[i], mesh, sqrt(lambdas[2]), narrowBand));
     }
 
+    // spillage
+    for (int i = 0; i < instVertexNodes.size(); i++)
+    {
+        problem.AddEnergy(new SpillageEnergy(*instVertexNodes[i], *multiRx[i], *multiRy[i], sqrt(lambdas[3])));
+    }
+
     // laplacian
-    problem.AddEnergy(new LaplacianEnergy(*coreVertexNode, mesh, sqrt(lambdas[3])));
+    problem.AddEnergy(new LaplacianEnergy(*coreVertexNode, mesh, sqrt(lambdas[4])));
 
     // minimise
     int ret = problem.Minimise(*options);
@@ -569,6 +579,8 @@ int solve_multiview_lap_silhouette(
     dealloc_vector(multiL);
     dealloc_vector(multiS);
     dealloc_vector(multiSN);
+    dealloc_vector(multiRx);
+    dealloc_vector(multiRy);
 
     return ret;
 }
@@ -594,7 +606,6 @@ int solve_single_spillage(
 
     return problem.Minimise(*options);
 }
-
 
 #endif
 

@@ -294,8 +294,9 @@ def main_fit_joint_lap_silhouette():
 
     lm_lambdas = np.asarray(np.r_[1.0,  # as-rigid-as-possible
                                  global_solve_lambdas[1:], 
-                                 1e1], # laplacian
-                           dtype=np.float64)
+                                 1.0,   # spillage
+                                 1e1],  # laplacian
+                            dtype=np.float64)
     
     # preconditioning for the joint minimisation
     lm_preconditioners = np.array([1.0, 1.0, 100.0], dtype=np.float64)
@@ -310,7 +311,9 @@ def main_fit_joint_lap_silhouette():
                           verbosenessLevel=1)
 
     # construct lists for minimisation
-    multiX, multiV , multiU, multiL, multiS, multiSN = [list() for i in range(6)]
+    (multiX, multiV , multiU, multiL, 
+     multiS, multiSN,
+     multiRx, multiRy) = [list() for i in range(8)]
 
     for index, user_constraints in INPUT_SELECTION:
         print 'index:', index
@@ -325,6 +328,9 @@ def main_fit_joint_lap_silhouette():
         # get the silhouette information for the frame
         S, SN = load_silhouette(index)
 
+        # get the spillage information for the frame
+        Rx, Ry = load_spillage(index)
+
         # solve for the initial silhouette positions
         U, L = shortest_path_solve(V1, T, S, SN, 
                                    lambdas=global_solve_lambdas,
@@ -337,11 +343,14 @@ def main_fit_joint_lap_silhouette():
         multiL.append(L)
         multiS.append(S)
         multiSN.append(SN)
+        multiRx.append(Rx)
+        multiRy.append(Ry)
 
     # solve_iteration
     def solve_iteration():
         status = solve_multiview_lap_silhouette(
-            T, V, multiX, multiV, multiU, multiL, multiS, multiSN, lm_lambdas,
+            T, V, multiX, multiV, multiU, multiL, multiS, multiSN, 
+            multiRx, multiRy, lm_lambdas,
             lm_preconditioners, **solver_options)
 
         print 'LM Status (%d): ' % status[0], status[1]
@@ -393,7 +402,7 @@ def main_fit_joint_lap_silhouette():
 if __name__ == '__main__':
     #main_silhouette_candidate_info()
     #main_fit_single_projections()
-    main_fit_single_silhouette()
+    #main_fit_single_silhouette()
     #main_fit_joint_arap_silhouette()
-    #main_fit_joint_lap_silhouette()
+    main_fit_joint_lap_silhouette()
 

@@ -89,6 +89,8 @@ cdef extern from "lm_solvers.h":
         list multiL,
         list multiS,
         list multiSN,
+        list multiRx,
+        list multiRy,
         np.ndarray lambdas,
         np.ndarray preconditioners,
         int narrowBand,
@@ -291,6 +293,8 @@ def solve_multiview_lap_silhouette(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
                                    list multiL,
                                    list multiS,
                                    list multiSN,
+                                   list multiRx,
+                                   list multiRy,
                                    np.ndarray[np.float64_t, ndim=1] lambdas,
                                    np.ndarray[np.float64_t, ndim=1] preconditioners,
                                    int narrowBand,
@@ -300,14 +304,15 @@ def solve_multiview_lap_silhouette(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
     cdef OptimiserOptions options
     additional_optimiser_options(&options, kwargs)
 
-    if lambdas.shape[0] != 4:
-        raise ValueError('lambdas.shape[0] != 3')
+    if lambdas.shape[0] != 5:
+        raise ValueError('lambdas.shape[0] != 5')
 
     if preconditioners.shape[0] != 3:
         raise ValueError('preconditioners.shape[0] != 3')
 
     cdef int status = solve_multiview_lap_silhouette_c(T, V, multiX, multiV, multiU, multiL,
-        multiS, multiSN, lambdas, preconditioners, narrowBand, uniformWeights, &options)
+        multiS, multiSN, multiRx, multiRy,
+        lambdas, preconditioners, narrowBand, uniformWeights, &options)
 
     return status, STATUS_CODES[status]
 
