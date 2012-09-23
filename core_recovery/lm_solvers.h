@@ -149,6 +149,8 @@ int solve_single_lap_silhouette(PyArrayObject * npy_V,
                   PyArrayObject * npy_L,
                   PyArrayObject * npy_S,
                   PyArrayObject * npy_SN,
+                  PyArrayObject * npy_Rx,
+                  PyArrayObject * npy_Ry,
                   PyArrayObject * npy_lambdas,
                   PyArrayObject * npy_preconditioners,
                   int narrowBand,
@@ -161,6 +163,9 @@ int solve_single_lap_silhouette(PyArrayObject * npy_V,
 
     PYARRAY_AS_MATRIX(double, npy_S, S);
     PYARRAY_AS_MATRIX(double, npy_SN, SN);
+
+    PYARRAY_AS_MATRIX(double, npy_Rx, Rx);
+    PYARRAY_AS_MATRIX(double, npy_Ry, Ry);
 
     PYARRAY_AS_VECTOR(double, npy_lambdas, lambdas);
     PYARRAY_AS_VECTOR(double, npy_preconditioners, preconditioners);
@@ -186,9 +191,12 @@ int solve_single_lap_silhouette(PyArrayObject * npy_V,
     SilhouetteNormalEnergy * silNormalEnergy = new SilhouetteNormalEnergy(*nodeV, *nodeU, SN, mesh,
         sqrt(lambdas[2]), narrowBand);
 
+    SpillageEnergy * spilEnergy = new SpillageEnergy(*nodeV, Rx, Ry, sqrt(lambdas[3]));
+
     problem.AddEnergy(lapEnergy);
     problem.AddEnergy(silProjEnergy);
     problem.AddEnergy(silNormalEnergy);
+    problem.AddEnergy(spilEnergy);
 
     return problem.Minimise(*options);
 }

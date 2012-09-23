@@ -59,6 +59,8 @@ cdef extern from "lm_solvers.h":
                   np.ndarray L,
                   np.ndarray S,
                   np.ndarray SN,
+                  np.ndarray Rx,
+                  np.ndarray Ry,
                   np.ndarray lambdas,
                   np.ndarray preconditioners,
                   int narrowBand,
@@ -209,6 +211,8 @@ def solve_single_lap_silhouette(np.ndarray[np.float64_t, ndim=2, mode='c'] V,
                                 np.ndarray[np.int32_t, ndim=1] L,
                                 np.ndarray[np.float64_t, ndim=2, mode='c'] S,  
                                 np.ndarray[np.float64_t, ndim=2, mode='c'] SN,  
+                                np.ndarray[np.float64_t, ndim=2, mode='c'] Rx,  
+                                np.ndarray[np.float64_t, ndim=2, mode='c'] Ry,  
                                 np.ndarray[np.float64_t, ndim=1] lambdas,
                                 np.ndarray[np.float64_t, ndim=1] preconditioners,
                                 int narrowBand,
@@ -217,10 +221,10 @@ def solve_single_lap_silhouette(np.ndarray[np.float64_t, ndim=2, mode='c'] V,
     cdef OptimiserOptions options
     additional_optimiser_options(&options, kwargs)
 
-    if lambdas.shape[0] != 3:
-        raise ValueError('lambdas.shape[0] != 3')
+    if lambdas.shape[0] != 4:
+        raise ValueError('lambdas.shape[0] != 4')
 
-    cdef int status = solve_single_lap_silhouette_c(V, T, U, L, S, SN, lambdas, 
+    cdef int status = solve_single_lap_silhouette_c(V, T, U, L, S, SN, Rx, Ry, lambdas, 
         preconditioners, narrowBand, &options)
 
     return status, STATUS_CODES[status]

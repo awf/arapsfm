@@ -26,6 +26,7 @@ DATA_ROOT = 'data'
 INPUT_MODEL = os.path.join(DATA_ROOT, 'models', 'chihuahua.npz')
 PROJECTIONS_ROOT = os.path.join(DATA_ROOT, 'projection_constraints', 'chihuahua')
 SILHOUETTES_ROOT = os.path.join(DATA_ROOT, 'silhouettes', 'cheetah0')
+SPILLAGE_ROOT = os.path.join(DATA_ROOT, 'distance_maps', 'cheetah0')
 FRAMES_ROOT = os.path.join(DATA_ROOT, 'frames', 'cheetah0')
 
 OUTPUT_ROOT = 'working'
@@ -109,6 +110,11 @@ def load_silhouette(index):
     z = np.load(os.path.join(SILHOUETTES_ROOT, '%d_S.npz' % index))
     return z['S'], z['SN']
 
+# load_spillage
+def load_spillage(index):
+    z = np.load(os.path.join(SPILLAGE_ROOT, '%d_D.npz' % index))
+    return z['R']
+
 # main_fit_single_silhouette
 def main_fit_single_silhouette():
     # use '0b' for initial core geometry
@@ -124,14 +130,15 @@ def main_fit_single_silhouette():
                                      dtype=np.float64)
 
     lm_lambdas = np.r_[2.0,  # laplacian regularisation
-                      global_solve_lambdas[1:]]
+                       global_solve_lambdas[1:], # silhouette
+                       1.0]  # spillage
 
     lm_lambdas = np.asarray(lm_lambdas, dtype=np.float64)
     lm_preconditioners = np.array([1.0, 5.0], dtype=np.float64)
 
     for i, (index, user_constraints) in enumerate(INPUT_SELECTION):
-        # if i > 0:
-        #     break
+        if i > 0:
+            break
         print 'index:', index
     
         # load geometry from initial projection
@@ -143,6 +150,9 @@ def main_fit_single_silhouette():
         # get the silhouette information for the frame
         S, SN = load_silhouette(index)
 
+        # get the spillage information for the frame
+        Rx, Ry = load_spillage(index)
+
         # solve for the initial silhouette positions
         U, L = shortest_path_solve(V, T, S, SN, 
                                    lambdas=global_solve_lambdas,
@@ -151,7 +161,7 @@ def main_fit_single_silhouette():
 
         # fit under laplacian
         def solve_iteration():
-            status = solve_single_lap_silhouette(V, T, U, L, S, SN, 
+            status = solve_single_lap_silhouette(V, T, U, L, S, SN, Rx, Ry,
                 lm_lambdas, 
                 lm_preconditioners, 
                 narrowBand=3, 
@@ -288,7 +298,7 @@ def main_fit_joint_lap_silhouette():
                            dtype=np.float64)
     
     # preconditioning for the joint minimisation
-    lm_preconditioners = np.array([1.0, 1.0, 5.0], dtype=np.float64)
+    lm_preconditioners = np.array([1.0, 1.0, 100.0], dtype=np.float64)
 
     # other solver options
     solver_options = dict(narrowBand=2, 
@@ -358,6 +368,7 @@ def main_fit_joint_lap_silhouette():
         multiS=multiS,
         multiSN=multiSN,
         lm_lambdas=lm_lambdas,
+        lm_preconditioners=lm_preconditioners,
         solver_options=solver_options)
 
     # visualise ?
@@ -382,7 +393,7 @@ def main_fit_joint_lap_silhouette():
 if __name__ == '__main__':
     #main_silhouette_candidate_info()
     #main_fit_single_projections()
-    #main_fit_single_silhouette()
+    main_fit_single_silhouette()
     #main_fit_joint_arap_silhouette()
-    main_fit_joint_lap_silhouette()
+    #main_fit_joint_lap_silhouette()
 
