@@ -9,6 +9,7 @@ using namespace V3D;
 #include "Energy/projection.h"
 #include "Energy/narrow_band_silhouette.h"
 #include "Energy/laplacian.h"
+#include "Energy/spillage.h"
 #include "Solve/node.h"
 #include "Solve/problem.h"
 #include "Solve/optimiser_options.h"
@@ -564,4 +565,28 @@ int solve_multiview_lap_silhouette(
     return ret;
 }
 
+// solve_single_spillage
+int solve_single_spillage(
+    PyArrayObject * npy_V,
+    PyArrayObject * npy_Rx,
+    PyArrayObject * npy_Ry,
+    const OptimiserOptions * options)
+{
+    PYARRAY_AS_MATRIX(double, npy_V, V);
+    PYARRAY_AS_MATRIX(double, npy_Rx, Rx);
+    PYARRAY_AS_MATRIX(double, npy_Ry, Ry);
+
+    VertexNode * nodeV = new VertexNode(V);
+
+    Problem problem;
+    problem.AddNode(nodeV);
+
+    SpillageEnergy * spilEnergy = new SpillageEnergy(*nodeV, Rx, Ry, 1.0);
+    problem.AddEnergy(spilEnergy);
+
+    return problem.Minimise(*options);
+}
+
+
 #endif
+

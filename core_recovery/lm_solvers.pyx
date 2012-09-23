@@ -119,6 +119,12 @@ cdef extern from "lm_solvers.h":
                       int maxJteStore,
                       OptimiserOptions * options)
 
+    int solve_single_spillage_c "solve_single_spillage" (
+        np.ndarray npy_V,
+        np.ndarray npy_Rx,
+        np.ndarray npy_Ry,
+        OptimiserOptions * options)
+
 # additional_optimiser_options
 DEFAULT_OPTIMISER_OPTIONS = {
     'maxIterations' : 50,
@@ -348,4 +354,17 @@ def solve_single_lap_sil_len_adj_with_Jte(np.ndarray[np.float64_t, ndim=2, mode=
         preconditioners, narrowBand, maxJteStore, &options)
 
     return (status, STATUS_CODES[status]), storedJte
+
+# solve_single_spillage
+def solve_single_spillage(np.ndarray[np.float64_t, ndim=2, mode='c'] V,
+                          np.ndarray[np.float64_t, ndim=2, mode='c'] Rx,
+                          np.ndarray[np.float64_t, ndim=2, mode='c'] Ry,
+                          **kwargs):
+
+    cdef OptimiserOptions options
+    additional_optimiser_options(&options, kwargs)
+
+    status = solve_single_spillage_c(V, Rx, Ry, &options)
+
+    return (status, STATUS_CODES[status])
 
