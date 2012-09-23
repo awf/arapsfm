@@ -10,8 +10,8 @@
 #include <iostream>
 using namespace std;
 
-ShortestPathSolver::ShortestPathSolver(const Matrix<double> & S,    // silhoutte points
-                   const Matrix<double> & SN,                       // silhoutte normals
+ShortestPathSolver::ShortestPathSolver(const Matrix<double> & S,    // silhouette points
+                   const Matrix<double> & SN,                       // silhouette normals
                    const ShortestPathInfo & info,                   // required info about the mesh and state
                    const Vector<double> & lambdas,                  // lambdas for projection and normal errors
                    bool verbose)
@@ -278,7 +278,7 @@ double ShortestPathSolver::solveCircularShortestPath(const pair<int, int> & boun
         if ((*path)[pathLength] == (*path)[0])
         {
             cout << "[>] ShortestPathSolver::solveCircularShortestPath: E = " << t.E << endl;
-            // unsafe copy of path. Skip the repeated preimage candidate index for the last silhoutte position
+            // unsafe copy of path. Skip the repeated preimage candidate index for the last silhouette position
             copy(path->begin() + 1, path->end(), shortestPath.begin());
 
             for (int l=0; l < pathVectors.size(); l++)

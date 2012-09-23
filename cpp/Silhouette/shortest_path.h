@@ -29,8 +29,8 @@ struct ShortestPathSolver
         }
     };
 
-    ShortestPathSolver(const Matrix<double> & S,          // silhoutte points
-                       const Matrix<double> & SN,         // silhoutte normals
+    ShortestPathSolver(const Matrix<double> & S,          // silhouette points
+                       const Matrix<double> & SN,         // silhouette normals
                        const ShortestPathInfo & info,     // required info about the mesh and state
                        const Vector<double> & lambdas,    // lambdas for projection and normal errors
                        bool verbose);
