@@ -12,6 +12,8 @@ from mesh_view import InteractiveMeshView
 from matplotlib.pyplot import imread
 from itertools import izip
 from pprint import pprint
+
+import os
 from os.path import splitext
 
 # GUI
@@ -21,7 +23,13 @@ class MainWindow(QtGui.QMainWindow):
     def __init__(self, parent=None):
         QtGui.QMainWindow.__init__(self, parent)
 
+        self.setup_state()
         self.setup_ui()
+
+    def setup_state(self):  
+        self.last_image_path = None
+        self.last_mesh_path = None
+        self.last_correspondences_path = None
 
     def setup_ui(self):
         self.load_image_pb = QtGui.QPushButton('Load &Image')
@@ -76,19 +84,26 @@ class MainWindow(QtGui.QMainWindow):
         self.setWindowTitle('DeformationPlay')
 
     def load_image(self):
+        path = self.last_correspondences_path
+        if path is None:
+            path = QtCore.QDir.current().absolutePath()
+
         filename = QtGui.QFileDialog.getOpenFileName(self, 'Load Image',
-            QtCore.QDir.current().absolutePath(),
-            '*.png')
+            path, '*.png')
 
         if filename.isEmpty():
             return
 
         self.mesh_view.set_image(str(filename))
+        self.last_correspondences_path = os.path.split(str(filename))[0]
 
     def load_mesh(self):
+        path = self.last_mesh_path
+        if path is None:
+            path = QtCore.QDir.current().absolutePath()
+
         filename = QtGui.QFileDialog.getOpenFileName(self, 'Load Mesh',
-            QtCore.QDir.current().absolutePath(),
-            'Meshes (*.stl *.npz)')
+            path, 'Meshes (*.stl *.npz)')
 
         if filename.isEmpty():
             return
@@ -111,6 +126,7 @@ class MainWindow(QtGui.QMainWindow):
             poly_data = numpy_to_vtkPolyData(V, T_)
 
         self.mesh_view.set_polydata(poly_data)
+        self.last_mesh_path = os.path.split(str(filename))[0]
 
     def print_info(self):
         print self.mesh_view.transform()
@@ -146,10 +162,12 @@ class MainWindow(QtGui.QMainWindow):
         self._set_correspondences()
 
     def save(self):
+        path = self.last_correspondences_path
+        if path is None:
+            path = QtCore.QDir.current().absolutePath()
+
         filename = QtGui.QFileDialog.getSaveFileName(self, 
-            'Save Correspondences',
-            QtCore.QDir.current().absolutePath(),
-            '*.npz')
+            'Save Correspondences', path, '*.npz')
 
         if filename.isEmpty():
             return
@@ -167,11 +185,15 @@ class MainWindow(QtGui.QMainWindow):
             T=self.mesh_view.transform(),
             V=self.mesh_view.V0)
 
+        self.last_correspondences_path = os.path.split(str(filename))[0]
+
     def load(self):
+        path = self.last_correspondences_path
+        if path is None:
+            path = QtCore.QDir.current().absolutePath()
+
         filename = QtGui.QFileDialog.getOpenFileName(self, 
-            'Load Correspondences',
-            QtCore.QDir.current().absolutePath(),
-            '*.npz')
+            'Load Correspondences', path, '*.npz')
 
         if filename.isEmpty():
             return
@@ -186,6 +208,8 @@ class MainWindow(QtGui.QMainWindow):
 
         self._set_correspondences()
         self.mesh_view.set_transform(T)
+
+        self.last_correspondences_path = os.path.split(str(filename))[0]
 
     def _get_item(self, i):
         line = str(self.items.item(i).text())
