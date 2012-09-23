@@ -17,7 +17,8 @@ from core_recovery.silhouette_global_solver import \
 from core_recovery.lm_solvers import \
     solve_single_lap_silhouette, \
     solve_single_lap_silhouette_with_Jte, \
-    solve_single_lap_sil_len_adj_with_Jte
+    solve_single_lap_sil_len_adj_with_Jte, \
+    solve_single_spillage
 
 # generate_sphere
 def generate_sphere(**options):
@@ -72,8 +73,8 @@ def test_visualise(V, T, U=None, L=None, S=None):
 
     vis.execute()
 
-# main
-def main():
+# main_single_lap_silhouette
+def main_single_lap_silhouette():
     V, T = test_sphere()
     print '# Vertices:', V.shape[0]
     print '# Triangles:', T.shape[0]
@@ -95,7 +96,7 @@ def main():
 
     lm_lambdas = np.r_[1.0, sil_lambdas[1:]]
     lm_lambdas = np.array(lm_lambdas, dtype=np.float64)
-    lm_precond = np.array([1.0, 100.0], dtype=np.float64)
+    lm_precond = np.array([1.0, 50.0], dtype=np.float64)
 
     print 'LM lambdas:', lm_lambdas
     print 'LM preconditioners:', lm_precond
@@ -106,7 +107,10 @@ def main():
                                                              lm_lambdas, lm_precond, 
                                                              narrowBand=3,
                                                              maxJteStore=100,
-                                                             maxIterations=100,
+                                                             maxIterations=50,
+                                                             gradientThreshold=1e-4,
+                                                             updateThreshold=1e-4,
+                                                             improvementThreshold=1e-4,
                                                              verbosenessLevel=1)
 
     count = 0
@@ -141,6 +145,37 @@ def main():
 
     test_visualise(V1, T, U, L, S)
 
+# test_spillage
+def test_spillage():
+    z = np.load('data/distance_maps/circle/0_D.npz')
+    return z['R']
+
+# test_spillage_sphere
+def test_spillage_sphere():
+    return generate_sphere(PhiResolution=16, 
+                           ThetaResolution=30,
+                           Center=(250., 250., 150.),
+                           Radius=200.)
+
+# main_single_spillage
+def main_single_spillage():
+    V, T = test_spillage_sphere()
+    test_visualise(V, T)
+
+    Rx, Ry = test_spillage()
+    status = solve_single_spillage(V, Rx, Ry,
+                              maxIterations=50,          
+                              gradientThreshold=1e-4,
+                              updateThreshold=1e-4,
+                              improvementThreshold=1e-4,
+                              verbosenessLevel=2)        
+
+    print 'status:', status
+
+    test_visualise(V, T)
+
 if __name__ == '__main__':
-    main()
     # generate_silhouette_info()
+    # main_single_lap_silhouette()
+    main_single_spillage()
+
