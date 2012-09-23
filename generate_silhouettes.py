@@ -12,9 +12,9 @@ from core_recovery.silhouette_generation import generate_silhouette
 DATA_ROOT = 'data'
 
 # DATA_SOURCE = 'cheetah0'
-DATA_SOURCE = 'circle'
-
 # BACKGROUND_COLOUR = np.array([255, 242, 0, 255], dtype=np.uint8)
+
+DATA_SOURCE = 'circle'
 BACKGROUND_COLOUR = np.array([255, 242, 0], dtype=np.uint8)
 
 INPUT_DIR = os.path.join(DATA_ROOT, 'segmentations', DATA_SOURCE)
@@ -76,7 +76,6 @@ def main():
 
             ax.set_title('Index: %d' % index)
             plt.show()
-
 
 if __name__ == '__main__':
     main()
