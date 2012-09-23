@@ -16,6 +16,9 @@ from pprint import pprint
 import os
 from os.path import splitext
 
+# Solver
+from core_recovery.lm_solvers import solve_single_arap_proj
+
 # GUI
 
 # MainWindow
@@ -40,6 +43,8 @@ class MainWindow(QtGui.QMainWindow):
         self.remove_pb = QtGui.QPushButton('&Remove')
         self.reset_pb = QtGui.QPushButton('Rese&t')
         self.print_info_pb = QtGui.QPushButton('&Print Info')
+        self.apply_arap_pb = QtGui.QPushButton('&Update')
+        self.apply_arap_pb.setCheckable(True)
 
         pb_layout = QtGui.QGridLayout()
         pb_layout.addWidget(self.load_image_pb, 0, 0)
@@ -50,6 +55,7 @@ class MainWindow(QtGui.QMainWindow):
         pb_layout.addWidget(self.load_pb, 2, 1)
         pb_layout.addWidget(self.reset_pb, 3, 0)
         pb_layout.addWidget(self.print_info_pb, 3, 1)
+        pb_layout.addWidget(self.apply_arap_pb, 4, 0)
 
         self.items = QtGui.QListWidget()
         ctrl_layout = QtGui.QVBoxLayout()
@@ -79,12 +85,14 @@ class MainWindow(QtGui.QMainWindow):
 
         self.reset_pb.clicked.connect(self.mesh_view.reset)
 
+        self.apply_arap_pb.clicked.connect(self.apply_arap_deformation)
+
         self.items.currentRowChanged.connect(self.update_selection)
 
         self.setWindowTitle('DeformationPlay')
 
     def load_image(self):
-        path = self.last_correspondences_path
+        path = self.last_image_path
         if path is None:
             path = QtCore.QDir.current().absolutePath()
 
@@ -94,8 +102,11 @@ class MainWindow(QtGui.QMainWindow):
         if filename.isEmpty():
             return
 
-        self.mesh_view.set_image(str(filename))
-        self.last_correspondences_path = os.path.split(str(filename))[0]
+        self._load_image(str(filename))
+
+    def _load_image(self, filename):
+        self.mesh_view.set_image(filename)
+        self.last_image_path = os.path.split(filename)[0]
 
     def load_mesh(self):
         path = self.last_mesh_path
@@ -108,7 +119,9 @@ class MainWindow(QtGui.QMainWindow):
         if filename.isEmpty():
             return
 
-        filename = str(filename)
+        self._load_mesh(str(filename))
+
+    def _load_mesh(self, filename):
         root, ext = splitext(filename)
 
         if ext == '.stl':
@@ -126,7 +139,7 @@ class MainWindow(QtGui.QMainWindow):
             poly_data = numpy_to_vtkPolyData(V, T_)
 
         self.mesh_view.set_polydata(poly_data)
-        self.last_mesh_path = os.path.split(str(filename))[0]
+        self.last_mesh_path = os.path.split(filename)[0]
 
     def print_info(self):
         print self.mesh_view.transform()
@@ -161,6 +174,21 @@ class MainWindow(QtGui.QMainWindow):
         self.items.takeItem(row)
         self._set_correspondences()
 
+    def get_projection_constraints(self):
+        n = self.items.count()
+        P = np.empty((n, 2), dtype=np.float64)
+        C = np.empty(n, dtype=np.int32)
+
+        for i in xrange(n):
+            position, point_id = self._get_item(i)
+            P[i] = position
+            C[i] = point_id
+
+        return dict(posiutions=P, point_ids=C,      # backwards compatible
+                    C=C, P=P,
+                    T=self.mesh_view.transform(),
+                    V=self.mesh_view.V0)
+         
     def save(self):
         path = self.last_correspondences_path
         if path is None:
@@ -172,19 +200,7 @@ class MainWindow(QtGui.QMainWindow):
         if filename.isEmpty():
             return
 
-        positions, point_ids = [], []
-
-        for i in xrange(self.items.count()):
-            position, point_id = self._get_item(i)
-            positions.append(position)
-            point_ids.append(point_id)
-
-        np.savez_compressed(str(filename),
-            positions=np.asarray(positions, dtype=float),
-            point_ids=np.asarray(point_ids, dtype=int),
-            T=self.mesh_view.transform(),
-            V=self.mesh_view.V0)
-
+        np.savez_compressed(str(filename), **get_projection_constraints())
         self.last_correspondences_path = os.path.split(str(filename))[0]
 
     def load(self):
@@ -198,7 +214,10 @@ class MainWindow(QtGui.QMainWindow):
         if filename.isEmpty():
             return
 
-        z = np.load(str(filename))
+        self._load(str(filename))
+
+    def _load(self, filename):
+        z = np.load(filename)
         positions = z['positions']
         point_ids = z['point_ids']
         T = z['T']
@@ -209,7 +228,40 @@ class MainWindow(QtGui.QMainWindow):
         self._set_correspondences()
         self.mesh_view.set_transform(T)
 
-        self.last_correspondences_path = os.path.split(str(filename))[0]
+        self.last_correspondences_path = os.path.split(filename)[0]
+
+    def apply_arap_deformation(self):
+        if not self.apply_arap_pb.isChecked():
+            self.mesh_view.set_aux_polydata(None)
+            return
+            
+        d = self.get_projection_constraints()
+
+        # prepare vertices
+        V, T = d['V'], d['T']
+        V = np.dot(V, np.transpose(T[:3,:3])) + T[:3,-1]
+
+        # get topology (required for `solve_single_arap_proj`)
+        T = self.mesh_view.triangles()
+
+        # allocate rotations and initialise new vertices
+        X = np.zeros_like(V)
+        V1 = V.copy()
+
+        lambdas = np.array([1.0,  # as-rigid-as-possible
+                            1.0], # projection
+                            dtype=np.float64)
+
+        status, status_string = solve_single_arap_proj(
+            V, T, X, V1, d['C'], d['P'], lambdas,
+            maxIterations=10,
+            gradientThreshold=1e-5,
+            updateThreshold=1e-5,
+            improvementThreshold=1e-5,
+            verbosenessLevel=1)
+
+        poly_data = numpy_to_vtkPolyData(V1, faces_to_vtkCellArray(T))
+        self.mesh_view.set_aux_polydata(poly_data)
 
     def _get_item(self, i):
         line = str(self.items.item(i).text())
@@ -236,6 +288,11 @@ def main():
 
     main_window = MainWindow()
     main_window.show()
+
+    # trial
+    main_window._load_image('data/frames/cheetah0/0.png')
+    main_window._load_mesh('data/models/quad_prototype_tail.npz')
+    main_window._load('data/projection_constraints/quad_prototype_tail/0f.npz')
 
     qapp.exec_()
 

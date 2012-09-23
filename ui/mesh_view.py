@@ -40,6 +40,16 @@ class InteractiveMeshView(QVTKWidget):
         self.actor = actor
         self.actor.SetVisibility(False)
 
+        # auxiliary mesh actor
+        aux_mapper = vtk.vtkPolyDataMapper()
+        self.aux_mapper = aux_mapper
+
+        aux_actor = vtk.vtkActor()
+        aux_actor.SetMapper(aux_mapper)
+        aux_actor.GetProperty().SetColor(0.76, 0.26, 0.58)
+        aux_actor.GetProperty().SetLighting(True)
+        self.aux_actor = aux_actor
+
         # selection actors
         sphere = vtk.vtkSphereSource()
         sphere.SetRadius(5.0)
@@ -133,6 +143,7 @@ class InteractiveMeshView(QVTKWidget):
         ren.AddActor(im_sel_actor)
         ren.AddActor(proj_actor)
         ren.AddActor(image_actor)
+        ren.AddActor(aux_actor)
         ren.SetBackground(1., 1., 1.)
         self.ren = ren
 
@@ -225,12 +236,17 @@ class InteractiveMeshView(QVTKWidget):
         # reset deformation
         self.last_transform = None
 
-    def _projection_update(self):
+    def _projection_update(self, project_to_aux=False):
+        if project_to_aux:
+            V, _ = vtkPolyData_to_numpy(self.aux_poly_data)
+        else:
+            V = self.V
+
         proj_points = self.proj_poly_data.GetPoints()
 
         for j in xrange(len(self.C)):
             (x, y), i = self.C[j]
-            proj_points.SetPoint(2*j + 1, self.V[i])
+            proj_points.SetPoint(2*j + 1, V[i])
 
         self.proj_actor.SetVisibility(True)
         self.proj_poly_data.Modified()
@@ -248,6 +264,13 @@ class InteractiveMeshView(QVTKWidget):
             T = vtkMatrix4x4_to_numpy(mat)
         return T
 
+    def triangles(self):
+        if self.poly_data is None:
+            return None
+
+        V, T_ = vtkPolyData_to_numpy(self.poly_data)
+        return np.asarray(list(iter_vtkCellArray(T_)), dtype=np.int32)
+        
     def reset(self):
         # reset poly data to original points
         if self.poly_data is not None:
@@ -257,16 +280,6 @@ class InteractiveMeshView(QVTKWidget):
 
         # reset the transformation
         self.set_transform(np.eye(4))
-
-    def set_transform(self, T):
-        print 'Transform:'
-        print T
-
-        mat = numpy_to_vtkMatrix4x4(T)
-        self.box_transform.SetMatrix(mat)
-        self.box_widget.SetTransform(self.box_transform)
-
-        self._transform_update()
 
     def set_image(self, filename):
         self.reader.SetFileName(filename)
@@ -326,6 +339,16 @@ class InteractiveMeshView(QVTKWidget):
 
         self.ren.ResetCamera()
         self.GetRenderWindow().Render()
+
+    def set_transform(self, T):
+        print 'Transform:'
+        print T
+
+        mat = numpy_to_vtkMatrix4x4(T)
+        self.box_transform.SetMatrix(mat)
+        self.box_widget.SetTransform(self.box_transform)
+
+        self._transform_update()
             
     def set_correspondences(self, C):
         self.C = C
@@ -347,4 +370,19 @@ class InteractiveMeshView(QVTKWidget):
             proj_lines.InsertCellPoint(2*j + 1)
 
         self._projection_update()
+
+    def set_aux_polydata(self, aux_poly_data):
+        if aux_poly_data is None:
+            self.aux_actor.SetVisibility(False)
+            self.actor.SetVisibility(True)
+            
+            self._projection_update(project_to_aux=False)
+        else:
+            self.aux_poly_data = aux_poly_data
+            self.aux_mapper.SetInput(aux_poly_data)
+            self.aux_mapper.Modified()
+            self.aux_actor.SetVisibility(True)
+            self.actor.SetVisibility(False)
+
+            self._projection_update(project_to_aux=True)
 
