@@ -33,6 +33,7 @@ class MainWindow(QtGui.QMainWindow):
         self.last_image_path = None
         self.last_mesh_path = None
         self.last_correspondences_path = None
+        self.arap_poly_data = None
 
     def setup_ui(self):
         self.load_image_pb = QtGui.QPushButton('Load &Image')
@@ -44,7 +45,8 @@ class MainWindow(QtGui.QMainWindow):
         self.reset_pb = QtGui.QPushButton('Rese&t')
         self.print_info_pb = QtGui.QPushButton('&Print Info')
         self.apply_arap_pb = QtGui.QPushButton('&Update')
-        self.apply_arap_pb.setCheckable(True)
+        self.toggle_arap_view_pb = QtGui.QPushButton('To&ggle View')
+        self.toggle_arap_view_pb.setCheckable(True)
 
         pb_layout = QtGui.QGridLayout()
         pb_layout.addWidget(self.load_image_pb, 0, 0)
@@ -56,6 +58,7 @@ class MainWindow(QtGui.QMainWindow):
         pb_layout.addWidget(self.reset_pb, 3, 0)
         pb_layout.addWidget(self.print_info_pb, 3, 1)
         pb_layout.addWidget(self.apply_arap_pb, 4, 0)
+        pb_layout.addWidget(self.toggle_arap_view_pb, 4, 1)
 
         self.items = QtGui.QListWidget()
         ctrl_layout = QtGui.QVBoxLayout()
@@ -86,6 +89,7 @@ class MainWindow(QtGui.QMainWindow):
         self.reset_pb.clicked.connect(self.mesh_view.reset)
 
         self.apply_arap_pb.clicked.connect(self.apply_arap_deformation)
+        self.toggle_arap_view_pb.clicked.connect(self.toggle_arap_view)
 
         self.items.currentRowChanged.connect(self.update_selection)
 
@@ -230,11 +234,14 @@ class MainWindow(QtGui.QMainWindow):
 
         self.last_correspondences_path = os.path.split(filename)[0]
 
-    def apply_arap_deformation(self):
-        if not self.apply_arap_pb.isChecked():
+    def toggle_arap_view(self):
+        if self.toggle_arap_view_pb.isChecked():
+            self.mesh_view.set_aux_polydata(
+                self.arap_poly_data)
+        else:
             self.mesh_view.set_aux_polydata(None)
-            return
-            
+
+    def apply_arap_deformation(self):
         d = self.get_projection_constraints()
 
         # prepare vertices
@@ -260,8 +267,7 @@ class MainWindow(QtGui.QMainWindow):
             improvementThreshold=1e-5,
             verbosenessLevel=1)
 
-        poly_data = numpy_to_vtkPolyData(V1, faces_to_vtkCellArray(T))
-        self.mesh_view.set_aux_polydata(poly_data)
+        self.arap_poly_data = numpy_to_vtkPolyData(V1, faces_to_vtkCellArray(T))
 
     def _get_item(self, i):
         line = str(self.items.item(i).text())
