@@ -32,7 +32,7 @@ def video_information(input_filename):
         if 'Video:' in l:
             l = l.split('Video:')[1].split(',')
             info['fps'] = int(l[4].split()[0])
-            info['width'], info['height'] = map(int, l[2].split('x'))
+            info['width'], info['height'] = map(int, l[2].split()[0].split('x'))
 
     return info
 
