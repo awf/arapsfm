@@ -1,4 +1,4 @@
-# extract_frames.py
+# extract_contiguous_frames.py
 
 # Imports
 import os
@@ -6,8 +6,8 @@ import subprocess
 import argparse
 from itertools import *
 
-# extract_frames
-def extract_frames(info, time_string, num_frames, output_stem):
+# extract_contiguous_frames
+def extract_contiguous_frames(info, time_string, num_frames, output_stem):
     args = ['ffmpeg', '-i', info['input_filename'], 
             '-ss', time_string,
             '-vcodec', 'png',
@@ -57,7 +57,7 @@ def main():
     print 'Number of frames:', args.n
     print 'Output stem:', args.output
 
-    extract_frames(info, args.time, args.n, args.output)
+    extract_contiguous_frames(info, args.time, args.n, args.output)
 
 if __name__ == '__main__':
     main()
