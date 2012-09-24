@@ -4,63 +4,20 @@
 import os
 import subprocess
 import argparse
-import numpy as np
 from itertools import *
 
-# Time
-class Time(object):
-    def __init__(self, t):
-        self.t = t
-
-    @classmethod
-    def from_ms(cls, t):
-        return cls(t)
-
-    @classmethod
-    def from_string(cls, t_str):
-        h, m, s = t_str.split(':')
-        s, mm = s.split('.')
-
-        s = 1000 * int(s)
-        m = 60 * 1000 * int(m)
-        h = 60 * 60 * 1000 * int(h)
-        return cls(h + m + s + int(mm))
-
-    def as_string(self):
-        t = np.around(self.t).astype(int)
-        s, mm = divmod(t, 1000)
-        m, s = divmod(s, 60)
-        h, m = divmod(m, 60)
-
-        return '%02d:%02d:%02d.%03d' % (h, m, s, mm)
-        
-    def as_ms(self):
-        return self.t
-
-    def __repr__(self):
-        return 'Time(%d)' % self.t
-
-    def add(self, del_t):
-        return Time.from_ms(self.t + del_t)
-
 # extract_frames
-def extract_frames(info, time, num_frames, output_stem):
-    base_args = ['ffmpeg', '-i', info['input_filename'], '-vcodec', 'png',
-                 '-vframes', '1', '-f', 'rawvideo', '-y', 
-                 '-r', str(info['fps'])]
+def extract_frames(info, time_string, num_frames, output_stem):
+    args = ['ffmpeg', '-i', info['input_filename'], 
+            '-ss', time_string,
+            '-vcodec', 'png',
+            '-vframes', str(num_frames), 
+            '-y', output_stem + r'-%d.png']
 
-    for n in xrange(num_frames):
-        output_file = '%s-%d.png' % (output_stem, n)
-        offset = np.ceil((n * 1e3) / info['fps'])
-        this_time = time.add(offset)
+    print 'Command:', ' '.join(args)
 
-        args = base_args + ['-ss', this_time.as_string(), output_file]
-        print args
-
-        p = subprocess.Popen(args, stderr=subprocess.PIPE)
-        stdout, stderr = p.communicate()
-
-        print '(%d/%d) -> %s' % (n + 1, num_frames, output_file)
+    p = subprocess.Popen(args, stderr=subprocess.PIPE)
+    stdout, stderr = p.communicate()
 
 # video_information
 def video_information(input_filename):
@@ -81,24 +38,27 @@ def video_information(input_filename):
 
 # main
 def main():
-    #parser = argparse.ArgumentParser(description='Extract frames from a video')
-    test_file = os.path.expanduser('~/MSRC_Bundle/Data/Videos/nmpY1L4-e_g_hd720.mp4')
-    info = video_information(test_file)
-    extract_frames(info, Time.from_string('00:00:00.0'), 4, 'nmpY1L4-e_g')
+    parser = argparse.ArgumentParser(description='Extract frames from a video')
+    parser.add_argument('input', type=str, help='input video file')
+    parser.add_argument('time', type=str, help='format hh:mm:ss.[xxx]')
+    parser.add_argument('output', type=str, help='output string stem')
+    parser.add_argument('--n', type=int, help='number of frames to extract',
+                        default=1)
 
-# test_Time
-def test_Time():
-    t = Time.from_string('01:02:03.500')
-    print t.as_string()
-    print t
-    print t.as_ms()
+    args = parser.parse_args()
+    info = video_information(args.input)
 
-    t = Time.from_string('00:00:00.0')
-    for i in xrange(25):
-        print t.as_string()
-        t = t.add(1e3 / 24)
+    print 'Input:', info['input_filename']
+    print 'Width:', info['width']
+    print 'Height:', info['height']
+    print 'FPS:', info['fps']
+
+    print 'Source time:', args.time
+    print 'Number of frames:', args.n
+    print 'Output stem:', args.output
+
+    extract_frames(info, args.time, args.n, args.output)
 
 if __name__ == '__main__':
     main()
-    # test_Time()
     
