@@ -15,7 +15,37 @@ def int2dbl(*x):
 
 # VisualiseMesh
 class VisualiseMesh(object):
-    def __init__(self, V, T, L=None):
+    def __init__(self):
+        self.objects = []
+        self.actors = {}
+        self._init_renderer()
+
+    def _init_renderer(self):
+        ren = vtk.vtkRenderer()
+        ren.SetBackground(1., 1., 1.)
+
+        ren_win = vtk.vtkRenderWindow()
+        ren_win.AddRenderer(ren)
+        ren_win.SetSize(500, 500)
+
+        # enable opacity changes
+        ren_win.SetAlphaBitPlanes(True)
+        ren_win.SetMultiSamples(8)
+        ren.SetUseDepthPeeling(True)
+        ren.SetMaximumNumberOfPeels(100)
+        ren.SetOcclusionRatio(0.)
+
+        iren = vtk.vtkRenderWindowInteractor()
+        iren.SetRenderWindow(ren_win)
+
+        style = InteractorStyle()
+        iren.SetInteractorStyle(style)
+
+        self.ren = ren
+        self.ren_win = ren_win
+        self.iren = iren
+
+    def add_mesh(self, V, T, L=None):
         cells = faces_to_vtkCellArray(T)
 
         self.keys = {}
@@ -69,10 +99,10 @@ class VisualiseMesh(object):
         model_actor.GetProperty().SetRepresentationToWireframe()
         model_actor.GetProperty().SetOpacity(1.0)
 
-        self.actors = {'model': model_actor}
+        self.actors['model'] = model_actor
+        self.ren.AddActor(model_actor)
 
     def add_image(self, filename):
-          # setup the image slice viewer
         reader = vtk.vtkPNGReader()
         reader.SetFileName(filename)
         self.objects.append(reader)
@@ -82,10 +112,7 @@ class VisualiseMesh(object):
         image_actor.PickableOff()
 
         self.actors['image'] = image_actor
-
-        style = vtk.vtkInteractorStyleImage()
-        style.SetInteractionModeToImage3D()
-        self.style = style
+        self.ren.AddActor(image_actor)
 
     def add_laplacians(self, laplacians):
         V = self.V
@@ -124,6 +151,7 @@ class VisualiseMesh(object):
 
         self.keys['l'] = 'laplacian'
         self.actors['laplacian'] = laplacian_actor
+        self.ren.AddActor(laplacian_actor)
 
     def add_silhouette(self, Q, path, bounds, S):
         path_length = path.shape[0]
@@ -173,6 +201,7 @@ class VisualiseMesh(object):
 
         self.keys['h'] = 'silhouette_projection'
         self.actors['silhouette_projection'] = proj_actor
+        self.ren.AddActor(proj_actor)
       
     def add_projection(self, C, P):
         V = self.V
@@ -212,51 +241,20 @@ class VisualiseMesh(object):
 
         self.keys['r'] ='projection_constraints' 
         self.actors['projection_constraints'] = proj_actor
+        self.ren.AddActor(proj_actor)
+
+    def camera_actions(self, *actions):
+        camera = self.ren.GetActiveCamera()
+        for key, value in actions:
+            getattr(camera, key)(value)
+
+        self.ren.ResetCamera()
 
     def execute(self):
-        ren = vtk.vtkRenderer()
-        renWin = vtk.vtkRenderWindow()
-        renWin.AddRenderer(ren)
+        self.ren_win.Render()
 
-        iren = vtk.vtkRenderWindowInteractor()
-        iren.SetRenderWindow(renWin)
-
-        for actor in self.actors.itervalues():
-            ren.AddActor(actor)
-
-        ren.SetBackground(1.0, 1.0, 1.0)
-        renWin.SetSize(600, 600)
-
-        camera = ren.GetActiveCamera()
-        camera.SetParallelProjection(True)
-        ren.ResetCamera()
-
-        if hasattr(self, 'style'):
-            style = self.style
-        else:
-            style = vtk.vtkInteractorStyleTrackballCamera()
-
-        style.SetCurrentRenderer(ren)
-        iren.SetInteractorStyle(style)
-
-        pprint(self.keys)
-
-        def callback(iren, event):
-            key_sym = iren.GetKeySym()
-            try:
-                actor_name = self.keys[key_sym]
-            except KeyError:
-                return
-
-            actor = self.actors[actor_name]
-            actor.SetVisibility(actor.GetVisibility() ^ True)
-            renWin.Render()
-
-        iren.AddObserver("KeyPressEvent", callback)
-
-        iren.Initialize()
-        renWin.Render()
-        iren.Start()
+        self.iren.Initialize()
+        self.iren.Start()
 
 # visualise_multiple_geometries
 def visualise_multiple_geometries(mesh_objects):
