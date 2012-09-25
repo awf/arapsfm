@@ -256,6 +256,18 @@ class VisualiseMesh(object):
         self.iren.Initialize()
         self.iren.Start()
 
+    def write(self, filename, magnification=1):
+        self.ren_win.Render()
+
+        render_large = vtk.vtkRenderLargeImage()
+        render_large.SetInput(self.ren)
+        render_large.SetMagnification(magnification)
+
+        writer = vtk.vtkPNGWriter()
+        writer.SetFileName(filename)
+        writer.SetInputConnection(render_large.GetOutputPort())
+        writer.Write()
+
 # visualise_multiple_geometries
 def visualise_multiple_geometries(mesh_objects):
     N = len(mesh_objects)
