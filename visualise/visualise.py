@@ -243,10 +243,15 @@ class VisualiseMesh(object):
         self.actors['projection_constraints'] = proj_actor
         self.ren.AddActor(proj_actor)
 
+    def actor_properties(self, actor_name, *actions):
+        prop = self.actors[actor_name].GetProperty()
+        for key, value in actions:
+            getattr(prop, key)(*value)
+        
     def camera_actions(self, *actions):
         camera = self.ren.GetActiveCamera()
         for key, value in actions:
-            getattr(camera, key)(value)
+            getattr(camera, key)(*value)
 
         self.ren.ResetCamera()
 
