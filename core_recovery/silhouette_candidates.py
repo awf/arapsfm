@@ -12,7 +12,7 @@ from operator import itemgetter
 from mesh.faces import edges_in_face
 
 # Visualisation
-from visualise.vtk_ import *
+from visualise import *
 
 # view_with_distance_matrix
 def view_with_distance_matrix(V, cells, Q, D, N, camera_opt={}, cone_opt={}):

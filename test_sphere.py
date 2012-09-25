@@ -4,8 +4,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from visualise.visualise import *
-from visualise.vtk_ import *
+from visualise import *
 from mesh import faces, geometry
 
 from core_recovery.silhouette_candidates import \
@@ -164,11 +163,11 @@ def main_single_spillage():
 
     Rx, Ry = test_spillage()
     status = solve_single_spillage(V, Rx, Ry,
-                              maxIterations=50,          
+                              maxIterations=5,          
                               gradientThreshold=1e-4,
                               updateThreshold=1e-4,
                               improvementThreshold=1e-4,
-                              verbosenessLevel=2)        
+                              verbosenessLevel=1)        
 
     print 'status:', status
 
@@ -176,6 +175,6 @@ def main_single_spillage():
 
 if __name__ == '__main__':
     # generate_silhouette_info()
-    # main_single_lap_silhouette()
-    main_single_spillage()
+    main_single_lap_silhouette()
+    # main_single_spillage()
 
