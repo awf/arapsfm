@@ -96,6 +96,28 @@ def test_TestClass():
     c.test1()
     c.test2()
 
+# bool_from_string
+def bool_from_string(string):
+    if string == 'True': return True
+    if string == 'False' : return False
+
+    raise ValueError('unable to create bool from string: %s' %
+                     string)
+
+# tuple_from_string
+def tuple_from_string(string):
+    if not string: return tuple()
+
+    tup_strings = string.split(',')
+    for type_ in [int, float, bool_from_string]:
+        try:
+            return tuple(type_(v) for v in tup_strings)
+        except ValueError:
+            continue
+
+    raise ValueError('unable to create tuple from string: %s' %
+                     string)
+
 # parse_camera_action
 def parse_camera_action(action):
     # get method and value string
@@ -106,19 +128,19 @@ def parse_camera_action(action):
     if value_string.endswith(','):
         save_after = False
         value_string = value_string[:-1]
+    
+    # convert value string to tuple
+    tup = tuple_from_string(value_string)
 
-    # convert value string to value
-    for type_ in [int, float, bool]:
-        try:
-            value = type_(value_string)
-            break
-        except ValueError:
-            continue
-    else:
-        raise ValueError('unable to parse value string: %s' %
-                         value_string)
+    return method, tup, save_after 
 
-    return method, value, save_after 
+# parse_actor_properties
+def parse_actor_properties(action):
+    name, remainder = action.split(':')
+    method, value_string = remainder.split('=')
+    tup = tuple_from_string(value_string)
+
+    return name, method, tup 
 
 # main
 def main():
@@ -130,6 +152,8 @@ def main():
                         help='output directory')
     parser.add_argument('-c', dest='camera_actions', type=str, default=[],
                         action='append', help='camera actions')
+    parser.add_argument('-a', dest='actor_properties', type=str, default=[],
+                        action='append', help='actor properties')
     parser.add_argument('--magnification', type=int, default=1,
                         help='magnification')
 
@@ -138,6 +162,11 @@ def main():
     # setup visualisation
     print 'Source file: %s' % args.input
     vis = StandaloneVisualisation(args.input)
+
+    # process actor properties
+    for action in args.actor_properties:
+        actor_name, method, tup = parse_actor_properties(action)
+        vis.actor_properties(actor_name, (method, tup))
 
     # is visualisation interface or to file?
     interactive_session = args.output_directory is None
@@ -152,11 +181,11 @@ def main():
 
     for action in args.camera_actions:
         # parse the action
-        method, value, save_after = parse_camera_action(action)
-        print '%s(%s), save_after=%s' % (method, value, save_after)
+        method, tup, save_after = parse_camera_action(action)
+        print '%s(*%s), save_after=%s' % (method, tup, save_after)
 
         # execute the camera action
-        vis.camera_actions((method, value))
+        vis.camera_actions((method, tup))
 
         # save if required
         if not interactive_session and save_after:
@@ -169,6 +198,11 @@ def main():
         print 'Interactive'
         vis.execute(magnification=args.magnification)
 
+# test_tuple_from_string
+def test_tuple_from_string():
+    print tuple_from_string('1')
+
 if __name__ == '__main__':
     main()
+    # test_tuple_from_string()
     
