@@ -250,9 +250,10 @@ class VisualiseMesh(object):
 
         self.ren.ResetCamera()
 
-    def execute(self):
+    def execute(self, magnification=1):
         self.ren_win.Render()
 
+        self.iren.GetInteractorStyle().SetMagnification(magnification)
         self.iren.Initialize()
         self.iren.Start()
 
