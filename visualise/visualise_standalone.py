@@ -9,14 +9,22 @@ from itertools import ifilter, count
 from functools import wraps
 
 # requires
-def requires(*keys):
+def requires(*keys, **kwargs):
+    keys = list(keys)
+    attrs = kwargs.get('attrs', [])
+    def_return = lambda *args, **kwargs: None
+
     def fn_wrapper(fn):
         @wraps(fn)
         def wrapped_fn(self, *args, **kwargs):
+            for attr in attrs:
+                if not hasattr(self, attr):
+                    return def_return
+                keys.append(getattr(self, attr))
+
             for key in keys:
                 if not key in self.z:
-                    #raise KeyError('%s requires "%s"' % (fn.func_name, key))
-                    return lambda *args, **kwargs: None
+                    return def_return
 
             return fn(self, *args, **kwargs)
 
@@ -26,10 +34,12 @@ def requires(*keys):
         
 # StandaloneVisualisation
 class StandaloneVisualisation(object):
-    def __init__(self, filename):
+    def __init__(self, filename, **kwargs):
         self.z = np.load(filename)
         self.vis = VisualiseMesh()
         self.used = set()
+        self.__dict__.update(kwargs)
+
         self.setup()
 
     def setup(self):
@@ -57,9 +67,9 @@ class StandaloneVisualisation(object):
         return getattr(self.vis, attr)
 
     # "_add" methods
-    @requires('V', 'T')
+    @requires('T', attrs=['vertices_key'])
     def _add_mesh(self):
-        self.vis.add_mesh(self['V'], 
+        self.vis.add_mesh(self[self.vertices_key], 
                           self['T'],
                           self['L'])
 
@@ -156,12 +166,18 @@ def main():
                         action='append', help='actor properties')
     parser.add_argument('--magnification', type=int, default=1,
                         help='magnification')
+    parser.add_argument('--vertices-key', type=str, default='V',
+                        help='key to retrieve vertices')
 
     args = parser.parse_args()
 
+    # echo arguments
+    print 'Arguments:', args
+
     # setup visualisation
     print 'Source file: %s' % args.input
-    vis = StandaloneVisualisation(args.input)
+    vis = StandaloneVisualisation(args.input,
+                                  vertices_key=args.vertices_key)
 
     # process actor properties
     for action in args.actor_properties:
