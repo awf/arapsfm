@@ -1,0 +1,19 @@
+.vis_info {
+    padding: 0 0 0 0;
+    border: 0px;
+    position: relative;
+    float: left;
+    display : block;
+    clear: both;
+}
+.vis_info div {
+    float: top;
+    padding: 0 0 0 10px;
+    font-family: monospace;
+    border-bottom: 1px solid black;
+}
+.vis_info img {
+    float: left;
+    max-width: 200px;
+}
+
