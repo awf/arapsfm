@@ -3,8 +3,7 @@
 # Imports
 import numpy as np
 
-import vtk
-from visualise.vtk_ import *
+from vtk_ import *
 
 from PyQt4 import QtGui, QtCore
 from mesh_view import InteractiveMeshView
@@ -47,6 +46,7 @@ class MainWindow(QtGui.QMainWindow):
         self.apply_arap_pb = QtGui.QPushButton('&Update')
         self.toggle_arap_view_pb = QtGui.QPushButton('To&ggle View')
         self.toggle_arap_view_pb.setCheckable(True)
+        self.max_iterations_le = QtGui.QLineEdit('10')
 
         pb_layout = QtGui.QGridLayout()
         pb_layout.addWidget(self.load_image_pb, 0, 0)
@@ -59,6 +59,7 @@ class MainWindow(QtGui.QMainWindow):
         pb_layout.addWidget(self.print_info_pb, 3, 1)
         pb_layout.addWidget(self.apply_arap_pb, 4, 0)
         pb_layout.addWidget(self.toggle_arap_view_pb, 4, 1)
+        pb_layout.addWidget(self.max_iterations_le, 5, 0)
 
         self.items = QtGui.QListWidget()
         ctrl_layout = QtGui.QVBoxLayout()
@@ -78,6 +79,9 @@ class MainWindow(QtGui.QMainWindow):
         main_widget.setLayout(main_layout)
         self.setCentralWidget(main_widget)
 
+        self.max_iterations_le.setSizePolicy(QtGui.QSizePolicy.Minimum,
+                                             QtGui.QSizePolicy.Minimum)
+
         self.load_image_pb.clicked.connect(self.load_image)
         self.load_mesh_pb.clicked.connect(self.load_mesh)
         self.add_pb.clicked.connect(self.add_correspondence)
@@ -93,7 +97,7 @@ class MainWindow(QtGui.QMainWindow):
 
         self.items.currentRowChanged.connect(self.update_selection)
 
-        self.setWindowTitle('DeformationPlay')
+        self.setWindowTitle('CoreRecovery - User Constraints')
 
     def load_image(self):
         path = self.last_image_path
@@ -188,7 +192,7 @@ class MainWindow(QtGui.QMainWindow):
             P[i] = position
             C[i] = point_id
 
-        return dict(posiutions=P, point_ids=C,      # backwards compatible
+        return dict(positions=P, point_ids=C,      # backwards compatible
                     C=C, P=P,
                     T=self.mesh_view.transform(),
                     V=self.mesh_view.V0)
@@ -204,7 +208,7 @@ class MainWindow(QtGui.QMainWindow):
         if filename.isEmpty():
             return
 
-        np.savez_compressed(str(filename), **get_projection_constraints())
+        np.savez_compressed(str(filename), **self.get_projection_constraints())
         self.last_correspondences_path = os.path.split(str(filename))[0]
 
     def load(self):
@@ -242,7 +246,11 @@ class MainWindow(QtGui.QMainWindow):
             self.mesh_view.set_aux_polydata(None)
 
     def apply_arap_deformation(self):
+        # get projection constraints
         d = self.get_projection_constraints()
+
+        # get maximum number of iterations
+        maxIterations = int(str(self.max_iterations_le.text()))
 
         # prepare vertices
         V, T = d['V'], d['T']
@@ -261,7 +269,7 @@ class MainWindow(QtGui.QMainWindow):
 
         status, status_string = solve_single_arap_proj(
             V, T, X, V1, d['C'], d['P'], lambdas,
-            maxIterations=10,
+            maxIterations=maxIterations,
             gradientThreshold=1e-5,
             updateThreshold=1e-5,
             improvementThreshold=1e-5,
@@ -295,10 +303,12 @@ def main():
     main_window = MainWindow()
     main_window.show()
 
-    # trial
-    main_window._load_image('data/frames/cheetah0/0.png')
-    main_window._load_mesh('data/models/quad_prototype_tail.npz')
-    main_window._load('data/projection_constraints/quad_prototype_tail/0f.npz')
+    # XXX
+    # test
+    # main_window._load_image('data/frames/cheetah0/0.png')
+    # main_window._load_mesh('data/models/quad_prototype_tail.npz')
+    # main_window._load('data/projection_constraints/quad_prototype_tail/0f.npz')
+    # XXX
 
     qapp.exec_()
 

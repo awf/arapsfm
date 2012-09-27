@@ -1,8 +1,7 @@
 # mesh_view.py
 
 # Imports
-import vtk
-from visualise.vtk_ import *
+from vtk_ import *
 
 from PyQt4 import QtGui, QtCore
 from PyQt4_.imageview import ImageView
