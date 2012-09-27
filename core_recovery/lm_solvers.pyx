@@ -53,6 +53,22 @@ cdef extern from "lm_solvers.h":
                   int narrowBand,
                   OptimiserOptions * options)
 
+    int solve_single_lap_proj_sil_spil_c "solve_single_lap_proj_sil_spil" (
+                  np.ndarray T,
+                  np.ndarray V,
+                  np.ndarray U,
+                  np.ndarray L,
+                  np.ndarray C,
+                  np.ndarray P,
+                  np.ndarray S,
+                  np.ndarray SN,
+                  np.ndarray Rx,
+                  np.ndarray Ry,
+                  np.ndarray lambdas,
+                  np.ndarray preconditioners,
+                  int narrowBand,
+                  OptimiserOptions * options)
+
     int solve_single_lap_silhouette_c "solve_single_lap_silhouette" (np.ndarray V,
                   np.ndarray T,
                   np.ndarray U,
@@ -376,4 +392,31 @@ def solve_single_spillage(np.ndarray[np.float64_t, ndim=2, mode='c'] V,
     status = solve_single_spillage_c(V, Rx, Ry, &options)
 
     return (status, STATUS_CODES[status])
+
+# solve_single_lap_proj_sil_spil
+def solve_single_lap_proj_sil_spil(np.ndarray[np.float64_t, ndim=2, mode='c'] V,
+                                     np.ndarray[np.int32_t, ndim=2, mode='c'] T,
+                                     np.ndarray[np.float64_t, ndim=2, mode='c'] U,  
+                                     np.ndarray[np.int32_t, ndim=1] L,
+                                     np.ndarray[np.int32_t, ndim=1] C,
+                                     np.ndarray[np.float64_t, ndim=2, mode='c'] P,
+                                     np.ndarray[np.float64_t, ndim=2, mode='c'] S,  
+                                     np.ndarray[np.float64_t, ndim=2, mode='c'] SN,  
+                                     np.ndarray[np.float64_t, ndim=2, mode='c'] Rx,
+                                     np.ndarray[np.float64_t, ndim=2, mode='c'] Ry,
+                                     np.ndarray[np.float64_t, ndim=1] lambdas,
+                                     np.ndarray[np.float64_t, ndim=1] preconditioners,
+                                     int narrowBand,
+                                     **kwargs):
+
+    cdef OptimiserOptions options
+    additional_optimiser_options(&options, kwargs)
+
+    if lambdas.shape[0] != 5:
+        raise ValueError('lambdas.shape[0] != 5')
+
+    cdef int status = solve_single_lap_proj_sil_spil_c(V, T, U, L, C, P, S, SN,
+        Rx, Ry, lambdas, preconditioners, narrowBand, &options)
+
+    return status, STATUS_CODES[status]
 
