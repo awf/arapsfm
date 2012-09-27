@@ -14,8 +14,11 @@ DATA_ROOT = 'data'
 # DATA_SOURCE = 'cheetah0'
 # BACKGROUND_COLOUR = np.array([255, 242, 0, 255], dtype=np.uint8)
 
-DATA_SOURCE = 'circle'
-BACKGROUND_COLOUR = np.array([255, 242, 0], dtype=np.uint8)
+# DATA_SOURCE = 'circle'
+# BACKGROUND_COLOUR = np.array([255, 242, 0], dtype=np.uint8)
+
+DATA_SOURCE = 'cheetah1'
+BACKGROUND_COLOUR = np.array([255, 255, 0], dtype=np.uint8)
 
 INPUT_DIR = os.path.join(DATA_ROOT, 'segmentations', DATA_SOURCE)
 OUTPUT_DIR = os.path.join(DATA_ROOT, 'silhouettes', DATA_SOURCE)
@@ -31,8 +34,9 @@ SHOW_SILHOUETTES = True
 def load_inverse_segmentation(index):
     path = os.path.join(INPUT_DIR, '%d-INV_S.png' % index)
     print '<- %s' % path
+
     color_mask = (plt.imread(path)*255.).astype(np.uint8)
-    return np.any(color_mask != BACKGROUND_COLOUR, axis=-1)
+    return np.any(color_mask[..., :3] != BACKGROUND_COLOUR, axis=-1)
 
 # save_silhouette
 def save_silhouette(index, S, SN):
