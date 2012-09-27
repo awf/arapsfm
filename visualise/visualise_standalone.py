@@ -84,6 +84,12 @@ class StandaloneVisualisation(object):
         N = Q.shape[0]
         self.vis.add_silhouette(Q, np.arange(N), [0, N-1], S)
 
+    @requires('C', 'P')
+    def _add_projection(self):
+        C = self['C']
+        P = self['P']
+        self.vis.add_projection(C, P)
+
 # TestClass
 class TestClass(object):
     def __init__(self):
@@ -176,6 +182,8 @@ def main():
 
     # setup visualisation
     print 'Source file: %s' % args.input
+    print 'Available keys:', np.load(args.input).keys()
+
     vis = StandaloneVisualisation(args.input,
                                   vertices_key=args.vertices_key)
 
