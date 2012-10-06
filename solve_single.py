@@ -22,7 +22,8 @@ def main():
     parser.add_argument('lambdas', type=str)
 
     # input geometry option(s)
-    parser.add_argument('--use_linear_transform', action='store_true',
+    parser.add_argument('--use_linear_transform', 
+                        action='store_true',
                         default=False)
 
     # projection energy
@@ -46,7 +47,7 @@ def main():
     args = parser.parse_args()
 
     # load the geometry and input mesh 
-    V = load_input_geometry(args.input)
+    V = load_input_geometry(args.input, args.use_linear_transform)
     T = load_input_mesh(args.mesh)
 
     # parse the lambdas
