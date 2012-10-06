@@ -142,6 +142,13 @@ def main_with_silhouette():
     z = np.load(os.path.join(DIRECTORIES['working'], 'user_constraints.npz'))
     V1 = z['V1']
 
+    vis = VisualiseMesh()
+    vis.add_mesh(V1, T)
+    vis.add_image(frame_path())
+    vis.add_projection(C, P)
+    vis.camera_actions(('SetParallelProjection',(True,)))
+    vis.execute()
+
     # silhouette information
     silhouette_info = load_silhouette_information(
         'tests/cheetah1/quad_prototype_tail_silhouette_info.npz')
@@ -190,7 +197,7 @@ def main_with_silhouette():
 if __name__ == '__main__':
     # main()
     # main_silhouette_candidate_info()
-    # main_user_constraints()
+    main_user_constraints()
     main_with_silhouette()
 
 

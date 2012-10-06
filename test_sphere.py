@@ -1,6 +1,7 @@
 # test_sphere.py
 
 # Imports
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -18,6 +19,9 @@ from core_recovery.lm_solvers import \
     solve_single_lap_silhouette_with_Jte, \
     solve_single_lap_sil_len_adj_with_Jte, \
     solve_single_spillage
+
+# Constants
+OUTPUT_ROOT = 'working'
 
 # generate_sphere
 def generate_sphere(**options):
@@ -62,7 +66,8 @@ def test_silhouette():
 
 # test_visualise
 def test_visualise(V, T, U=None, L=None, S=None):
-    vis = VisualiseMesh(V, T, L)
+    vis = VisualiseMesh()
+    vis.add_mesh(V, T, L)
     vis.add_image('data/segmentations/circle/0-INV_S.png')
     
     if U is not None:
@@ -70,6 +75,7 @@ def test_visualise(V, T, U=None, L=None, S=None):
         N = Q.shape[0]
         vis.add_silhouette(Q, np.arange(N), [0, N-1], S)
 
+    vis.camera_actions(('SetParallelProjection', True))
     vis.execute()
 
 # main_single_lap_silhouette
@@ -171,10 +177,16 @@ def main_single_spillage():
 
     print 'status:', status
 
+    output_filename = os.path.join(OUTPUT_ROOT, 'test_sphere.npz')
+    print '-> %s' % output_filename
+
+    np.savez_compressed(output_filename, V=V, T=T, 
+                        image='data/segmentations/circle/0-INV_S.png')
+
     test_visualise(V, T)
 
 if __name__ == '__main__':
     # generate_silhouette_info()
-    main_single_lap_silhouette()
-    # main_single_spillage()
+    # main_single_lap_silhouette()
+    main_single_spillage()
 
