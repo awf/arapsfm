@@ -16,7 +16,7 @@ from visualise import *
 # main
 def main():
     parser = argparse.ArgumentParser(
-        description='Solve single frame core covery problem')
+        description='Solve single frame core recovery problem')
     parser.add_argument('solver', type=str)
     parser.add_argument('mesh', type=str)
     parser.add_argument('input', type=str)
