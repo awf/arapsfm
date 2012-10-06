@@ -4,7 +4,7 @@
 import os
 import numpy as np
 from mesh.faces import faces_from_cell_array
-from visualise.vtk_ import vtk, vtkPolyData_to_numpy
+from vtk_ import vtk, vtkPolyData_to_numpy
 
 EXTENSIONS = {'.obj' : vtk.vtkOBJReader,
               '.stl' : vtk.vtkSTLReader}
