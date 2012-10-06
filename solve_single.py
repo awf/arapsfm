@@ -5,7 +5,8 @@ from util.cmdline import *
 
 from core_recovery.lm_solvers import \
     solve_single_arap_proj, \
-    solve_single_lap_proj_silhouette
+    solve_single_lap_proj_silhouette, \
+    solve_single_lap_proj_sil_spil
 
 from core_recovery.silhouette_global_solver import \
     shortest_path_solve
@@ -37,6 +38,9 @@ def main():
     parser.add_argument('--max_restarts', type=int, default=5)
     parser.add_argument('--find_circular_path', action='store_true',
                         default=False)
+
+    # spillage energy
+    parser.add_argument('--spillage_input', type=str, default=None)
 
     # optional
     parser.add_argument('--input_frame', type=str, default=None)
@@ -132,10 +136,10 @@ def main():
                                    global_silhoutte_lambdas,
                                    isCircular=args.find_circular_path)
 
-        # global minimise to the silhouette
+        # minimise to the silhouette
         lm_lambdas = np.r_[lambdas[3],    # laplacian
                            lambdas[4],    # projection
-                           lambdas[1:3]] # silhouette
+                           lambdas[1:3]]  # silhouette
         print 'lm_lambdas:', lm_lambdas
 
         preconditioners = parse_float_string(args.preconditioners)
@@ -148,6 +152,77 @@ def main():
                                                       preconditioners,
                                                       args.narrowband,
                                                       **solver_options)
+
+            print 'LM Status (%d): ' % status[0], status[1]
+
+            return status
+
+        print 'max_restarts:', args.max_restarts
+        for i in xrange(args.max_restarts):
+            status = solve_iteration()
+            if status[0] not in (0, 4):
+                break
+
+        # augment visualisation
+        Q = geometry.path2pos(V, T, L, U)
+        N = Q.shape[0]
+
+        vis.add_mesh(V, T, L)
+        vis.add_projection(C, P)
+        vis.add_silhouette(Q, np.arange(N), [0, N-1], S)
+
+    elif args.solver == 'single_lap_proj_sil_spil':
+        # required arguments
+        requires(args, 'silhouette_info', 
+                 'silhouette_input', 
+                 'spillage_input',
+                 'preconditioners')
+
+        # laplacian smoothing with projection and silhouette constraints
+        C, P = load_args(user_constraints, 'C', 'P')
+        silhouette_info = load(args.silhouette_info)
+
+        global_silhoutte_lambdas = lambdas[:3]
+        print 'global_silhoutte_lambdas:', global_silhoutte_lambdas
+
+        S, SN = load_args(args.silhouette_input, 'S', 'SN')
+        print 'S.shape:', S.shape
+        print 'SN.shape:', SN.shape
+
+        # load spillage information
+        (R,) = load_args(args.spillage_input, 'R') 
+        Rx, Ry = R
+
+        # solver for the shortest path to initialise U and L
+        print 'shortest_path_solve'
+        U, L = shortest_path_solve(V, T, S, SN,
+                                   silhouette_info['SilCandDistances'],
+                                   silhouette_info['SilEdgeCands'],
+                                   silhouette_info['SilEdgeCandParam'],
+                                   silhouette_info['SilCandAssignedFaces'],
+                                   silhouette_info['SilCandU'],
+                                   global_silhoutte_lambdas,
+                                   isCircular=args.find_circular_path)
+
+        # minimise to the silhouette and spillage
+        lm_lambdas = np.r_[lambdas[3],    # laplacian
+                           lambdas[4],    # projection
+                           lambdas[1:3],  # silhouette
+                           lambdas[5]]    # spillage
+
+        print 'lm_lambdas:', lm_lambdas
+
+        preconditioners = parse_float_string(args.preconditioners)
+        print 'preconditioners:', preconditioners
+        print 'narrowband:', args.narrowband
+
+        def solve_iteration():
+            status = solve_single_lap_proj_sil_spil(V, T, U, L, C, P, S, SN,
+                                                    Rx, Ry,
+                                                    lm_lambdas,
+                                                    preconditioners,
+                                                    args.narrowband,
+                                                    **solver_options)
 
             print 'LM Status (%d): ' % status[0], status[1]
 
