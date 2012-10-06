@@ -76,15 +76,16 @@ def main():
     if user_constraints is None:
         user_constraints = args.input
 
-    # initialis visualisation (may not be used)
-    vis = VisualiseMesh()
-    if args.input_frame is not None:
-        vis.add_image(args.input_frame)
-
     # initialise output dictionary
     output_d = args.__dict__.copy()
     output_d.update(V0=V, T=T, lambdas=lambdas)
     pprint(output_d) 
+
+    # initialis visualisation (may not be used)
+    vis = VisualiseMesh()
+    if args.input_frame is not None:
+        vis.add_image(args.input_frame)
+        output_d['image'] = args.input_frame
 
     if args.solver == 'single_arap_proj':
         # as-rigid-as-possible with projection constraints
@@ -171,6 +172,16 @@ def main():
         vis.add_projection(C, P)
         vis.add_silhouette(Q, np.arange(N), [0, N-1], S)
 
+        # augment output dictionary
+        output_d['U'] = U
+        output_d['L'] = L
+        output_d['C'] = C
+        output_d['P'] = P
+        output_d['V'] = V
+        output_d['S'] = S
+        output_d['SN'] = SN
+        output_d['Q'] = Q
+
     elif args.solver == 'single_lap_proj_sil_spil':
         # required arguments
         requires(args, 'silhouette_info', 
@@ -241,6 +252,16 @@ def main():
         vis.add_mesh(V, T, L)
         vis.add_projection(C, P)
         vis.add_silhouette(Q, np.arange(N), [0, N-1], S)
+
+        # augment output dictionary
+        output_d['U'] = U
+        output_d['L'] = L
+        output_d['C'] = C
+        output_d['P'] = P
+        output_d['V'] = V
+        output_d['S'] = S
+        output_d['SN'] = SN
+        output_d['Q'] = Q
 
     else:
         raise ValueError('unknown solver: %s' % args.solver)
