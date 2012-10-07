@@ -7,6 +7,7 @@ import subprocess
 import numpy as np
 import pprint
 import StringIO
+from operator import itemgetter
 
 # Templates
 ENTRY_TEMPLATE = '''<div class="vis_info">
@@ -18,7 +19,7 @@ ENTRY_TEMPLATE = '''<div class="vis_info">
     {images}
 </div>
 '''
-IMG_TEMPLATE = '<a href="{image_path}"><img src="{image_path}"></a>'
+IMG_TEMPLATE = '<a href="{image_path}"><img src="{thumbnail_path}"></a>'
 
 VARIABLE_TEMPLATE = '<strong>{key}</strong>: {value}'
 
@@ -74,12 +75,30 @@ class VisualisationPage(object):
                 '-o', output_dir] + self.vis_args
 
         print 'Calling:', ' '.join(args)
-        # subprocess.check_call(args)
+        subprocess.check_call(args)
 
         # make index entry
-        im_paths = map(lambda f: os.path.join(root, f), 
-                       os.listdir(output_dir))
-        imgs = map(lambda f: IMG_TEMPLATE.format(image_path=f), im_paths)
+        all_im_files = sorted(os.listdir(output_dir))
+        image_numbers = []
+        for filename in all_im_files:
+            head, ext = os.path.splitext(filename)
+            try:
+                head_int = int(head)
+            except:
+                continue
+
+            image_numbers.append((head_int, filename))
+
+        imgs = []
+        for number, filename in sorted(image_numbers, key=itemgetter(0)):
+            head, ext = os.path.splitext(filename)
+            thumbnail_filename = head + '_thumbnail' + ext
+
+            img = IMG_TEMPLATE.format(
+                image_path=os.path.join(root, filename),
+                thumbnail_path=os.path.join(root, thumbnail_filename))
+
+            imgs.append(img)
 
         summary = map(lambda t: VARIABLE_TEMPLATE.format(
             key=t[0], value=t[1]), 
@@ -101,14 +120,79 @@ class VisualisationPage(object):
         shutil.copy('visualise/style.css', 
                     os.path.join(self.project_root, 'style.css'))
         
-# main
-def main():
-    page = VisualisationPage('TestProject',
-        vis_vars=['lm_lambdas', 'lm_preconditioners'],
-        vis_args=['-c', 'Azimuth=0', '-c', 'Azimuth=10'])
+# main_single_frames
+def main_single_frames():
+    page = VisualisationPage('Cheetah_4',
+        vis_vars=['mesh',
+                  'input', 
+                  'solver', 
+                  'user_constraints', 
+                  'output', 
+                  'input_frame', 
+                  'lambdas', 
+                  'preconditioners',
+                  'solver_options', 
+                  'narrowband'],
 
-    page.add_test('working/chihuahua_lap_silhouette.npz')
-    page.add_test('working/chihuahua_lap_silhouette.npz')
+        vis_args=['-c', 'SetParallelProjection=True,',
+                  '-c', 'Azimuth=-90,', 
+                  '-c', 'Azimuth=0',
+                  '-c', 'Azimuth=30',
+                  '-c', 'Azimuth=30',
+                  '-c', 'Azimuth=30',
+                  '-c', 'Azimuth=30', 
+                  '-c', 'Azimuth=30',
+                  '-c', 'Azimuth=30',
+                  '-c', 'Azimuth=-90,',
+                  '-c', 'Elevation=60',
+                  '-a', 'model:SetRepresentation=3',
+                  '--magnification', '3'])
+
+    page.add_test('cheetah1/Cheetah_4_1_0.dat')
+    page.add_test('cheetah1/Cheetah_4_1_1.dat')
+    page.add_test('cheetah1/Cheetah_4_1_2.dat')
+    page.add_test('cheetah1/Cheetah_4_2_0.dat')
+    page.add_test('cheetah1/Cheetah_4_2_1.dat')
+    page.add_test('cheetah1/Cheetah_4_2_2.dat')
+    page.add_test('cheetah1/Cheetah_4_3_0.dat')
+    page.add_test('cheetah1/Cheetah_4_3_1.dat')
+    page.add_test('cheetah1/Cheetah_4_3_2.dat')
+    page.add_test('cheetah1/Cheetah_4_4_0.dat')
+    page.add_test('cheetah1/Cheetah_4_4_1.dat')
+    page.add_test('cheetah1/Cheetah_4_4_2.dat')
+    page.generate()
+
+# main_multiple_frames
+def main_multiple_frames():
+    page = VisualisationPage('Cheetah_4',
+        vis_vars=['index',
+                  'mesh',
+                  'lambdas', 
+                  'preconditioners',
+                  'narrowband',
+                  'uniform_weights',
+                  'max_restarts',
+                  'find_circular_path',
+                  'frames',
+                  'indices']
+
+        vis_args=['-c', 'SetParallelProjection=True,',
+                  '-c', 'Azimuth=-90,', 
+                  '-c', 'Azimuth=0',
+                  '-c', 'Azimuth=30',
+                  '-c', 'Azimuth=30',
+                  '-c', 'Azimuth=30',
+                  '-c', 'Azimuth=30', 
+                  '-c', 'Azimuth=30',
+                  '-c', 'Azimuth=30',
+                  '-c', 'Azimuth=-90,',
+                  '-c', 'Elevation=60',
+                  '-a', 'model:SetRepresentation=3',
+                  '--magnification', '3'])
+
+    page.add_test('cheetah1_multi0/core.npz')
+    page.add_test('cheetah1_multi0/2.npz')
+    page.add_test('cheetah1_multi0/3.npz')
     page.generate()
 
 # test_variable_summary
@@ -119,5 +203,7 @@ def test_variable_summary():
 
 if __name__ == '__main__':
     # test_variable_summary()
-    main()
+    # main()
+    # main_single_frames()
+    main_multiple_frames()
     
