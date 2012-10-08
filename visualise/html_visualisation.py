@@ -7,10 +7,12 @@ import subprocess
 import numpy as np
 import pprint
 import StringIO
+import datetime
 from operator import itemgetter
 
 # Templates
 ENTRY_TEMPLATE = '''<div class="vis_info">
+    {subheading}
     <div>
     <p>
     {variable_summary}
@@ -51,19 +53,21 @@ def variable_summary(input_path, variables):
 
 # VisualisationPage
 class VisualisationPage(object):
-    def __init__(self, project_root, 
+    def __init__(self, project_root, title=None, subheading=None,
                  vis_args=[], vis_vars=[]):
 
         if not os.path.exists(project_root):
             os.makedirs(project_root)
 
+        self.title = title
+        self.subheading = subheading
         self.project_root = project_root
         self.vis_args = vis_args
         self.vis_vars = vis_vars
 
         self.tests = []
 
-    def add_test(self, input_path, output_subdir=None):
+    def add_test(self, input_path, output_subdir=None, subheading=None):
         # create figures by calling `visualise_standalone`
         source_dir, filename = os.path.split(input_path)
         root, ext = os.path.splitext(filename)
@@ -107,14 +111,30 @@ class VisualisationPage(object):
             key=t[0], value=t[1]), 
             variable_summary(input_path, self.vis_vars))
 
+        if subheading is not None:
+            subheading = '<h1 class="subheading">%s</h1>' % subheading
+        else:
+            subheading = ''
+
         entry = ENTRY_TEMPLATE.format(
             variable_summary='<br>\n    '.join(summary),
-            images='\n    '.join(imgs))
+            images='\n    '.join(imgs),
+            subheading=subheading)
 
         self.tests.append(entry)
 
     def generate(self):
-        body = '\n'.join(self.tests)
+        lines = []
+        if self.title is not None:
+            lines.append('<h1>%s</h1>' % self.title)
+
+        if self.subheading is not None:
+            lines.append('<h2>%s</h2>' % self.subheading)
+
+        date = datetime.date.today()
+        lines.append('<h3>%s</h3>' % date.strftime('%d %B %Y'))
+
+        body = '\n'.join(lines + self.tests)
 
         output_path = os.path.join(self.project_root, 'index.html')
         with open(output_path, 'w') as fp:
@@ -167,13 +187,77 @@ def main_single_frames():
 
 # main_multiple_frames
 def main_multiple_frames():
+    # Test Laplacian lambdas
     # test = 'test_laplacian_lambdas' 
+    # title = 'Multiple frame core recovery: Testing Laplacian lambdas'
+
+    # def subheading_fn(path):
+    #     head, file_ = os.path.split(path)
+    #     root, ext = os.path.splitext(file_)
+
+    #     if root == 'core':
+    #         z = np.load(path)
+    #         return ('Indices: %s, lambda: %.3f' %
+    #                 (str(z['indices']), z['lambdas'][5]))
+
+    #     return None
+
+    # Test frame subsets
     # test = 'test_frame_subsets' 
-    test = 'test_arap_lambda'
+    # title = 'Multiple frame core recovery: Testing frame subsets'
+
+    # def subheading_fn(path):
+    #     head, file_ = os.path.split(path)
+    #     root, ext = os.path.splitext(file_)
+
+    #     if root == 'core':
+    #         z = np.load(path)
+    #         return 'Indices: ' + str(z['indices'])
+
+    #     return None
+
+    # Test ARAP Lambda
+    # test = 'test_arap_lambda'
+    # title = 'Multiple frame core recovery: Testing ARAP lambda'
+
+    # def subheading_fn(path):
+    #     head, file_ = os.path.split(path)
+    #     root, ext = os.path.splitext(file_)
+
+    #     if root == 'core':
+    #         z = np.load(path)
+    #         arap_lambda = z['lambdas'][3]
+    #         return 'lambda: %.3f' % arap_lambda
+
+    #     return None
+
+    # Test Laplacians 2
+    # test = 'test_laplacian_lambda2' 
+    # title = ('Multiple frame core recovery: '
+    #          'Testing Laplacian lambdas 2 (four frames)')
+
+    # def subheading_fn(path):
+    #     head, file_ = os.path.split(path)
+    #     root, ext = os.path.splitext(file_)
+
+    #     if root == 'core':
+    #         z = np.load(path)
+    #         return ('Indices: %s, lambda: %.3f' %
+    #                 (str(z['indices']), z['lambdas'][5]))
+
+    #     return None
+
+    # General subheading
+    subheading = 'cheetah1:Cheetah_4'
+
+    # setup page
 
     data_root ='cheetah1_Cheetah4/%s/output_data/' % test
 
     page = VisualisationPage('cheetah1_Cheetah4/%s/page' % test,
+        title=title,
+        subheading=subheading,
+
         vis_vars=['index',
                   'mesh',
                   'lambdas', 
@@ -212,9 +296,14 @@ def main_multiple_frames():
 
         for file_ in files:
             path = os.path.join(subdir_path, file_)
+            subheading = subheading_fn(path)
+
             print path
             root, ext = os.path.splitext(file_)
-            page.add_test(path, output_subdir='%s-%s' % (subdir, root))
+
+            page.add_test(path, 
+                          output_subdir='%s-%s' % (subdir, root),
+                          subheading=subheading)
 
     page.generate()
 
