@@ -10,6 +10,7 @@ from core_recovery.lm_solvers import \
 from core_recovery.silhouette_global_solver import \
     shortest_path_solve
 
+from time import time
 from visualise import *
     
 # Utilities
@@ -222,10 +223,13 @@ def main():
         return status
 
     print 'max_restarts:', args.max_restarts
+    t1 = time()
     for i in xrange(args.max_restarts):
         status = solve_iteration()
         if status[0] not in (0, 4):
             break
+    t2 = time()
+    print 'time taken: %.3f' % (t2 - t1)
 
     if args.output is None:
         for l in xrange(len(indices)):
