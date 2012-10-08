@@ -487,6 +487,9 @@ namespace V3D
          return;
       }
 
+      if (optimizerVerbosenessLevel >= 2)
+         cout << "totalParamCount: " << _totalParamCount << endl;
+
       if (!beginIteration(-1))
       {
          // Can't begin the iteration 
