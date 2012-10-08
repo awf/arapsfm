@@ -63,12 +63,15 @@ class VisualisationPage(object):
 
         self.tests = []
 
-    def add_test(self, input_path):
+    def add_test(self, input_path, output_subdir=None):
         # create figures by calling `visualise_standalone`
         source_dir, filename = os.path.split(input_path)
         root, ext = os.path.splitext(filename)
 
-        output_dir = os.path.join(self.project_root, root)
+        if output_subdir is None:
+            output_subdir = root
+
+        output_dir = os.path.join(self.project_root, output_subdir)
 
         args = ['python', 'visualise/visualise_standalone.py',
                 input_path,                          
@@ -95,8 +98,8 @@ class VisualisationPage(object):
             thumbnail_filename = head + '_thumbnail' + ext
 
             img = IMG_TEMPLATE.format(
-                image_path=os.path.join(root, filename),
-                thumbnail_path=os.path.join(root, thumbnail_filename))
+                image_path=os.path.join(output_subdir, filename),
+                thumbnail_path=os.path.join(output_subdir, thumbnail_filename))
 
             imgs.append(img)
 
@@ -164,7 +167,13 @@ def main_single_frames():
 
 # main_multiple_frames
 def main_multiple_frames():
-    page = VisualisationPage('Cheetah_4',
+    # test = 'test_laplacian_lambdas' 
+    # test = 'test_frame_subsets' 
+    test = 'test_arap_lambda'
+
+    data_root ='cheetah1_Cheetah4/%s/output_data/' % test
+
+    page = VisualisationPage('cheetah1_Cheetah4/%s/page' % test,
         vis_vars=['index',
                   'mesh',
                   'lambdas', 
@@ -174,7 +183,7 @@ def main_multiple_frames():
                   'max_restarts',
                   'find_circular_path',
                   'frames',
-                  'indices']
+                  'indices'],
 
         vis_args=['-c', 'SetParallelProjection=True,',
                   '-c', 'Azimuth=-90,', 
@@ -190,9 +199,23 @@ def main_multiple_frames():
                   '-a', 'model:SetRepresentation=3',
                   '--magnification', '3'])
 
-    page.add_test('cheetah1_multi0/core.npz')
-    page.add_test('cheetah1_multi0/2.npz')
-    page.add_test('cheetah1_multi0/3.npz')
+    def file_key(filename):
+        root, ext = os.path.splitext(filename)
+        try:
+            return int(root)
+        except ValueError:
+            return -1
+
+    for subdir in sorted(next(os.walk(data_root))[1], key=int):
+        subdir_path = os.path.join(data_root, str(subdir))
+        files = sorted(os.listdir(subdir_path), key=file_key)
+
+        for file_ in files:
+            path = os.path.join(subdir_path, file_)
+            print path
+            root, ext = os.path.splitext(file_)
+            page.add_test(path, output_subdir='%s-%s' % (subdir, root))
+
     page.generate()
 
 # test_variable_summary
