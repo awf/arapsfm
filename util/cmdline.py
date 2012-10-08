@@ -6,6 +6,7 @@ import argparse
 import numpy as np
 from misc import pickle_
 
+import os
 from os.path import splitext, split
 
 from mesh import faces, geometry
@@ -23,17 +24,7 @@ def requires(args, *keys):
                              key)
     
 # Loaders
-
-# load
-def load(full_path):
-    head, input_file = split(full_path)
-    root, ext = splitext(input_file)
-
-    if ext == '.npz':
-        z = np.load(full_path)
-        return {k:z[k] for k in z.keys()}
-    else:
-        return pickle_.load(full_path)
+from numpy import load
 
 # load_input_mesh
 def load_input_mesh(input_file):
@@ -78,3 +69,4 @@ def parse_solver_options(solver_options, **kwargs):
         opts.update(eval(solver_options))
 
     return opts
+
