@@ -291,15 +291,11 @@ double ShortestPathSolver::solveCircularShortestPath(const pair<int, int> & boun
         freePathVectors.push_back(t.pathIndex);
 
         // split the lower bound path
-        int pathStart = (*path)[0], pathEnd = (*path)[pathLength];
-
-        if (pathStart > pathEnd)
-        {
-            int temp = pathStart; pathStart = pathEnd; pathEnd = temp;
-        }
-
-        int split = (pathStart + pathEnd) >> 1;
-        int indices[3] = {pathStart, split, pathEnd};
+        int split = ((*path)[0] + (*path)[pathLength] + 1) >> 1;
+        cout << "path[0]: " << (*path)[0] 
+             << ", path[-1]: " << (*path)[pathLength] 
+             << ", split: " << split << endl;
+        int indices[3] = {t.startEndIndices.first, split, t.startEndIndices.second};
 
         // done with the top element
         pq.pop();
