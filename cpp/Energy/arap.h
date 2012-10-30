@@ -16,7 +16,7 @@ using namespace V3D;
 inline void arapResiduals_Unsafe(const double * Vi, const double * Vj,
            const double * V1i, const double * V1j,
            const double & w, const double * q, 
-           double * e)
+           double * e, const double s = 1.0)
 {
     // BEGIN SymPy
     double x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11;
@@ -34,9 +34,9 @@ inline void arapResiduals_Unsafe(const double * Vi, const double * Vj,
     x10 = q[1]*q[1];
     x11 = q[0]*q[0];
 
-    e[0] = w*(V1i[0] - V1j[0] - x0*(2*x6 + 2*x7) - x1*(-2*x4 + 2*x5) - x2*(-2*x10 - 2*x3 + 1));
-    e[1] = w*(V1i[1] - V1j[1] - x0*(2*x8 - 2*x9) - x1*(-2*x11 - 2*x3 + 1) - x2*(2*x4 + 2*x5));
-    e[2] = w*(V1i[2] - V1j[2] - x0*(-2*x10 - 2*x11 + 1) - x1*(2*x8 + 2*x9) - x2*(2*x6 - 2*x7));
+    e[0] = w*(V1i[0] - V1j[0] - s*(x0*(2*x6 + 2*x7) + x1*(-2*x4 + 2*x5) + x2*(-2*x10 - 2*x3 + 1)));
+    e[1] = w*(V1i[1] - V1j[1] - s*(x0*(2*x8 - 2*x9) + x1*(-2*x11 - 2*x3 + 1) + x2*(2*x4 + 2*x5)));
+    e[2] = w*(V1i[2] - V1j[2] - s*(x0*(-2*x10 - 2*x11 + 1) + x1*(2*x8 + 2*x9) + x2*(2*x6 - 2*x7)));
     // END SymPy
 }
 
@@ -117,7 +117,8 @@ inline void arapJac_V1_Unsafe(bool isV1i, const double & w, double * J)
 }
 
 // arapJac_V_Unsafe
-inline void arapJac_V_Unsafe(bool isVi, const double & w, const double * q, double * J)
+inline void arapJac_V_Unsafe(bool isVi, const double & w, const double * q, double * J, 
+                             const double s = 1.0)
 {
     double x3, x4, x5, x6, x7, x8, x9, x10, x11;
     x3 = q[2]*q[2];
@@ -143,7 +144,22 @@ inline void arapJac_V_Unsafe(bool isVi, const double & w, const double * q, doub
     J[8] = -2*x10 - 2*x11 + 1;
 
     double w_ = isVi ? -w : w;
-    scaleVectorIP_Static<double, 9>(w_, J);
+    scaleVectorIP_Static<double, 9>(s * w_, J);
+}
+
+// arapJac_s_Unsafe
+inline void arapJac_s_Unsafe(const double & w, const double * q,    
+                             const double * Vi, const double * Vj,
+                             double * J)
+{
+    double R[9];
+    rotationMatrix_Unsafe(q, R);
+
+    double Vij[3];
+    subtractVectors_Static<double, 3>(Vi, Vj, Vij);
+
+    multiply_A_v_Static<double, 3, 3>(R, Vij, J);
+    scaleVectorIP_Static<double, 3>(-w, J);
 }
 
 // ARAPEnergy
@@ -360,6 +376,140 @@ public:
 protected:
     const VertexNode & _V;
     const RotationNode & _X;
+    const VertexNode & _V1;
+
+    const Mesh & _mesh;
+    const double _w;
+
+    bool _uniformWeights;
+};
+
+// DualScaledARAPEnergy
+class DualScaledARAPEnergy : public Energy
+{
+public:
+    DualScaledARAPEnergy(const VertexNode & V,  const RotationNode & X, const ScaleNode & s,
+                         const VertexNode & V1, const Mesh & mesh, const double w, 
+                         bool uniformWeights = true)
+        : _V(V), _X(X), _s(s), _V1(V1), _mesh(mesh), _w(w), _uniformWeights(uniformWeights) 
+    {}
+
+    virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
+    {
+        vector<int> * pUsedParamTypes = new vector<int>;
+        pUsedParamTypes->push_back(_X.GetParamId());
+        pUsedParamTypes->push_back(_s.GetParamId());
+        pUsedParamTypes->push_back(_V1.GetParamId());
+        pUsedParamTypes->push_back(_V1.GetParamId());
+        pUsedParamTypes->push_back(_V.GetParamId());
+        pUsedParamTypes->push_back(_V.GetParamId());
+
+        costFunctions.push_back(new Energy_CostFunction(*this, pUsedParamTypes, 3));
+    }
+
+    virtual int GetCorrespondingParam(const int k, const int i) const
+    {
+        switch (i)
+        {
+        case 0:
+            return _mesh.GetHalfEdge(k, 0) + _X.GetOffset();
+        case 1:
+            return _s.GetOffset();
+        case 2:
+            return _mesh.GetHalfEdge(k, 0) + _V1.GetOffset();
+        case 3:
+            return _mesh.GetHalfEdge(k, 1) + _V1.GetOffset();
+        case 4:
+            return _mesh.GetHalfEdge(k, 0) + _V.GetOffset();
+        case 5:
+            return _mesh.GetHalfEdge(k, 1) + _V.GetOffset();
+        }
+
+        assert(false);
+
+        return -1;
+    }
+
+    virtual int GetNumberOfMeasurements() const
+    {
+        return _mesh.GetNumberOfHalfEdges();
+    }
+
+    virtual double GetEdgeWeight(int k) const
+    {
+        double w = _w;
+        if (!_uniformWeights)
+            w *= sqrt(_mesh.GetCotanWeight(_V.GetVertices(), k));
+
+        return w;
+    }
+
+    virtual void EvaluateResidual(const int k, Vector<double> & e) const
+    {
+        int i = _mesh.GetHalfEdge(k, 0), j = _mesh.GetHalfEdge(k, 1);
+        const double w = GetEdgeWeight(k);
+
+        double q[4];
+        quat_Unsafe(_X.GetRotation(i), q);
+
+        arapResiduals_Unsafe(_V.GetVertex(i), _V.GetVertex(j),
+                             _V1.GetVertex(i), _V1.GetVertex(j),
+                             w, q, &e[0], 
+                             _s.GetScale());
+    }
+
+    virtual void EvaluateJacobian(const int k, const int whichParam, Matrix<double> & J) const
+    {
+        int i = _mesh.GetHalfEdge(k, 0), j = _mesh.GetHalfEdge(k, 1);
+        const double w = GetEdgeWeight(k);
+
+        double q[4];
+        quat_Unsafe(_X.GetRotation(i), q);
+    
+        double D[12];
+        quatDx_Unsafe(_X.GetRotation(i), D);
+
+        switch (whichParam)
+        {
+        case 0:
+            {
+                arapJac_X_Unsafe(_V.GetVertex(i), _V.GetVertex(j), w, q, D, J[0]);
+                return;
+            }
+        case 1:
+            {
+                arapJac_s_Unsafe(w, q, _V.GetVertex(i), _V.GetVertex(j), J[0]);
+                return;
+            }
+        case 2:
+            {
+                arapJac_V1_Unsafe(true, w, J[0]);
+                return;
+            }
+        case 3:
+            {
+                arapJac_V1_Unsafe(false, w, J[0]);
+                return;
+            }
+        case 4:
+            {
+                arapJac_V_Unsafe(true, w, q, J[0], _s.GetScale());
+                return;
+            }
+        case 5:
+            {
+                arapJac_V_Unsafe(false, w, q, J[0], _s.GetScale());
+                return;
+            }
+        }
+
+        assert(false);
+    }
+
+protected:
+    const VertexNode & _V;
+    const RotationNode & _X;
+    const ScaleNode & _s;
     const VertexNode & _V1;
 
     const Mesh & _mesh;
