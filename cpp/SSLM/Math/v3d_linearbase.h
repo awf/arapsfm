@@ -65,38 +65,79 @@ namespace V3D
    template <typename Elem>
    struct VectorBase
    {
-         typedef Elem value_type;
-         typedef Elem element_type;
+     typedef Elem value_type;
+     typedef Elem element_type;
 
-         typedef Elem const * const_iterator;
-         typedef Elem       * iterator;
+     typedef Elem const * const_iterator;
+     typedef Elem       * iterator;
 
-         VectorBase()
-            : _size(0), _ownsVec(true), _vec(0)
-         { }
+     VectorBase()
+        : _size(0), _ownsVec(true), _vec(0)
+     { }
 
-         VectorBase(unsigned int size)
-            : _size(size), _ownsVec(true), _vec(0)
-         {
-            if (size > 0) _vec = new Elem[size];
-         }
+     VectorBase(unsigned int size)
+        : _size(size), _ownsVec(true), _vec(0)
+     {
+        if (size > 0) _vec = new Elem[size];
+     }
 
-         VectorBase(unsigned int size, Elem * values)
-            : _size(size), _ownsVec(false), _vec(values)
-         { }
+     VectorBase(unsigned int size, Elem * values)
+        : _size(size), _ownsVec(false), _vec(values)
+     { }
 
-         VectorBase(VectorBase<Elem> const& a)
-            : _size(0), _ownsVec(true), _vec(0)
-         {
-            _size = a._size;
-            if (_size == 0) return;
-            _vec = new Elem[_size];
-            std::copy(a._vec, a._vec + _size, _vec);
-         }
+     VectorBase(VectorBase<Elem> const& a)
+        : _size(0), _ownsVec(true), _vec(0)
+     {
+#ifdef DEBUG_MOVE_SEMANTICS
+        std::cout << "VectorBase(&)" << std::endl;
+#endif
 
-         VectorBase(VectorBase<Elem> && other)
-            : _size(0), _ownsVec(true), _vec(0)
-         {
+        _size = a._size;
+        if (_size == 0) return;
+        _vec = new Elem[_size];
+        std::copy(a._vec, a._vec + _size, _vec);
+     }
+
+     VectorBase(VectorBase<Elem> && other) noexcept
+        : _size(other._size), 
+          _ownsVec(other._ownsVec),
+          _vec(other._vec)
+     {
+#ifdef DEBUG_MOVE_SEMANTICS
+        std::cout << "VectorBase(&&)" << std::endl;
+#endif
+
+        other._size = 0;
+        other._ownsVec = false;
+        other._vec = 0;
+     }
+
+     ~VectorBase() noexcept { if (_ownsVec && _vec != 0) delete [] _vec; }
+
+     VectorBase& operator=(VectorBase<Elem> const& a)
+     {
+#ifdef DEBUG_MOVE_SEMANTICS
+        std::cout << "VectorBase::operator= &" << std::endl;
+#endif
+
+        if (this == &a) return *this;
+
+        this->newsize(a._size);
+        std::copy(a._vec, a._vec + _size, _vec);
+        return *this;
+     }
+
+     VectorBase& operator=(VectorBase<Elem> && other) noexcept
+     {
+#ifdef DEBUG_MOVE_SEMANTICS
+        std::cout << "VectorBase::operator= &&" << std::endl;
+#endif
+
+        if (this != &other)
+        {
+            if (_ownsVec && _vec != 0)
+                delete [] _vec;
+
             _size = other._size;
             _ownsVec = other._ownsVec;
             _vec = other._vec;
@@ -104,62 +145,35 @@ namespace V3D
             other._size = 0;
             other._ownsVec = false;
             other._vec = 0;
-         }
-
-         ~VectorBase() { if (_ownsVec && _vec != 0) delete [] _vec; }
-
-         VectorBase& operator=(VectorBase<Elem> const& a)
-         {
-            if (this == &a) return *this;
-
-            this->newsize(a._size);
-            std::copy(a._vec, a._vec + _size, _vec);
-            return *this;
-         }
-
-         VectorBase& operator=(VectorBase<Elem> && other)
-         {
-            if (this != &other)
-            {
-                if (_ownsVec && _vec != 0)
-                    delete [] _vec;
-
-                _size = other._size;
-                _ownsVec = other._ownsVec;
-                _vec = other._vec;
-
-                other._size = 0;
-                other._ownsVec = false;
-                other._vec = 0;
-            }
-
-            return *this;
         }
 
-         unsigned int size() const { return _size; }
+        return *this;
+    }
 
-         VectorBase<Elem>& newsize(unsigned int sz)
-         {
-            if (sz == _size) return *this;
-            assert(_ownsVec);
+     unsigned int size() const { return _size; }
 
-            __destroy();
-            _size = sz;
-            if (_size > 0) _vec = new Elem[_size];
+     VectorBase<Elem>& newsize(unsigned int sz)
+     {
+        if (sz == _size) return *this;
+        assert(_ownsVec);
 
-            return *this;
-         }
+        __destroy();
+        _size = sz;
+        if (_size > 0) _vec = new Elem[_size];
 
-         Elem& operator[](unsigned int i)       { return _vec[i]; }
-         Elem  operator[](unsigned int i) const { return _vec[i]; }
+        return *this;
+     }
 
-         Elem& operator()(unsigned int i)       { return _vec[i-1]; }
-         Elem  operator()(unsigned int i) const { return _vec[i-1]; }
+     Elem& operator[](unsigned int i)       { return _vec[i]; }
+     Elem  operator[](unsigned int i) const { return _vec[i]; }
 
-         const_iterator begin() const { return _vec; }
-         iterator       begin()       { return _vec; }
-         const_iterator end() const { return _vec + _size; }
-         iterator       end()       { return _vec + _size; }
+     Elem& operator()(unsigned int i)       { return _vec[i-1]; }
+     Elem  operator()(unsigned int i) const { return _vec[i-1]; }
+
+     const_iterator begin() const { return _vec; }
+     iterator       begin()       { return _vec; }
+     const_iterator end() const { return _vec + _size; }
+     iterator       end()       { return _vec + _size; }
 
          template <typename Archive> void serialize(Archive& ar)
          {
@@ -274,39 +288,82 @@ namespace V3D
    template <typename Elem>
    struct MatrixBase
    {
-         typedef Elem value_type;
-         typedef Elem element_type;
+     typedef Elem value_type;
+     typedef Elem element_type;
 
-         typedef Elem const * const_iterator;
-         typedef Elem       * iterator;
+     typedef Elem const * const_iterator;
+     typedef Elem       * iterator;
 
-         MatrixBase()
-            : _rows(0), _cols(0), _ownsData(true), _m(0)
-         { }
+     MatrixBase()
+        : _rows(0), _cols(0), _ownsData(true), _m(0)
+     { }
 
-         MatrixBase(unsigned int rows, unsigned int cols)
-            : _rows(rows), _cols(cols), _ownsData(true), _m(0)
-         {
-            if (_rows * _cols == 0) return;
-            _m = new Elem[rows*cols];
-         }
+     MatrixBase(unsigned int rows, unsigned int cols)
+        : _rows(rows), _cols(cols), _ownsData(true), _m(0)
+     {
+        if (_rows * _cols == 0) return;
+        _m = new Elem[rows*cols];
+     }
 
-         MatrixBase(unsigned int rows, unsigned int cols, Elem * values)
-            : _rows(rows), _cols(cols), _ownsData(false), _m(values)
-         { }
+     MatrixBase(unsigned int rows, unsigned int cols, Elem * values)
+        : _rows(rows), _cols(cols), _ownsData(false), _m(values)
+     { }
 
-         MatrixBase(MatrixBase<Elem> const& a)
-            : _ownsData(true), _m(0)
-         {
-            _rows = a._rows; _cols = a._cols;
-            if (_rows * _cols == 0) return;
-            _m = new Elem[_rows*_cols];
-            std::copy(a._m, a._m+_rows*_cols, _m);
-         }
+     MatrixBase(MatrixBase<Elem> const& a)
+        : _ownsData(true), _m(0)
+     {
+#ifdef DEBUG_MOVE_SEMANTICS
+        std::cout << "MatrixBase(&)" << std::endl;
+#endif
+        _rows = a._rows; _cols = a._cols;
+        if (_rows * _cols == 0) return;
+        _m = new Elem[_rows*_cols];
+        std::copy(a._m, a._m+_rows*_cols, _m);
+     }
 
-         MatrixBase(MatrixBase<Elem> && other)
-            : _rows(0), _cols(0), _ownsData(true), _m(0)
-         {
+     MatrixBase(MatrixBase<Elem> && other) noexcept 
+        : _rows(other._rows), 
+          _cols(other._cols), 
+          _ownsData(other._ownsData), 
+          _m(other._m)
+     {
+#ifdef DEBUG_MOVE_SEMANTICS
+        std::cout << "MatrixBase(&&)" << std::endl;
+#endif
+        other._rows = 0;
+        other._cols = 0;
+        other._ownsData = false;
+        other._m = 0;
+     }
+
+     ~MatrixBase() noexcept
+     {
+        if (_ownsData && _m != 0) delete [] _m;
+     }
+
+     MatrixBase& operator=(MatrixBase<Elem> const& a)
+     {
+#ifdef DEBUG_MOVE_SEMANTICS
+        std::cout << "MatrixBase::operator= &" << std::endl;
+#endif
+        if (this == &a) return *this;
+
+        this->newsize(a.num_rows(), a.num_cols());
+
+        std::copy(a._m, a._m+_rows*_cols, _m);
+        return *this;
+     }
+
+     MatrixBase& operator=(MatrixBase<Elem> && other) noexcept
+     {
+#ifdef DEBUG_MOVE_SEMANTICS
+        std::cout << "MatrixBase::operator= &&" << std::endl;
+#endif
+        if (this != &other)
+        {
+            if (_ownsData && _m != 0) 
+                delete [] _m;
+        
             _rows = other._rows; 
             _cols = other._cols;
             _ownsData = other._ownsData;
@@ -316,123 +373,86 @@ namespace V3D
             other._cols = 0;
             other._ownsData = false;
             other._m = 0;
-         }
+        }
 
-         ~MatrixBase()
-         {
-            if (_ownsData && _m != 0) delete [] _m;
-         }
+        return *this;
+     }
 
-         MatrixBase& operator=(MatrixBase<Elem> const& a)
-         {
-            if (this == &a) return *this;
+     void newsize(unsigned int rows, unsigned int cols)
+     {
+        if (rows == _rows && cols == _cols) return;
 
-            this->newsize(a.num_rows(), a.num_cols());
+        assert(_ownsData);
 
-            std::copy(a._m, a._m+_rows*_cols, _m);
-            return *this;
-         }
+        __destroy();
 
-         MatrixBase& operator=(MatrixBase<Elem> && other)
-         {
-            if (this != &other)
-            {
-                if (_ownsData && _m != 0) 
-                    delete [] _m;
-            
-                _rows = other._rows; 
-                _cols = other._cols;
-                _ownsData = other._ownsData;
-                _m = other._m;
+        _rows = rows;
+        _cols = cols;
+        if (_rows * _cols == 0) return;
+        _m = new Elem[rows*cols];
+     }
 
-                other._rows = 0;
-                other._cols = 0;
-                other._ownsData = false;
-                other._m = 0;
-            }
+     unsigned int num_rows() const { return _rows; }
+     unsigned int num_cols() const { return _cols; }
 
-            return *this;
-         }
+     Elem       * operator[](unsigned int row)        { return _m + row*_cols; }
+     Elem const * operator[](unsigned int row) const  { return _m + row*_cols; }
 
-         void newsize(unsigned int rows, unsigned int cols)
-         {
-            if (rows == _rows && cols == _cols) return;
+     Elem& operator()(unsigned int row, unsigned int col)       { return _m[(row-1)*_cols + col-1]; }
+     Elem  operator()(unsigned int row, unsigned int col) const { return _m[(row-1)*_cols + col-1]; }
 
-            assert(_ownsData);
+     const_iterator begin() const { return _m; }
+     iterator       begin()       { return _m; }
+     const_iterator end() const { return _m + _rows*_cols; }
+     iterator       end()       { return _m + _rows*_cols; }
 
-            __destroy();
+     template <typename Vec>
+     void getRowSlice(unsigned int row, unsigned int first, unsigned int last, Vec& dst) const
+     {
+        Elem const * v = (*this)[row];
+        for (unsigned int c = first; c < last; ++c) dst[c-first] = v[c];
+     }
 
-            _rows = rows;
-            _cols = cols;
-            if (_rows * _cols == 0) return;
-            _m = new Elem[rows*cols];
-         }
+     template <typename Vec>
+     void getColumnSlice(unsigned int first, unsigned int len, unsigned int col, Vec& dst) const
+     {
+        for (unsigned int r = 0; r < len; ++r) dst[r] = (*this)[r+first][col];
+     }
 
-         unsigned int num_rows() const { return _rows; }
-         unsigned int num_cols() const { return _cols; }
+     template <typename Vec>
+     void setRowSlice(unsigned int row, unsigned int first, unsigned int len, const Vec& src)
+     {
+        Elem * v = (*this)[row];
+        for (unsigned int c = 0; c < len; ++c) v[c+first] = src[c];
+     }
 
-         Elem       * operator[](unsigned int row)        { return _m + row*_cols; }
-         Elem const * operator[](unsigned int row) const  { return _m + row*_cols; }
+     template <typename Vec>
+     void setColumnSlice(unsigned int first, unsigned int len, unsigned int col, const Vec& src)
+     {
+        for (unsigned int r = 0; r < len; ++r) (*this)[r+first][col] = src[r];
+     }
 
-         Elem& operator()(unsigned int row, unsigned int col)       { return _m[(row-1)*_cols + col-1]; }
-         Elem  operator()(unsigned int row, unsigned int col) const { return _m[(row-1)*_cols + col-1]; }
+     template <typename Vec>
+     Vec getRowView(unsigned int row)
+     {
+        return Vec(_cols, (*this)[row]);
+     }
+        
+     V3D_DEFINE_LOAD_SAVE(MatrixBase)
 
-         const_iterator begin() const { return _m; }
-         iterator       begin()       { return _m; }
-         const_iterator end() const { return _m + _rows*_cols; }
-         iterator       end()       { return _m + _rows*_cols; }
+protected:
+     void __destroy()
+     {
+        assert(_ownsData);
+        if (_m != 0) delete [] _m;
+        _m = 0;
+        _rows = _cols = 0;
+     }
 
-         template <typename Vec>
-         void getRowSlice(unsigned int row, unsigned int first, unsigned int last, Vec& dst) const
-         {
-            Elem const * v = (*this)[row];
-            for (unsigned int c = first; c < last; ++c) dst[c-first] = v[c];
-         }
-
-         template <typename Vec>
-         void getColumnSlice(unsigned int first, unsigned int len, unsigned int col, Vec& dst) const
-         {
-            for (unsigned int r = 0; r < len; ++r) dst[r] = (*this)[r+first][col];
-         }
-
-         template <typename Vec>
-         void setRowSlice(unsigned int row, unsigned int first, unsigned int len, const Vec& src)
-         {
-            Elem * v = (*this)[row];
-            for (unsigned int c = 0; c < len; ++c) v[c+first] = src[c];
-         }
-
-         template <typename Vec>
-         void setColumnSlice(unsigned int first, unsigned int len, unsigned int col, const Vec& src)
-         {
-            for (unsigned int r = 0; r < len; ++r) (*this)[r+first][col] = src[r];
-         }
-
-         template <typename Archive> void serialize(Archive& ar)
-         {
-            SerializationScope<Archive> scope(ar);
-            int n = _rows, m = _cols;
-            ar & n & m;
-            if (ar.isLoading()) this->newsize(n, m);
-
-            for (int i = 0; i < n*m; ++i) ar & _m[i];
-         }
-
-         V3D_DEFINE_LOAD_SAVE(MatrixBase)
-
-      protected:
-         void __destroy()
-         {
-            assert(_ownsData);
-            if (_m != 0) delete [] _m;
-            _m = 0;
-            _rows = _cols = 0;
-         }
-
-         unsigned int   _rows, _cols;
-         bool           _ownsData;
-         Elem         * _m;
-   };
+     unsigned int   _rows, _cols;
+     bool           _ownsData;
+     Elem         * _m;
+    };
 
    //V3D_DEFINE_TEMPLATE_IOSTREAM_OPS(MatrixBase)
 

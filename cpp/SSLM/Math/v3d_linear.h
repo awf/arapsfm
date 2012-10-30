@@ -133,71 +133,166 @@ namespace V3D
    template <typename Elem>
    struct Vector : public VectorBase<Elem>
    {
-         Vector()
-            : VectorBase<Elem>()
-         { }
+        Vector()
+           : VectorBase<Elem>()
+        { }
 
-         Vector(unsigned int size)
-            : VectorBase<Elem>(size)
-         { }
+        Vector(unsigned int size)
+           : VectorBase<Elem>(size)
+        { }
 
-         Vector(unsigned int size, Elem * values)
-            : VectorBase<Elem>(size, values)
-         { }
+        Vector(unsigned int size, Elem * values)
+           : VectorBase<Elem>(size, values)
+        { }
 
-         Vector(Vector<Elem> const& a)
-            : VectorBase<Elem>(a)
-         { }
+        Vector(Vector<Elem> const& a)
+           : VectorBase<Elem>(a)
+        { 
+   #ifdef DEBUG_MOVE_SEMANTICS
+           std::cout << "Vector(&)" << std::endl;
+   #endif
+        }
 
-         Vector(Vector<Elem> && other)
-            : VectorBase<Elem>(other)
-         { }
+        Vector(Vector<Elem> && other) noexcept 
+           : VectorBase<Elem>(std::move(other))
+        { 
+   #ifdef DEBUG_MOVE_SEMANTICS
+           std::cout << "Vector(&&)" << std::endl;
+   #endif
+        }
 
 
-         Vector<Elem>& operator=(Vector<Elem> const& a)
-         {
-            (VectorBase<Elem>::operator=)(a);
-            return *this;
-         }
+        Vector<Elem>& operator=(Vector<Elem> const& a)
+        {
+   #ifdef DEBUG_MOVE_SEMANTICS
+           std::cout << "Vector::operator= &" <<  std::endl;
+   #endif
+           (VectorBase<Elem>::operator=)(a);
+           return *this;
+        }
 
-         Vector<Elem>& operator=(Vector<Elem> && other)
-         {
-            (VectorBase<Elem>::operator=)(other);
-            return *this;
-         }
+        Vector<Elem>& operator= (Vector<Elem> && other) noexcept
+        {
+   #ifdef DEBUG_MOVE_SEMANTICS
+           std::cout << "Vector::operator= &&" <<  std::endl;
+   #endif
+           (VectorBase<Elem>::operator=)(std::move(other));
+           return *this;
+        }
 
-         Vector<Elem>& operator+=(Vector<Elem> const& rhs)
-         {
-            addVectorsIP(rhs, *this);
-            return *this;
-         }
+        Vector<Elem>& operator+=(Vector<Elem> const& rhs)
+        {
+           addVectorsIP(rhs, *this);
+           return *this;
+        }
 
-         Vector<Elem>& operator*=(Elem scale)
-         {
-            scaleVectorIP(scale, *this);
-            return *this;
-         }
+        Vector<Elem>& operator*=(Elem scale)
+        {
+           scaleVectorIP(scale, *this);
+           return *this;
+        }
 
-         Vector<Elem> operator+(Vector<Elem> const& rhs) const
-         {
-            Vector<Elem> res(this->size());
-            addVectors(*this, rhs, res);
-            return res;
-         }
+        Vector<Elem> operator+(Vector<Elem> const& rhs) const
+        {
+           Vector<Elem> res(this->size());
+           addVectors(*this, rhs, res);
+           return res;
+        }
 
-         Vector<Elem> operator-(Vector<Elem> const& rhs) const
-         {
-            Vector<Elem> res(this->size());
-            subtractVectors(*this, rhs, res);
-            return res;
-         }
+        Vector<Elem> operator-(Vector<Elem> const& rhs) const
+        {
+           Vector<Elem> res(this->size());
+           subtractVectors(*this, rhs, res);
+           return res;
+        }
 
-         Elem operator*(Vector<Elem> const& rhs) const
-         {
-            return innerProduct(*this, rhs);
-         }
+        Elem operator*(Vector<Elem> const& rhs) const
+        {
+           return innerProduct(*this, rhs);
+        }
+   };
 
-   }; // end struct Vector
+   template <typename Elem>
+   struct Matrix : public MatrixBase<Elem>
+   {
+        Matrix()
+           : MatrixBase<Elem>()
+        { }
+
+        Matrix(unsigned int rows, unsigned int cols)
+           : MatrixBase<Elem>(rows, cols)
+        { }
+
+        Matrix(unsigned int rows, unsigned int cols, Elem value)
+           : MatrixBase<Elem>(rows, cols)
+        {
+           fillMatrix(*this, value);
+        }
+
+        Matrix(unsigned int rows, unsigned int cols, Elem * values)
+           : MatrixBase<Elem>(rows, cols, values)
+        { }
+
+        Matrix(Matrix<Elem> const& a)
+           : MatrixBase<Elem>(a)
+        { 
+   #ifdef DEBUG_MOVE_SEMANTICS
+           std::cout << "Matrix(&)" << std::endl;
+   #endif
+        }
+
+        Matrix(Matrix<Elem> && other) noexcept
+           : MatrixBase<Elem>(std::move(other))
+        { 
+   #ifdef DEBUG_MOVE_SEMANTICS
+           std::cout << "Matrix(&&)" << std::endl;
+   #endif
+        }
+
+        Matrix<Elem>& operator=(Matrix<Elem> const& a)
+        {
+   #ifdef DEBUG_MOVE_SEMANTICS
+           std::cout << "Matrix::operator= &" <<  std::endl;
+   #endif
+           (MatrixBase<Elem>::operator=)(a);
+           return *this;
+        }
+
+        Matrix<Elem>& operator=(Matrix<Elem> && other) noexcept
+        {
+   #ifdef DEBUG_MOVE_SEMANTICS
+           std::cout << "Matrix::operator= &&" <<  std::endl;
+   #endif
+           (MatrixBase<Elem>::operator=)(std::move(other));
+           return *this;
+        }
+
+        Matrix<Elem>& operator+=(Matrix<Elem> const& rhs)
+        {
+           addMatricesIP(rhs, *this);
+           return *this;
+        }
+
+        Matrix<Elem>& operator*=(Elem scale)
+        {
+           scaleMatrixIP(scale, *this);
+           return *this;
+        }
+
+        Matrix<Elem> operator+(Matrix<Elem> const& rhs) const
+        {
+           Matrix<Elem> res(this->num_rows(), this->num_cols());
+           addMatrices(*this, rhs, res);
+           return res;
+        }
+
+        Matrix<Elem> operator-(Matrix<Elem> const& rhs) const
+        {
+           Matrix<Elem> res(this->num_rows(), this->num_cols());
+           subtractMatrices(*this, rhs, res);
+           return res;
+        }
+   };
 
    template <typename Elem, int Rows, int Cols>
    struct InlineMatrix : public InlineMatrixBase<Elem, Rows, Cols>
@@ -230,74 +325,6 @@ namespace V3D
        }
    }; // end struct InlineMatrix
 
-   template <typename Elem>
-   struct Matrix : public MatrixBase<Elem>
-   {
-         Matrix()
-            : MatrixBase<Elem>()
-         { }
-
-         Matrix(unsigned int rows, unsigned int cols)
-            : MatrixBase<Elem>(rows, cols)
-         { }
-
-         Matrix(unsigned int rows, unsigned int cols, Elem value)
-            : MatrixBase<Elem>(rows, cols)
-         {
-            fillMatrix(*this, value);
-         }
-
-         Matrix(unsigned int rows, unsigned int cols, Elem * values)
-            : MatrixBase<Elem>(rows, cols, values)
-         { }
-
-         Matrix(Matrix<Elem> const& a)
-            : MatrixBase<Elem>(a)
-         { }
-
-         Matrix(Matrix<Elem> && other)
-            : MatrixBase<Elem>(other)
-         { }
-
-         Matrix<Elem>& operator=(Matrix<Elem> const& a)
-         {
-            (MatrixBase<Elem>::operator=)(a);
-            return *this;
-         }
-
-         Matrix<Elem>& operator=(Matrix<Elem> && other)
-         {
-            (MatrixBase<Elem>::operator=)(other);
-            return *this;
-         }
-
-         Matrix<Elem>& operator+=(Matrix<Elem> const& rhs)
-         {
-            addMatricesIP(rhs, *this);
-            return *this;
-         }
-
-         Matrix<Elem>& operator*=(Elem scale)
-         {
-            scaleMatrixIP(scale, *this);
-            return *this;
-         }
-
-         Matrix<Elem> operator+(Matrix<Elem> const& rhs) const
-         {
-            Matrix<Elem> res(this->num_rows(), this->num_cols());
-            addMatrices(*this, rhs, res);
-            return res;
-         }
-
-         Matrix<Elem> operator-(Matrix<Elem> const& rhs) const
-         {
-            Matrix<Elem> res(this->num_rows(), this->num_cols());
-            subtractMatrices(*this, rhs, res);
-            return res;
-         }
-
-   }; // end struct Matrix
 
 //----------------------------------------------------------------------
 
