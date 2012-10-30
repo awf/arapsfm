@@ -35,19 +35,31 @@ def requires(*keys, **kwargs):
 # StandaloneVisualisation
 class StandaloneVisualisation(object):
     def __init__(self, filename, **kwargs):
+        restrict_setup = kwargs.pop('restrict_setup', None)
+
         self.z = np.load(filename)
         self.vis = VisualiseMesh()
+
         self.used = set()
         self.__dict__.update(kwargs)
 
-        self.setup()
+        self.setup_processed = set()
+        self.setup(restrict_setup)
 
-    def setup(self):
+    def setup(self, restrict_setup=None):
         add_methods = ifilter(lambda t: t[0].startswith('_add_'),
                               inspect.getmembers(self))
 
         for method_name, bound_method in add_methods:
+            if (restrict_setup is not None and 
+                method_name not in restrict_setup):
+                continue
+
+            if method_name in self.setup_processed:
+                continue
+
             bound_method()
+            self.setup_processed.add(method_name)
 
     # safe lookup from "z"
     def __getitem__(self, key):
@@ -174,6 +186,9 @@ def main():
                         help='magnification')
     parser.add_argument('--vertices-key', type=str, default='V',
                         help='key to retrieve vertices')
+    parser.add_argument('--output_image_first', 
+                        action='store_true',
+                        default=False)
 
     args = parser.parse_args()
 
@@ -184,13 +199,11 @@ def main():
     print 'Source file: %s' % args.input
     print 'Available keys:', np.load(args.input).keys()
 
-    vis = StandaloneVisualisation(args.input,
-                                  vertices_key=args.vertices_key)
+    restrict_setup = ('_add_image,') if args.output_image_first else set([])
 
-    # process actor properties
-    for action in args.actor_properties:
-        actor_name, method, tup = parse_actor_properties(action)
-        vis.actor_properties(actor_name, (method, tup))
+    vis = StandaloneVisualisation(args.input,
+                                  vertices_key=args.vertices_key,
+                                  restrict_setup=restrict_setup)
 
     # is visualisation interface or to file?
     interactive_session = args.output_directory is None
@@ -202,6 +215,20 @@ def main():
 
     # peform camera actions and save outputs as required
     n = count(0)
+
+    # if output image first then save now
+    if args.output_image_first:
+        if vis.actors:
+            full_path = os.path.join(args.output_directory, '%d.png' % next(n))
+            print 'Output: ', full_path
+            vis.write(full_path, magnification=args.magnification)
+
+        vis.setup()
+
+    # process actor properties
+    for action in args.actor_properties:
+        actor_name, method, tup = parse_actor_properties(action)
+        vis.actor_properties(actor_name, (method, tup))
 
     for action in args.camera_actions:
         # parse the action
