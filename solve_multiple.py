@@ -164,6 +164,9 @@ def main():
     # instance rotations (X)
     X = [np.zeros_like(v) for v in V1]
 
+    # instance scales (s)
+    instScales = [np.ones((1, 1), dtype=np.float64) for v in V1]
+
     # initialise silhouette (U, L)
     print 'initialising silhouette information:'
 
@@ -215,11 +218,14 @@ def main():
     print 'uniform_weights:', args.uniform_weights
 
     def solve_iteration():
-        status = solve_multiview_lap_silhouette(T, V, X, V1, U, L, S, SN, 
+        status = solve_multiview_lap_silhouette(T, V, X, instScales, V1, U, L, S, SN, 
             Rx, Ry, lm_lambdas, preconditioners, 
             args.narrowband, args.uniform_weights, **solver_options)
 
         print 'LM Status (%d): ' % status[0], status[1]
+        print 'instScales:'
+        pprint(instScales)
+
         return status
 
     print 'max_restarts:', args.max_restarts
@@ -271,7 +277,7 @@ def main():
     for l, index in enumerate(indices):
         Q = geometry.path2pos(V1[l], T, L[l], U[l])
 
-        d = dict(T=T, V=V1[l], X=X[l], 
+        d = dict(T=T, V=V1[l], X=X[l], s=instScales[l],
                  L=L[l], U=U[l], Q=Q, S=S[l],
                  C=C[l], P=P[l])
 
