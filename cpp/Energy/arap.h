@@ -296,7 +296,7 @@ public:
     {
         double w = _w;
         if (!_uniformWeights)
-            w += sqrt(_mesh.GetCotanWeight(_V.GetVertices(), k));
+            w *= sqrt(_mesh.GetCotanWeight(_V.GetVertices(), k));
 
         return w;
     }

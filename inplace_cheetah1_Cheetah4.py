@@ -315,7 +315,7 @@ def main_inplace():
            (1e0, 1e0, 1e3,      # silhouette
             1e0,                # as-rigid-as-possible
             0e0,                # spillage
-            3e0),               # laplacian
+            10e0),              # laplacian
            (1.0, 1.0, 10.0),    # preconditioners
            dict(improvementThreshold=1e-4),
            10,
