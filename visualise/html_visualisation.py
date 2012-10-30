@@ -54,7 +54,7 @@ def variable_summary(input_path, variables):
 # VisualisationPage
 class VisualisationPage(object):
     def __init__(self, project_root, title=None, subheading=None,
-                 vis_args=[], vis_vars=[]):
+                 vis_args=[], vis_vars=[], var_aliases={}):
 
         if not os.path.exists(project_root):
             os.makedirs(project_root)
@@ -64,6 +64,7 @@ class VisualisationPage(object):
         self.project_root = project_root
         self.vis_args = vis_args
         self.vis_vars = vis_vars
+        self.var_aliases = var_aliases
 
         self.tests = []
 
@@ -107,8 +108,12 @@ class VisualisationPage(object):
 
             imgs.append(img)
 
-        summary = map(lambda t: VARIABLE_TEMPLATE.format(
-            key=t[0], value=t[1]), 
+        # map_key_to_alias
+        def map_key_to_alias(key):
+            return self.var_aliases.get(key, key)
+            
+        summary = map(lambda t: 
+            VARIABLE_TEMPLATE.format(key=map_key_to_alias(t[0]), value=t[1]),
             variable_summary(input_path, self.vis_vars))
 
         if subheading is not None:
@@ -187,125 +192,132 @@ def main_single_frames():
 
 # main_multiple_frames
 def main_multiple_frames():
-    # Test Laplacian lambdas
-    # test = 'test_laplacian_lambdas' 
-    # title = 'Multiple frame core recovery: Testing Laplacian lambdas'
+    for i in xrange(4):
+        if i == 0:
+            # Test Laplacian lambdas
+            test = 'test_laplacian_lambdas' 
+            title = 'Multiple frame core recovery: Testing Laplacian lambdas'
 
-    # def subheading_fn(path):
-    #     head, file_ = os.path.split(path)
-    #     root, ext = os.path.splitext(file_)
+            def subheading_fn(path):
+                head, file_ = os.path.split(path)
+                root, ext = os.path.splitext(file_)
 
-    #     if root == 'core':
-    #         z = np.load(path)
-    #         return ('Indices: %s, lambda: %.3f' %
-    #                 (str(z['indices']), z['lambdas'][5]))
+                if root == 'core':
+                    z = np.load(path)
+                    return ('Frames: %s, lambda: %.3f' %
+                            (str(z['indices']), z['lambdas'][5]))
 
-    #     return None
+                return None
 
-    # Test frame subsets
-    # test = 'test_frame_subsets' 
-    # title = 'Multiple frame core recovery: Testing frame subsets'
+        if i == 1:
+            # Test frame subsets
+            test = 'test_frame_subsets' 
+            title = 'Multiple frame core recovery: Testing frame subsets'
 
-    # def subheading_fn(path):
-    #     head, file_ = os.path.split(path)
-    #     root, ext = os.path.splitext(file_)
+            def subheading_fn(path):
+                head, file_ = os.path.split(path)
+                root, ext = os.path.splitext(file_)
 
-    #     if root == 'core':
-    #         z = np.load(path)
-    #         return 'Indices: ' + str(z['indices'])
+                if root == 'core':
+                    z = np.load(path)
+                    return 'Frames: ' + str(z['indices'])
 
-    #     return None
+                return None
 
-    # Test ARAP Lambda
-    # test = 'test_arap_lambda'
-    # title = 'Multiple frame core recovery: Testing ARAP lambda'
+        if i == 2:
+            # Test ARAP Lambda
+            test = 'test_arap_lambda'
+            title = 'Multiple frame core recovery: Testing ARAP lambda'
 
-    # def subheading_fn(path):
-    #     head, file_ = os.path.split(path)
-    #     root, ext = os.path.splitext(file_)
+            def subheading_fn(path):
+                head, file_ = os.path.split(path)
+                root, ext = os.path.splitext(file_)
 
-    #     if root == 'core':
-    #         z = np.load(path)
-    #         arap_lambda = z['lambdas'][3]
-    #         return 'lambda: %.3f' % arap_lambda
+                if root == 'core':
+                    z = np.load(path)
+                    arap_lambda = z['lambdas'][3]
+                    return 'lambda: %.3f' % arap_lambda
 
-    #     return None
+                return None
 
-    # Test Laplacians 2
-    # test = 'test_laplacian_lambda2' 
-    # title = ('Multiple frame core recovery: '
-    #          'Testing Laplacian lambdas 2 (four frames)')
+        if i == 3:
+            # Test Laplacians 2
+            test = 'test_laplacian_lambda2' 
+            title = ('Multiple frame core recovery: '
+                     'Testing Laplacian lambdas 2 (four frames)')
 
-    # def subheading_fn(path):
-    #     head, file_ = os.path.split(path)
-    #     root, ext = os.path.splitext(file_)
+            def subheading_fn(path):
+                head, file_ = os.path.split(path)
+                root, ext = os.path.splitext(file_)
 
-    #     if root == 'core':
-    #         z = np.load(path)
-    #         return ('Indices: %s, lambda: %.3f' %
-    #                 (str(z['indices']), z['lambdas'][5]))
+                if root == 'core':
+                    z = np.load(path)
+                    return ('Frames: %s, lambda: %.3f' %
+                            (str(z['indices']), z['lambdas'][5]))
 
-    #     return None
+                return None
 
-    # General subheading
-    subheading = 'cheetah1:Cheetah_4'
+        # General subheading
+        subheading = 'cheetah1:Cheetah_4'
 
-    # setup page
+        # setup page
+        data_root ='cheetah1_Cheetah4/%s/output_data/' % test
 
-    data_root ='cheetah1_Cheetah4/%s/output_data/' % test
+        page = VisualisationPage('cheetah1_Cheetah4/%s/page' % test,
+            title=title,
+            subheading=subheading,
 
-    page = VisualisationPage('cheetah1_Cheetah4/%s/page' % test,
-        title=title,
-        subheading=subheading,
+            vis_vars=['index',
+                      'mesh',
+                      'lambdas', 
+                      'preconditioners',
+                      'narrowband',
+                      'uniform_weights',
+                      'max_restarts',
+                      'find_circular_path',
+                      'frames',
+                      'indices'],
+            var_aliases={'indices':'frame number(s)',
+                         'index':'frame number'},
+            vis_args=['--output_image_first',
+                      '-c', 'SetParallelProjection=True,',
+                      '-c', 'Azimuth=0',
+                      '-c', 'Azimuth=-90,', 
+                      '-c', 'Azimuth=0',
+                      '-c', 'Azimuth=30',
+                      '-c', 'Azimuth=30',
+                      '-c', 'Azimuth=30',
+                      '-c', 'Azimuth=30', 
+                      '-c', 'Azimuth=30',
+                      '-c', 'Azimuth=30',
+                      '-c', 'Azimuth=-90,',
+                      '-c', 'Elevation=60',
+                      '-a', 'model:SetRepresentation=3',
+                      '--magnification', '3'])
 
-        vis_vars=['index',
-                  'mesh',
-                  'lambdas', 
-                  'preconditioners',
-                  'narrowband',
-                  'uniform_weights',
-                  'max_restarts',
-                  'find_circular_path',
-                  'frames',
-                  'indices'],
+        def file_key(filename):
+            root, ext = os.path.splitext(filename)
+            try:
+                return int(root)
+            except ValueError:
+                return -1
 
-        vis_args=['-c', 'SetParallelProjection=True,',
-                  '-c', 'Azimuth=-90,', 
-                  '-c', 'Azimuth=0',
-                  '-c', 'Azimuth=30',
-                  '-c', 'Azimuth=30',
-                  '-c', 'Azimuth=30',
-                  '-c', 'Azimuth=30', 
-                  '-c', 'Azimuth=30',
-                  '-c', 'Azimuth=30',
-                  '-c', 'Azimuth=-90,',
-                  '-c', 'Elevation=60',
-                  '-a', 'model:SetRepresentation=3',
-                  '--magnification', '3'])
+        for subdir in sorted(next(os.walk(data_root))[1], key=int):
+            subdir_path = os.path.join(data_root, str(subdir))
+            files = sorted(os.listdir(subdir_path), key=file_key)
 
-    def file_key(filename):
-        root, ext = os.path.splitext(filename)
-        try:
-            return int(root)
-        except ValueError:
-            return -1
+            for file_ in files:
+                path = os.path.join(subdir_path, file_)
+                subheading = subheading_fn(path)
 
-    for subdir in sorted(next(os.walk(data_root))[1], key=int):
-        subdir_path = os.path.join(data_root, str(subdir))
-        files = sorted(os.listdir(subdir_path), key=file_key)
+                print path
+                root, ext = os.path.splitext(file_)
 
-        for file_ in files:
-            path = os.path.join(subdir_path, file_)
-            subheading = subheading_fn(path)
+                page.add_test(path, 
+                              output_subdir='%s-%s' % (subdir, root),
+                              subheading=subheading)
 
-            print path
-            root, ext = os.path.splitext(file_)
-
-            page.add_test(path, 
-                          output_subdir='%s-%s' % (subdir, root),
-                          subheading=subheading)
-
-    page.generate()
+        page.generate()
 
 # test_variable_summary
 def test_variable_summary():
