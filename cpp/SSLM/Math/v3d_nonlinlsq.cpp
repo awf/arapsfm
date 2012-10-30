@@ -43,6 +43,10 @@ namespace V3D
          _paramTypeStartID[paramType+1] = _paramTypeStartID[paramType] + paramDesc.count[paramType];
 
       _totalParamCount = _paramTypeStartID[paramDesc.nParamTypes];
+      if (optimizerVerbosenessLevel >= 1)
+      {
+        cout << "totalParamCount = " << _totalParamCount << endl;
+      }
 
       _paramIdInverseMap.resize(_totalParamCount);
       for (int paramType = 0; paramType < paramDesc.nParamTypes; ++paramType)
@@ -487,8 +491,20 @@ namespace V3D
          return;
       }
 
-      if (optimizerVerbosenessLevel >= 2)
-         cout << "totalParamCount: " << _totalParamCount << endl;
+      if (optimizerVerbosenessLevel >= 1)
+      {
+         cout << "NLSQ_LM_Optimizer: totalParamCount: " << _totalParamCount << endl;
+
+         int JtJ_size = 0;
+         for (int t = 0; t < _paramDesc.nParamTypes; ++t)
+         {
+            _paramTypeRowStart[t] = JtJ_size;
+            JtJ_size += _paramDesc.dimension[t]*_paramDesc.count[t];
+         }
+
+         cout << "NLSQ_LM_Optimizer: JtJ_size: " << JtJ_size << endl;
+         cout << "NLSQ_LM_Optimizer: Nonzeros in LDL decomposition: " << _JtJ_Lp[JtJ_size] << endl;
+      }
 
       if (!beginIteration(-1))
       {
