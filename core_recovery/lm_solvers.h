@@ -272,7 +272,7 @@ PyObject * solve_single_lap_silhouette_with_Jte(PyArrayObject * npy_V,
         PyArrayObject * npy_allJte = (PyArrayObject *)PyArray_SimpleNew(2, dims, NPY_DOUBLE);
 
         Matrix<double> allJte(dims[0], dims[1], (double *)PyArray_DATA(npy_allJte));
-        for (int i=0; i < numJte; i++)
+        for (int i=0; i < numJte; ++i)
         {
             Vector<double> t = Vector<double>(lenJte, allJte[i]);
             copyVector(*storedJte[i], t);
@@ -351,7 +351,7 @@ PyObject * solve_single_lap_sil_len_adj_with_Jte(PyArrayObject * npy_V,
         PyArrayObject * npy_allJte = (PyArrayObject *)PyArray_SimpleNew(2, dims, NPY_DOUBLE);
 
         Matrix<double> allJte(dims[0], dims[1], (double *)PyArray_DATA(npy_allJte));
-        for (int i=0; i < numJte; i++)
+        for (int i=0; i < numJte; ++i)
         {
             Vector<double> t = Vector<double>(lenJte, allJte[i]);
             copyVector(*storedJte[i], t);
@@ -402,7 +402,7 @@ int solve_multiview_arap_silhouette(
 
     // instance vertices
     vector<VertexNode *> instVertexNodes;
-    for (auto i = multiV.begin(); i != multiV.end(); i++)
+    for (auto i = multiV.begin(); i != multiV.end(); ++i)
     {
         instVertexNodes.push_back(new VertexNode(*(*i)));
         problem.AddNode(instVertexNodes.back());
@@ -411,7 +411,7 @@ int solve_multiview_arap_silhouette(
 
     // instances rotations
     vector<RotationNode *> instRotationNodes;
-    for (auto i = multiX.begin(); i != multiX.end(); i++)
+    for (auto i = multiX.begin(); i != multiX.end(); ++i)
     {
         instRotationNodes.push_back(new RotationNode(*(*i)));
         problem.AddNode(instRotationNodes.back());
@@ -422,7 +422,7 @@ int solve_multiview_arap_silhouette(
     vector<BarycentricNode *> instBarycentricNodes;
     vector<MeshWalker *> meshWalkers;
 
-    for (int i = 0; i < multiU.size(); i++)
+    for (int i = 0; i < multiU.size(); ++i)
     {
         MeshWalker * meshWalker = new MeshWalker(mesh, *multiV[i]);
         meshWalkers.push_back(meshWalker);
@@ -435,14 +435,14 @@ int solve_multiview_arap_silhouette(
     // add energies
 
     // arap
-    for (int i = 0; i < instVertexNodes.size(); i++)
+    for (int i = 0; i < instVertexNodes.size(); ++i)
     {
         problem.AddEnergy(new ARAPEnergy(*coreVertexNode, *instRotationNodes[i], *instVertexNodes[i], 
                           mesh, sqrt(lambdas[0])));
     }
 
     // silhouette
-    for (int i = 0; i < instVertexNodes.size(); i++)
+    for (int i = 0; i < instVertexNodes.size(); ++i)
     {
         problem.AddEnergy(new SilhouetteProjectionEnergy(*instVertexNodes[i], *instBarycentricNodes[i],
             *multiS[i], mesh, sqrt(lambdas[1]), narrowBand));
@@ -471,6 +471,7 @@ int solve_multiview_lap_silhouette(
     PyArrayObject * npy_T,
     PyArrayObject * npy_V,
     PyObject * list_multiX,
+    PyObject * list_multis,
     PyObject * list_multiV,
     PyObject * list_multiU,
     PyObject * list_multiL,
@@ -489,6 +490,7 @@ int solve_multiview_lap_silhouette(
     PYARRAY_AS_MATRIX(double, npy_V, V);
                             
     auto multiX = PyList_to_vector_of_Matrix<double>(list_multiX);
+    auto multis = PyList_to_vector_of_Matrix<double>(list_multis);
     auto multiV = PyList_to_vector_of_Matrix<double>(list_multiV);
     auto multiU = PyList_to_vector_of_Matrix<double>(list_multiU);
     auto multiL = PyList_to_vector_of_Vector<int>(list_multiL);
@@ -510,27 +512,37 @@ int solve_multiview_lap_silhouette(
 
     // instance vertices
     vector<VertexNode *> instVertexNodes;
-    for (auto i = multiV.begin(); i != multiV.end(); i++)
+    for (auto i = multiV.begin(); i != multiV.end(); ++i)
     {
         instVertexNodes.push_back(new VertexNode(*(*i)));
         problem.AddNode(instVertexNodes.back());
     }
     instVertexNodes.back()->SetPreconditioner(preconditioners[0]);
 
-    // instances rotations
+    // instance rotations
     vector<RotationNode *> instRotationNodes;
-    for (auto i = multiX.begin(); i != multiX.end(); i++)
+
+    for (auto i = multiX.begin(); i != multiX.end(); ++i)
     {
         instRotationNodes.push_back(new RotationNode(*(*i)));
         problem.AddNode(instRotationNodes.back());
     }
     instRotationNodes.back()->SetPreconditioner(preconditioners[1]);
 
+    // instance scales
+    vector<ScaleNode *> instScaleNodes;
+    for (auto i = multis.begin(); i != multis.end(); ++i)
+    {
+        instScaleNodes.push_back(new ScaleNode(*(*i)));
+        problem.AddNode(instScaleNodes.back());
+    }
+    instScaleNodes.back()->SetPreconditioner(preconditioners[2]);
+
     // instance barycentric coordinates
     vector<BarycentricNode *> instBarycentricNodes;
     vector<MeshWalker *> meshWalkers;
 
-    for (int i = 0; i < multiU.size(); i++)
+    for (int i = 0; i < multiU.size(); ++i)
     {
         MeshWalker * meshWalker = new MeshWalker(mesh, *multiV[i]);
         meshWalkers.push_back(meshWalker);
@@ -538,19 +550,23 @@ int solve_multiview_lap_silhouette(
         instBarycentricNodes.push_back(new BarycentricNode(*multiU[i], *multiL[i], *meshWalker));
         problem.AddNode(instBarycentricNodes.back());
     }
-    instBarycentricNodes.back()->SetPreconditioner(preconditioners[2]);
+    instBarycentricNodes.back()->SetPreconditioner(preconditioners[3]);
 
     // add energies
 
-    // dual arap
-    for (int i = 0; i < instVertexNodes.size(); i++)
+    // dual scaled arap
+    for (int i = 0; i < instVertexNodes.size(); ++i)
     {
-        problem.AddEnergy(new DualARAPEnergy(*coreVertexNode, *instRotationNodes[i], *instVertexNodes[i], 
+        problem.AddEnergy(new DualScaledARAPEnergy(
+                          *coreVertexNode, 
+                          *instRotationNodes[i], 
+                          *instScaleNodes[i], 
+                          *instVertexNodes[i], 
                           mesh, sqrt(lambdas[0]), uniformWeights));
     }
 
     // silhouette
-    for (int i = 0; i < instVertexNodes.size(); i++)
+    for (int i = 0; i < instVertexNodes.size(); ++i)
     {
         problem.AddEnergy(new SilhouetteProjectionEnergy(*instVertexNodes[i], *instBarycentricNodes[i],
             *multiS[i], mesh, sqrt(lambdas[1]), narrowBand));
@@ -560,7 +576,7 @@ int solve_multiview_lap_silhouette(
     }
 
     // spillage
-    for (int i = 0; i < instVertexNodes.size(); i++)
+    for (int i = 0; i < instVertexNodes.size(); ++i)
     {
         problem.AddEnergy(new SpillageEnergy(*instVertexNodes[i], *multiRx[i], *multiRy[i], sqrt(lambdas[3])));
     }
