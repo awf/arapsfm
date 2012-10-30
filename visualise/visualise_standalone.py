@@ -199,7 +199,7 @@ def main():
     print 'Source file: %s' % args.input
     print 'Available keys:', np.load(args.input).keys()
 
-    restrict_setup = ('_add_image,') if args.output_image_first else set([])
+    restrict_setup = ('_add_image,') if args.output_image_first else None
 
     vis = StandaloneVisualisation(args.input,
                                   vertices_key=args.vertices_key,
