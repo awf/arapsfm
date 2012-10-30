@@ -12,6 +12,7 @@ using namespace V3D;
 #include <map>
 #include <algorithm>
 #include <set>
+#include <iterator>
 using namespace std;
 
 // SilhouetteBaseEnergy
@@ -40,11 +41,24 @@ public:
         
         for (int i=0; i < L.size(); i++)
         {
-            // source for the narrow band is taken as the first vertex in each face
-            int sourceVertex = _mesh.GetTriangle(L[i])[0];
+            vector<int> * narrowBand = new vector<int>();
+
+            for (int j=0; j<3; j++)
+            {
+                // source for the narrow band is taken at each vertex in the face
+                int sourceVertex = _mesh.GetTriangle(L[i])[j];
+                vector<int> nring = _mesh.GetNRing(sourceVertex, _narrowBand, true);
+
+                // copy into the narrowband vector
+                copy(nring.begin(), nring.end(), back_inserter(*narrowBand));
+            }
+
+            // sort inplace, remove duplicates, and save
+            sort(narrowBand->begin(), narrowBand->end());
+            auto it = unique(narrowBand->begin(), narrowBand->end());
+            narrowBand->resize(it - narrowBand->begin());
 
             // save the narrow band
-            vector<int> * narrowBand = new vector<int>(_mesh.GetNRing(sourceVertex, _narrowBand, true));
             _allNarrowBands.push_back(narrowBand);
 
             // save the mapping from size to residual index
@@ -89,24 +103,35 @@ public:
 
     virtual bool CanBeginIteration() const
     {
-        // check that vertices of each face are in the narrow bands
+        // check that vertices of each face and one rings are in the narrow bands
         const Vector<int> & L = _U.GetFaceIndices();
 
         for (int i=0; i < L.size(); i++)
         {
             const int * Ti = _mesh.GetTriangle(L[i]);
-            const vector<int> * narrowBand = _allNarrowBands[i];
 
+            // get sorted unique vector of the adjacenct vertices
+            vector<int> adjVertices;
             for (int j=0; j<3; j++)
             {
-                auto l = find(narrowBand->begin(), narrowBand->end(), Ti[j]);
-
-                if (l == narrowBand->end())
-                {
-                    // face vertex is not in the narrow band
-                    return false;
-                }
+                vector<int> oneRing = _mesh.GetNRing(Ti[j], 1, true);
+                copy(oneRing.begin(), oneRing.end(), back_inserter(adjVertices));
             }
+
+            sort(adjVertices.begin(), adjVertices.end());
+            auto it = unique(adjVertices.begin(), adjVertices.end());
+            adjVertices.resize(it - adjVertices.begin());
+
+            // test if the intersection between the two sorted ranges is correct
+            const vector<int> * narrowBand = _allNarrowBands[i];
+            vector<int> inNarrowBand;
+
+            set_intersection(adjVertices.begin(), adjVertices.end(),
+                             narrowBand->begin(), narrowBand->end(),
+                             back_inserter(inNarrowBand));
+
+            if (inNarrowBand.size() < adjVertices.size())
+                return false;
         }
 
         return true;
