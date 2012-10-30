@@ -20,7 +20,7 @@ def number_string(floats):
 
 # make_args
 def make_args(indices, lambdas, preconditioners, solver_options,
-              max_restarts, output_dir):
+              max_restarts, output_dir, extra_args=[], inplace=False):
 
     args = ['data/models/Cheetah_4.npz',    
             'data/user_constraints/cheetah1/Cheetah_4_4.npz',
@@ -37,7 +37,16 @@ def make_args(indices, lambdas, preconditioners, solver_options,
             '--max_restarts', str(max_restarts),
             '--uniform_weights',
             '--frames', 'data/frames/cheetah1/%d.png',
-            '--output', output_dir]
+            '--output', output_dir] + extra_args
+
+    if inplace:
+        def remove_quotes(s):
+            if s[0] == '"':
+                return s[1:-1]
+            else:
+                return s
+
+        args = map(remove_quotes, args)
 
     return args
 
@@ -302,12 +311,17 @@ def test_laplacian_lambda3(number_of_queues, per_node):
 # main_inplace
 def main_inplace():
     args = make_args(
-           (1,2), 
-           (1e0,1e0,1e3,1e0,1e0,2e0),
-           (1.0,1.0,5.0), 
+           (2,4),               # indices
+           (1e0, 1e0, 1e3,      # silhouette
+            1e0,                # as-rigid-as-possible
+            0e0,                # spillage
+            3e0),               # laplacian
+           (1.0, 1.0, 10.0),    # preconditioners
            dict(improvementThreshold=1e-4),
            10,
-           'cheetah1')
+           'cheetah1',
+           extra_args=['--find_circular_path'],
+           inplace=True)        # remove quotes for inplace call
 
     pprint(args)
 
@@ -334,5 +348,6 @@ def main():
     #                        cmdline_args.per_node)
 
 if __name__ == '__main__':
-    main()
+    # main()
+    main_inplace()
 
