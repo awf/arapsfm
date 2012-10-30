@@ -21,7 +21,7 @@ public:
     virtual void SetParamId(int paramId) { _paramId = paramId; }
     virtual int GetParamId() const { return _paramId; }
 
-    virtual void SetCount(int count) { _count = count; }
+    // virtual void SetCount(int count) { _count = count; }
     virtual int GetCount() const { return _count; }
 
     virtual void SetOffset(int offset) { _offset = offset; }
@@ -244,6 +244,29 @@ protected:
 
     Matrix<double> _Q; 
     Matrix<double> _savedQ;
+    static double _preconditioner;
+};
+
+// ScaleNode
+class ScaleNode : public Node
+{
+public:
+    ScaleNode(Matrix<double> & scale)
+        : Node(scale)
+    {}
+
+    virtual ~ScaleNode()
+    {}
+
+    virtual const double & GetScale() const { return _X[0][0]; }
+
+    virtual int TypeId() const { return 4; }
+    virtual int Dimension() const { return 1; }
+
+    virtual void SetPreconditioner(const double & preconditioner) { _preconditioner = preconditioner; }
+    virtual const double & GetPreconditioner () const { return _preconditioner; }
+
+protected:
     static double _preconditioner;
 };
 
