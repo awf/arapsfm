@@ -1,6 +1,7 @@
 #include "Math/v3d_nonlinlsq.h"
 
 #include <map>
+#include <chrono>
 
 #if defined(V3DLIB_ENABLE_SUITESPARSE)
 # include "colamd.h"
@@ -661,10 +662,17 @@ namespace V3D
             int * rowIdxs   = (int *)_JtJ.getRowIndices();
             double * values = _JtJ.getValues();
 
+            auto t1 = chrono::system_clock::now();
+
             int const d = LDL_numeric(nCols, colStarts, rowIdxs, values,
                                       &_JtJ_Lp[0], &_JtJ_Parent[0], &_JtJ_Lnz[0],
                                       &Li[0], &Lx[0], &D[0],
                                       &Y[0], &workPattern[0], &workFlag[0]);
+
+            auto t2 = chrono::system_clock::now();
+
+            int elapsed_ms = chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+            std::cout << "LDL_numeric completed in " << elapsed_ms << " ms" << std::endl;
 
             if (d == nCols)
             {
