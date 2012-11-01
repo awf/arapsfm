@@ -158,6 +158,12 @@ def main():
         verbosenessLevel=1)
     print 'solver_options:', solver_options
 
+    # setup output directory
+    # ------------------------------------------------------------------------ 
+    if not os.path.exists(args.output):
+        print 'Creating directory:', args.output
+        os.makedirs(args.output)
+
     # initialise all auxilarity variables
     # ------------------------------------------------------------------------ 
 
@@ -192,7 +198,7 @@ def main():
     if args.frames is not None:
         frames = [args.frames % d for d in indices]
     else:
-        frames = [None for d in dinces]
+        frames = [None for d in indices]
 
     print 'frames:'
     pprint(frames)
@@ -217,7 +223,7 @@ def main():
     print 'narrowband:', args.narrowband
     print 'uniform_weights:', args.uniform_weights
 
-    def solve_iteration():
+    def solve_iteration(i):
         status = solve_multiview_lap_silhouette(T, V, X, instScales, V1, U, L, S, SN, 
             Rx, Ry, lm_lambdas, preconditioners, 
             args.narrowband, args.uniform_weights, **solver_options)
@@ -226,12 +232,59 @@ def main():
         print 'instScales:'
         pprint(instScales)
 
+        # output partial solution if available
+        if not args.output:
+            return status
+
+        # setup output directory
+        output_dir = os.path.join(args.output, '%d' % i)
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+
+        make_path = lambda f: os.path.join(output_dir, f)
+        output_file = make_path('core.npz')
+        print '-> %s' % output_file
+
+        # output core
+        pickle_.dump(output_file,
+                     dict(solve_iteration=i,
+                          T=T, V=V,
+                          mesh=args.mesh,
+                          lambdas=lambdas, 
+                          preconditioners=preconditioners, 
+                          solver_options=solver_options,
+                          narrowband=args.narrowband,
+                          uniform_weights=args.uniform_weights,
+                          max_restarts=args.max_restarts,
+                          find_circular_path=args.find_circular_path,
+                          frames=frames,
+                          indices=indices))
+
+        # instances
+        for l, index in enumerate(indices):
+            Q = geometry.path2pos(V1[l], T, L[l], U[l])
+
+            d = dict(T=T, V=V1[l], X=X[l], s=instScales[l],
+                     L=L[l], U=U[l], Q=Q, S=S[l],
+                     C=C[l], P=P[l])
+
+            if frames[l] is not None:
+                d['image'] = frames[l]
+
+            d['lambdas'] = lambdas
+            d['preconditioners'] = preconditioners
+            d['index'] = index
+
+            output_file = make_path('%d.npz' % index)
+            print '-> %s' % output_file
+            pickle_.dump(output_file, d)
+
         return status
 
     print 'max_restarts:', args.max_restarts
     t1 = time()
     for i in xrange(args.max_restarts):
-        status = solve_iteration()
+        status = solve_iteration(i)
         if status[0] not in (0, 4):
             break
     t2 = time()
@@ -250,14 +303,9 @@ def main():
 
     # construct output
     # ------------------------------------------------------------------------ 
-    if not os.path.exists(args.output):
-        print 'Creating directory:', args.output
-        os.makedirs(args.output)
-        
     # core w/ problem information
     output_file = os.path.join(args.output, 'core.npz')
     print '-> %s' % output_file
-
 
     d = dict(T=T, V=V, 
              mesh=args.mesh,
