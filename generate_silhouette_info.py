@@ -6,6 +6,8 @@ from util.cmdline import *
 from core_recovery.silhouette_candidates import \
     generate_silhouette_candidate_info
 
+import time
+
 # main
 def main():
     parser = argparse.ArgumentParser(
@@ -19,6 +21,10 @@ def main():
                         default=False)
 
     args = parser.parse_args()
+
+    print time.ctime()
+    print 'args:'
+    pprint(args.__dict__)
 
     # load the geometry and input mesh 
     V = load_input_geometry(args.input, args.use_linear_transform)
