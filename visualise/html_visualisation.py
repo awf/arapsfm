@@ -319,6 +319,158 @@ def main_multiple_frames():
 
         page.generate()
 
+# main_cheetah1B_Cheetah_4
+def main_cheetah1B_Cheetah_4():
+    title = 'Multiple frame core recovery: cheetah1B_Cheetah_4'
+
+    def subheading_fn(path):
+        head, file_ = os.path.split(path)
+        root, ext = os.path.splitext(file_)
+
+        if root == 'core':
+            z = np.load(path)
+            return ('Frames: %s, ARAP lambda: %.3f' %
+                    (str(z['indices']), z['lambdas'][3]))
+
+        return None
+
+    # General subheading
+    subheading = 'cheetah1B:Cheetah_4'
+
+    # setup page
+    data_root ='cheetah1B/Cheetah_4_All_D'
+
+    page = VisualisationPage('cheetah1B/Cheetah4_All_D-PAGE',
+        title=title,
+        subheading=subheading,
+
+        vis_vars=['index',
+                  'mesh',
+                  'lambdas', 
+                  'preconditioners',
+                  'narrowband',
+                  'uniform_weights',
+                  'max_restarts',
+                  'find_circular_path',
+                  'frames',
+                  'indices'],
+        var_aliases={'indices':'frame number(s)',
+                     'index':'frame number'},
+        vis_args=['--output_image_first',
+                  '-c', 'SetParallelProjection=True,',
+                  '-c', 'Azimuth=0',
+                  '-c', 'Azimuth=-90,', 
+                  '-c', 'Azimuth=0',
+                  '-c', 'Azimuth=45',
+                  '-c', 'Azimuth=45',
+                  '-c', 'Azimuth=45',
+                  '-c', 'Azimuth=45', 
+                  '-c', 'Azimuth=-90,',
+                  '-c', 'Elevation=60',
+                  '-a', 'model:SetRepresentation=3',
+                  '--magnification', '3'])
+
+    def file_key(filename):
+        root, ext = os.path.splitext(filename)
+        try:
+            return int(root)
+        except ValueError:
+            return -1
+
+    files = sorted(os.listdir(data_root), key=file_key)
+    print 'files:'
+    pprint.pprint(files)
+
+    for file_ in files:
+        path = os.path.join(data_root, file_)
+        subheading = subheading_fn(path)
+
+        print path
+        root, ext = os.path.splitext(file_)
+
+        page.add_test(path, subheading=subheading)
+
+    page.generate()
+
+# main_cheetah1B_Cheetah_5
+def main_cheetah1B_Cheetah_5():
+    # Test Laplacian lambdas
+    title = 'Multiple frame core recovery: cheetah1B_Cheetah_5'
+
+    def subheading_fn(path):
+        head, file_ = os.path.split(path)
+        root, ext = os.path.splitext(file_)
+
+        if root == 'core':
+            z = np.load(path)
+            return ('Frames: %s, ARAP lambda: %.3f' %
+                    (str(z['indices']), z['lambdas'][3]))
+
+        return None
+
+    # General subheading
+    subheading = 'cheetah1B:Cheetah_5'
+
+    # setup page
+    # data_root = 'cheetah1B/Cheetah_5/Experiments/0-6-8/'
+    data_root = 'cheetah1B/Cheetah_5/Experiments/3-4-6-8-12/'
+
+    page = VisualisationPage('cheetah1B/Cheetah_5/Experiments/3-4-6-8-12-PAGE',
+        title=title,
+        subheading=subheading,
+
+        vis_vars=['index',
+                  'mesh',
+                  'lambdas', 
+                  'preconditioners',
+                  'narrowband',
+                  'uniform_weights',
+                  'max_restarts',
+                  'find_circular_path',
+                  'frames',
+                  'indices'],
+        var_aliases={'indices':'frame number(s)',
+                     'index':'frame number'},
+        vis_args=['--output_image_first',
+                  '-c', 'SetParallelProjection=True,',
+                  '-c', 'Azimuth=0',
+                  '-c', 'Azimuth=-90,', 
+                  '-c', 'Azimuth=0',
+                  '-c', 'Azimuth=45',
+                  '-c', 'Azimuth=45',
+                  '-c', 'Azimuth=45',
+                  '-c', 'Azimuth=45', 
+                  '-c', 'Azimuth=-90,',
+                  '-c', 'Elevation=60',
+                  '-a', 'model:SetRepresentation=3',
+                  '--magnification', '3'])
+
+    def file_key(filename):
+        root, ext = os.path.splitext(filename)
+        try:
+            return int(root)
+        except ValueError:
+            return -1
+
+    files = sorted(os.listdir(data_root), key=file_key)
+    print 'files:'
+    pprint.pprint(files)
+
+    for file_ in files:
+        path = os.path.join(data_root, file_)
+
+        if os.path.isdir(path):
+            continue
+
+        subheading = subheading_fn(path)
+
+        print path
+        root, ext = os.path.splitext(file_)
+
+        page.add_test(path, subheading=subheading)
+
+    page.generate()
+
 # test_variable_summary
 def test_variable_summary():
     input_path = '../working/chihuahua_lap_silhouette.npz'
@@ -329,5 +481,6 @@ if __name__ == '__main__':
     # test_variable_summary()
     # main()
     # main_single_frames()
-    main_multiple_frames()
+    # main_cheetah1B_Cheetah_4()
+    main_cheetah1B_Cheetah_5()
     
