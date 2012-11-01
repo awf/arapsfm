@@ -12,7 +12,9 @@ from core_recovery.silhouette_global_solver import \
     shortest_path_solve
 
 from visualise import *
-    
+
+import time
+
 # main
 def main():
     parser = argparse.ArgumentParser(
@@ -49,6 +51,10 @@ def main():
 
     # parse the arguments
     args = parser.parse_args()
+    
+    print time.ctime()
+    print 'args:'
+    pprint(args.__dict__)
 
     # load the geometry and input mesh 
     V = load_input_geometry(args.input, args.use_linear_transform)
