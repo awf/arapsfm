@@ -17,14 +17,18 @@ DATA_ROOT = 'data'
 # DATA_SOURCE = 'circle'
 # BACKGROUND_COLOUR = np.array([255, 242, 0], dtype=np.uint8)
 
-DATA_SOURCE = 'cheetah1'
+# DATA_SOURCE = 'cheetah1'
+# BACKGROUND_COLOUR = np.array([255, 255, 0], dtype=np.uint8)
+
+DATA_SOURCE = 'cheetah1B'
 BACKGROUND_COLOUR = np.array([255, 255, 0], dtype=np.uint8)
 
 INPUT_DIR = os.path.join(DATA_ROOT, 'segmentations', DATA_SOURCE)
 OUTPUT_DIR = os.path.join(DATA_ROOT, 'distance_maps', DATA_SOURCE)
 
 # Options
-SHOW_RESIDUAL_MAPS = True
+# SHOW_RESIDUAL_MAPS = True
+SHOW_RESIDUAL_MAPS = False
 
 # load_inverse_segmentation
 def load_inverse_segmentation(index):
