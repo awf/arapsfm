@@ -60,7 +60,8 @@ public:
         _parentEnergy.EvaluateResidual(TranslateResidualIndex(k), e);
     }
 
-    virtual void fillJacobian(const int whichParam, const int paramIx, const int k, Matrix<double> & Jdst, const int iteration) const
+    virtual void fillJacobian(const int whichParam, const int paramIx, const int k, 
+                              const Vector<double> & e, Matrix<double> & Jdst, const int iteration) const
     {
         _parentEnergy.EvaluateJacobian(TranslateResidualIndex(k), whichParam, Jdst);
     }

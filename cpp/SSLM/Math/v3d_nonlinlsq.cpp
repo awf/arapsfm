@@ -16,7 +16,10 @@ namespace V3D
 {
 
    void
-   NLSQ_CostFunction::fillAllJacobians(Vector<double> const& weights, vector<MatrixArray<double> * >& Js, const int iteration) const
+   NLSQ_CostFunction::fillAllJacobians(Vector<double> const& weights, 
+                                       const VectorArray<double>& residuals,
+                                       vector<MatrixArray<double> * >& Js, 
+                                       const int iteration) const
    {
       for (int i = 0; i < _usedParamTypes.size(); ++i)
       {
@@ -24,7 +27,7 @@ namespace V3D
          for (int k = 0; k < numMeasurements(); ++k)
          {
             int const paramIx = correspondingParam(k, i);
-            this->fillJacobian(i, paramIx, k, J[k], iteration);
+            this->fillJacobian(i, paramIx, k, residuals[k], J[k], iteration);
             scaleMatrixIP(weights[k], J[k]);
          } // end for (k)
       } // end for (i)
@@ -363,7 +366,9 @@ namespace V3D
          NLSQ_CostFunction& costFun = *_costFunctions[obj];
          NLSQ_Residuals& residuals = *_residuals[obj];
          costFun.initializeJacobian();
-         costFun.fillAllJacobians(residuals._weights, residuals._Js, iteration);
+         costFun.fillAllJacobians(residuals._weights, 
+                                  residuals._residuals, 
+                                  residuals._Js, iteration);
 
          // apply preconditioners
          for (int i=0; i < costFun._usedParamTypes.size(); i++)
@@ -672,7 +677,8 @@ namespace V3D
             auto t2 = chrono::system_clock::now();
 
             int elapsed_ms = chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
-            std::cout << "LDL_numeric completed in " << elapsed_ms << " ms" << std::endl;
+            if (optimizerVerbosenessLevel >= 2)
+                std::cout << "LDL_numeric completed in " << elapsed_ms << " ms" << std::endl;
 
             if (d == nCols)
             {

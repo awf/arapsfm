@@ -128,7 +128,9 @@ namespace V3D
          virtual void evalResidual(int const k, Vector<double>& residual) const = 0;
 
          virtual void initializeJacobian() { }
-         virtual void fillJacobian(int const whichParam, int const paramIx, int const k, Matrix<double>& J, const int iteration) const = 0;
+         virtual void fillJacobian(int const whichParam, int const paramIx, int const k, 
+                                   const Vector<double> & residual, Matrix<double>& J, 
+                                   const int iteration) const = 0;
 
          virtual void setCorrespondingParams(const Matrix<int> * correspondingParams)
          {
@@ -165,7 +167,10 @@ namespace V3D
             for (int k = 0; k < this->numMeasurements(); ++k) w[k] = this->getWeight(residuals[k]);
          }
 
-         void fillAllJacobians(Vector<double> const& weights, vector<MatrixArray<double> * >& Js, const int iteration) const;
+         void fillAllJacobians(Vector<double> const& weights, 
+                               const VectorArray<double> & residuals, 
+                               vector<MatrixArray<double> * >& Js, 
+                               const int iteration) const;
 
          std::vector<int> const& _usedParamTypes;
          int              const  _measurementDimension;
