@@ -2,8 +2,9 @@
 #define __ENERGY_H__
 
 #include "Math/v3d_nonlinlsq.h"
-
 #include <vector>
+#include "Energy/residual.h"
+
 using namespace std;
 
 // Energy
@@ -28,10 +29,12 @@ public:
     Energy_CostFunction(const Energy & parentEnergy,
                         const vector<int> * pUsedParamTypes,
                         int measurementDim,
-                        const vector<int> * pResidualMap = nullptr)
+                        const vector<int> * pResidualMap = nullptr,
+                        const ResidualTransform * pResidualTransform = nullptr)
         : _parentEnergy(parentEnergy),
           _pUsedParamTypes(pUsedParamTypes),
           _pResidualMap(pResidualMap),
+          _pResidualTransform(pResidualTransform),
           NLSQ_CostFunction(*pUsedParamTypes, measurementDim, nullptr)
     {}
                      
@@ -58,12 +61,28 @@ public:
     virtual void evalResidual(const int k, Vector<double> & e) const
     {
         _parentEnergy.EvaluateResidual(TranslateResidualIndex(k), e);
+
+        if (_pResidualTransform != nullptr)
+        {
+            for (unsigned int i=0; i < e.size(); ++i)
+                e[i] = _pResidualTransform->Transform(e[i]);
+        }
     }
 
     virtual void fillJacobian(const int whichParam, const int paramIx, const int k, 
                               const Vector<double> & e, Matrix<double> & Jdst, const int iteration) const
     {
         _parentEnergy.EvaluateJacobian(TranslateResidualIndex(k), whichParam, Jdst);
+
+        if (_pResidualTransform != nullptr)
+        {
+            for (unsigned int i=0; i < Jdst.num_rows(); ++i)
+            {
+                const double d = _pResidualTransform->Derivative(e[i]);
+                for (unsigned int j=0; j < Jdst.num_cols(); ++j)
+                    Jdst[i][j] *= d;
+            }
+        }
     }
 
 protected:
@@ -78,6 +97,7 @@ protected:
     const Energy & _parentEnergy;
     const vector<int> * _pUsedParamTypes;
     const vector<int> * _pResidualMap;
+    const ResidualTransform * _pResidualTransform;
 };
 
 #endif
