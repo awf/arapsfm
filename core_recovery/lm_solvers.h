@@ -5,6 +5,7 @@
 using namespace V3D;
 
 #include "Geometry/mesh.h"
+#include "Energy/residual.h"
 #include "Energy/arap.h"
 #include "Energy/projection.h"
 #include "Energy/narrow_band_silhouette.h"
@@ -636,6 +637,7 @@ int solve_single_lap_proj_sil_spil(PyArrayObject * npy_V,
                   PyArrayObject * npy_Ry,
                   PyArrayObject * npy_lambdas,
                   PyArrayObject * npy_preconditioners,
+                  PyArrayObject * npy_piecewisePolynomial,
                   int narrowBand,
                   const OptimiserOptions * options)
 {
@@ -656,6 +658,8 @@ int solve_single_lap_proj_sil_spil(PyArrayObject * npy_V,
     PYARRAY_AS_VECTOR(double, npy_lambdas, lambdas);
     PYARRAY_AS_VECTOR(double, npy_preconditioners, preconditioners);
 
+    PYARRAY_AS_VECTOR(double, npy_piecewisePolynomial, piecewisePolynomial);
+
     Mesh mesh(V.num_rows(), T);
 
     VertexNode * nodeV = new VertexNode(V);
@@ -672,8 +676,10 @@ int solve_single_lap_proj_sil_spil(PyArrayObject * npy_V,
     LaplacianEnergy * lapEnergy = new LaplacianEnergy(*nodeV, mesh, sqrt(lambdas[0]));
     ProjectionEnergy * projEnergy = new ProjectionEnergy(*nodeV, C, P, sqrt(lambdas[1]));
 
+    PiecewisePolynomialTransform_C1 polynomialTransform(piecewisePolynomial[0], piecewisePolynomial[1]);
+
     SilhouetteProjectionEnergy * silProjEnergy = new SilhouetteProjectionEnergy(*nodeV, *nodeU, S, mesh,
-        sqrt(lambdas[2]), narrowBand);
+        sqrt(lambdas[2]), narrowBand, &polynomialTransform);
 
     SilhouetteNormalEnergy * silNormalEnergy = new SilhouetteNormalEnergy(*nodeV, *nodeU, SN, mesh,
         sqrt(lambdas[3]), narrowBand);
