@@ -21,9 +21,10 @@ class SilhouetteBaseEnergy : public Energy
 public:
     SilhouetteBaseEnergy(const VertexNode & V, const BarycentricNode & U,    
                          const Mesh & mesh, const double w, const int narrowBand,
-                         const int measurementDim)
+                         const int measurementDim,
+                         const ResidualTransform * pResidualTransform = nullptr)
     
-        : _V(V), _U(U), _mesh(mesh), _w(w), _narrowBand(narrowBand), _measurementDim(measurementDim)
+        : _V(V), _U(U), _mesh(mesh), _w(w), _narrowBand(narrowBand), _measurementDim(measurementDim), _pResidualTransform(pResidualTransform)
     {}
 
     virtual ~SilhouetteBaseEnergy()
@@ -83,7 +84,7 @@ public:
             vector<int> * pUsedParamTypes = new vector<int>(n + 1, _V.GetParamId());
             (*pUsedParamTypes)[0] = _U.GetParamId();
 
-            costFunctions.push_back(new Energy_CostFunction(*this, pUsedParamTypes, _measurementDim, i->second));
+            costFunctions.push_back(new Energy_CostFunction(*this, pUsedParamTypes, _measurementDim, i->second, _pResidualTransform));
         }
     }
 
@@ -148,6 +149,8 @@ protected:
     vector<vector<int> *> _allNarrowBands;
 
     const int _measurementDim;
+
+    const ResidualTransform * _pResidualTransform;
 };
 
 // silhouetteProjResiduals_Unsafe
@@ -183,8 +186,9 @@ class SilhouetteProjectionEnergy : public SilhouetteBaseEnergy
 public:
     SilhouetteProjectionEnergy(const VertexNode & V, const BarycentricNode & U, 
                                const Matrix<double> & S, const Mesh & mesh, 
-                               const double w, const int narrowBand)
-        : SilhouetteBaseEnergy(V, U, mesh, w, narrowBand, 2), _S(S)
+                               const double w, const int narrowBand,
+                               const ResidualTransform * pResidualTransform = nullptr)
+        : SilhouetteBaseEnergy(V, U, mesh, w, narrowBand, 2, pResidualTransform), _S(S)
     {}
 
     virtual void EvaluateResidual(const int k, Vector<double> & e) const
@@ -611,8 +615,9 @@ class SilhouetteNormalEnergy : public SilhouetteBaseEnergy
 public:
     SilhouetteNormalEnergy(const VertexNode & V, const BarycentricNode & U, 
                            const Matrix<double> & SN, const Mesh & mesh, 
-                           const double w, const int narrowBand)
-        : SilhouetteBaseEnergy(V, U, mesh, w, narrowBand, 3), _SN(SN)
+                           const double w, const int narrowBand,
+                           const ResidualTransform * pResidualTransform = nullptr)
+        : SilhouetteBaseEnergy(V, U, mesh, w, narrowBand, 3, pResidualTransform), _SN(SN)
     {}
 
     virtual void EvaluateResidual(const int k, Vector<double> & e) const
