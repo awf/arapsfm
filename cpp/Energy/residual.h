@@ -34,7 +34,7 @@ struct PiecewisePolynomialTransform_C1 : public ResidualTransform
         if (abs_r <= _tau)
             return r;
         else
-            return std::copysign(std::pow(abs_r - _b, _p) + _c, r);
+            return std::copysign(std::sqrt(std::pow(abs_r - _b, _p) + _c), r);
     }
 
     virtual double Derivative(const double r) const
