@@ -52,4 +52,24 @@ protected:
     double _tau, _p, _b, _c;
 };
 
+// TruncatedQuadraticTransform
+struct TruncatedQuadraticTransform : public ResidualTransform
+{
+    TruncatedQuadraticTransform(const double tau) : _tau(tau) {}
+
+    virtual double Transform(const double r) const
+    {
+        const double abs_r = std::abs(r);
+        return abs_r <= _tau ? 0.0 : std::copysign(abs_r - _tau, r);
+    }
+
+    virtual double Derivative(const double r) const
+    {
+        return std::abs(r) <= _tau ? 0.0 : 1.0;
+    }
+
+protected:
+    double _tau;
+};
+
 #endif
