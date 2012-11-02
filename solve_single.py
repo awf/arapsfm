@@ -36,10 +36,11 @@ def main():
     parser.add_argument('--silhouette_info', type=str, default=None)
     parser.add_argument('--silhouette_input', type=str, default=None)
     parser.add_argument('--preconditioners', type=str, default=None)
-    parser.add_argument('--narrowband', type=int, default=3)
+    parser.add_argument('--narrowband', type=int, default=2)
     parser.add_argument('--max_restarts', type=int, default=5)
     parser.add_argument('--find_circular_path', action='store_true',
                         default=False)
+    parser.add_argument('--piecewise_polynomial', type=str, default=None)
 
     # spillage energy
     parser.add_argument('--spillage_input', type=str, default=None)
@@ -193,7 +194,8 @@ def main():
         requires(args, 'silhouette_info', 
                  'silhouette_input', 
                  'spillage_input',
-                 'preconditioners')
+                 'preconditioners',
+                 'piecewise_polynomial')
 
         # laplacian smoothing with projection and silhouette constraints
         C, P = load_args(user_constraints, 'C', 'P')
@@ -233,11 +235,15 @@ def main():
         print 'preconditioners:', preconditioners
         print 'narrowband:', args.narrowband
 
+        piecewise_polynomial = parse_float_string(args.piecewise_polynomial)
+        print 'piecewise_polynomial:', piecewise_polynomial
+
         def solve_iteration():
             status = solve_single_lap_proj_sil_spil(V, T, U, L, C, P, S, SN,
                                                     Rx, Ry,
                                                     lm_lambdas,
                                                     preconditioners,
+                                                    piecewise_polynomial,
                                                     args.narrowband,
                                                     **solver_options)
 
