@@ -676,10 +676,17 @@ int solve_single_lap_proj_sil_spil(PyArrayObject * npy_V,
     LaplacianEnergy * lapEnergy = new LaplacianEnergy(*nodeV, mesh, sqrt(lambdas[0]));
     ProjectionEnergy * projEnergy = new ProjectionEnergy(*nodeV, C, P, sqrt(lambdas[1]));
 
-    PiecewisePolynomialTransform_C1 polynomialTransform(piecewisePolynomial[0], piecewisePolynomial[1]);
+    ResidualTransform * residualTransform = nullptr;
+
+    if (piecewisePolynomial.size() > 1)
+        residualTransform = new PiecewisePolynomialTransform_C1(piecewisePolynomial[0], piecewisePolynomial[1]);
+    else
+        residualTransform = new TruncatedQuadraticTransform(piecewisePolynomial[0]);
+
+    TruncatedQuadraticTransform polynomialTransform(piecewisePolynomial[0]);
 
     SilhouetteProjectionEnergy * silProjEnergy = new SilhouetteProjectionEnergy(*nodeV, *nodeU, S, mesh,
-        sqrt(lambdas[2]), narrowBand, &polynomialTransform);
+        sqrt(lambdas[2]), narrowBand, residualTransform);
 
     SilhouetteNormalEnergy * silNormalEnergy = new SilhouetteNormalEnergy(*nodeV, *nodeU, SN, mesh,
         sqrt(lambdas[3]), narrowBand);
@@ -692,7 +699,11 @@ int solve_single_lap_proj_sil_spil(PyArrayObject * npy_V,
     problem.AddEnergy(silNormalEnergy);
     problem.AddEnergy(spilEnergy);
 
-    return problem.Minimise(*options);
+    int status = problem.Minimise(*options);
+
+    delete residualTransform;
+
+    return status;
 }
 
 #endif

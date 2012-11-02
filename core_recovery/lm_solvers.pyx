@@ -419,8 +419,8 @@ def solve_single_lap_proj_sil_spil(np.ndarray[np.float64_t, ndim=2, mode='c'] V,
     if lambdas.shape[0] != 5:
         raise ValueError('lambdas.shape[0] != 5')
 
-    if piecewisePolynomial.shape[0] != 2:
-        raise ValueError('piecewisePolynomial.shape[0] != 2')
+    if piecewisePolynomial.shape[0] < 1:
+        raise ValueError('piecewisePolynomial.shape[0] < 1')
 
     cdef int status = solve_single_lap_proj_sil_spil_c(V, T, U, L, C, P, S, SN,
         Rx, Ry, lambdas, preconditioners, piecewisePolynomial, narrowBand, &options)
