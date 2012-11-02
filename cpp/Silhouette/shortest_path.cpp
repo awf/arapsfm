@@ -20,8 +20,8 @@ ShortestPathSolver::ShortestPathSolver(const Matrix<double> & S,    // silhouett
       _numCandidates(info.SilCandDistances.num_rows()),
       _numEdgeCandidates(info.SilEdgeCandParam.size()),
       _numVertices(_numCandidates - _numEdgeCandidates),
-      _Q(_numCandidates, 3), _QN(_numCandidates, 3), 
       _lambdas(lambdas), 
+      _Q(_numCandidates, 3), _QN(_numCandidates, 3), 
       _verbose(verbose)
 {
 }
