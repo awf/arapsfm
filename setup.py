@@ -125,6 +125,13 @@ setup(
                   ['tests/units/test_quaternion.pyx'],
                   include_dirs=include_dirs,
                   extra_compile_args=['-std=c++11', '-Wfatal-errors'],
+                  language='c++'),
+
+        Extension('tests.units.test_arap', 
+                  ['tests/units/test_arap.pyx',
+                   'cpp/Solve/node.cpp'],
+                  include_dirs=include_dirs + [SSLM_ROOT],
+                  extra_compile_args=['-std=c++11', '-Wfatal-errors'],
                   language='c++')
         ],
 
