@@ -257,6 +257,179 @@ protected:
     const double _w;
 };
 
+// RigidTransformARAPEnergy
+class RigidTransformARAPEnergy: public Energy
+{
+public:
+    RigidTransformARAPEnergy(const VertexNode & V,  const RotationNode & X, 
+                             const RotationNode & Xg, const ScaleNode & s,
+                             const VertexNode & V1, const Mesh & mesh, const double w,
+                             bool uniformWeights)
+        : _V(V), _X(X), _Xg(Xg), _s(s), _V1(V1), _mesh(mesh), _w(w), _uniformWeights(uniformWeights)
+    {}
+
+    virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
+    {
+        vector<int> * pUsedParamTypes = new vector<int>;
+        pUsedParamTypes->push_back(_X.GetParamId());
+        pUsedParamTypes->push_back(_Xg.GetParamId());
+        pUsedParamTypes->push_back(_s.GetParamId());
+        pUsedParamTypes->push_back(_V1.GetParamId());
+        pUsedParamTypes->push_back(_V1.GetParamId());
+
+        costFunctions.push_back(new Energy_CostFunction(*this, pUsedParamTypes, 3));
+    }
+
+    virtual int GetCorrespondingParam(const int k, const int i) const
+    {
+        switch (i)
+        {
+        case 0:
+            return _mesh.GetHalfEdge(k, 0) + _X.GetOffset();
+        case 1:
+            return _Xg.GetOffset(); 
+        case 2:
+            return _s.GetOffset(); 
+        case 3:
+            return _mesh.GetHalfEdge(k, 0) + _V1.GetOffset();
+        case 4:
+            return _mesh.GetHalfEdge(k, 1) + _V1.GetOffset();
+        }
+
+        assert(false);
+
+        return -1;
+    }
+
+    virtual int GetNumberOfMeasurements() const
+    {
+        return _mesh.GetNumberOfHalfEdges();
+    }
+
+    virtual double GetEdgeWeight(int k) const
+    {
+        double w = _w;
+        if (!_uniformWeights)
+            w *= sqrt(_mesh.GetCotanWeight(_V.GetVertices(), k));
+
+        return w;
+    }
+
+    virtual void EvaluateResidual(const int k, Vector<double> & e) const
+    {
+        int i = _mesh.GetHalfEdge(k, 0), j = _mesh.GetHalfEdge(k, 1);
+        const double w = GetEdgeWeight(k);
+
+        double qi[4];
+        quat_Unsafe(_X.GetRotation(i), qi);
+
+        double qg[4];
+        quat_Unsafe(_Xg.GetRotation(0), qg);
+
+        double q[4];
+        quatMultiply_Unsafe(qg, qi, q);
+
+        arapResiduals_Unsafe(_V.GetVertex(i), _V.GetVertex(j),
+                             _V1.GetVertex(i), _V1.GetVertex(j),
+                             w, q, _s.GetScale(), &e[0]);
+    }
+
+    virtual void EvaluateJacobian(const int k, const int whichParam, Matrix<double> & J) const
+    {
+        int i = _mesh.GetHalfEdge(k, 0), j = _mesh.GetHalfEdge(k, 1);
+        const double w = GetEdgeWeight(k);
+
+        // qg * qi -> q
+        double qi[4];
+        quat_Unsafe(_X.GetRotation(i), qi);
+
+        double qg[4];
+        quat_Unsafe(_Xg.GetRotation(0), qg);
+
+        double q[4];
+        quatMultiply_Unsafe(qg, qi, q);
+
+        switch (whichParam)
+        {
+        case 0:
+            // X
+            {
+                // dr/dq
+                double Jq[12];
+                arapJac_Q_Unsafe(_V.GetVertex(i), _V.GetVertex(j), w * _s.GetScale(), q, Jq);
+
+                // dq/dqi
+                double Dqi[16];
+                quatMultiply_dq_Unsafe(qg, Dqi);
+
+                // dqi/xi
+                double Di[12];
+                quatDx_Unsafe(_X.GetRotation(i), Di);
+
+                double A[12];
+                multiply_A_B_Static<double, 3, 4, 4>(Jq, Dqi, A);
+                multiply_A_B_Static<double, 3, 4, 3>(A, Di, J[0]);
+
+                return;
+            }
+        case 1:
+            // Xg
+            {
+                // dr/dq
+                double Jq[12];
+                arapJac_Q_Unsafe(_V.GetVertex(i), _V.GetVertex(j), w * _s.GetScale(), q, Jq);
+
+                // dq/dqg
+                double Dqg[16];
+                quatMultiply_dp_Unsafe(qi, Dqg);
+
+                // dqg/xg
+                double Dg[12];
+                quatDx_Unsafe(_Xg.GetRotation(0), Dg);
+
+                double A[12];
+                multiply_A_B_Static<double, 3, 4, 4>(Jq, Dqg, A);
+                multiply_A_B_Static<double, 3, 4, 3>(A, Dg, J[0]);
+
+                return;
+            }
+        case 2:
+            // s
+            {
+                arapJac_s_Unsafe(w, q, _V.GetVertex(i), _V.GetVertex(j), J[0]);
+                return;
+            }
+
+        case 3:
+            // V1i
+            {
+                
+                arapJac_V1_Unsafe(true, w, J[0]);
+                return;
+            }
+        case 4:
+            // V1j
+            {
+                arapJac_V1_Unsafe(false, w, J[0]);
+                return;
+            }
+        }
+
+        assert(false);
+    }
+
+protected:
+    bool _uniformWeights;
+    const VertexNode & _V;
+    const RotationNode & _X;
+    const RotationNode & _Xg;
+    const ScaleNode & _s;
+    const VertexNode & _V1;
+
+    const Mesh & _mesh;
+    const double _w;
+};
+
 // TODO DualArapEnergy::EvaluateJacobian DOES NOT take into account the cotangent weight
 // dependence
 
