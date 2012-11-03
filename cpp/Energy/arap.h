@@ -15,8 +15,8 @@ using namespace V3D;
 // arapResiduals_Unsafe
 inline void arapResiduals_Unsafe(const double * Vi, const double * Vj,
            const double * V1i, const double * V1j,
-           const double & w, const double * q, 
-           double * e, const double s = 1.0)
+           const double w, const double * q, 
+           const double s, double * e)
 {
     // BEGIN SymPy
     double x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11;
@@ -42,7 +42,7 @@ inline void arapResiduals_Unsafe(const double * Vi, const double * Vj,
 
 // arapJac_Q_Unsafe
 inline void arapJac_Q_Unsafe(const double * Vi, const double * Vj,
-                 const double & w, const double * q, 
+                 const double w, const double * q, 
                  double * Jq)
 {
     double x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14;
@@ -81,7 +81,7 @@ inline void arapJac_Q_Unsafe(const double * Vi, const double * Vj,
 
 // arapJac_X_Unsafe
 inline void arapJac_X_Unsafe(const double * Vi, const double * Vj,
-                 const double & w, const double * q, const double * D, 
+                 const double w, const double * q, const double * D, 
                  double * J)
 {
     double Jq[12];
@@ -100,7 +100,7 @@ inline void arapJac_X_Unsafe(const double * Vi, const double * Vj,
 }
 
 // arapJac_V1_Unsafe
-inline void arapJac_V1_Unsafe(bool isV1i, const double & w, double * J)
+inline void arapJac_V1_Unsafe(bool isV1i, const double w, double * J)
 {
     double w_ = isV1i ? w : -w;
 
@@ -117,8 +117,7 @@ inline void arapJac_V1_Unsafe(bool isV1i, const double & w, double * J)
 }
 
 // arapJac_V_Unsafe
-inline void arapJac_V_Unsafe(bool isVi, const double & w, const double * q, double * J, 
-                             const double s = 1.0)
+inline void arapJac_V_Unsafe(bool isVi, const double w, const double * q, const double s, double * J)
 {
     double x3, x4, x5, x6, x7, x8, x9, x10, x11;
     x3 = q[2]*q[2];
@@ -148,7 +147,7 @@ inline void arapJac_V_Unsafe(bool isVi, const double & w, const double * q, doub
 }
 
 // arapJac_s_Unsafe
-inline void arapJac_s_Unsafe(const double & w, const double * q,    
+inline void arapJac_s_Unsafe(const double w, const double * q,    
                              const double * Vi, const double * Vj,
                              double * J)
 {
@@ -213,7 +212,7 @@ public:
 
         arapResiduals_Unsafe(_V.GetVertex(i), _V.GetVertex(j),
                              _V1.GetVertex(i), _V1.GetVertex(j),
-                             w, q, &e[0]);
+                             w, q, 1.0, &e[0]);
     }
 
     virtual void EvaluateJacobian(const int k, const int whichParam, Matrix<double> & J) const
@@ -327,7 +326,7 @@ public:
 
         arapResiduals_Unsafe(_V.GetVertex(i), _V.GetVertex(j),
                              _V1.GetVertex(i), _V1.GetVertex(j),
-                             w, q, &e[0]);
+                             w, q, 1.0, &e[0]);
     }
 
     virtual void EvaluateJacobian(const int k, const int whichParam, Matrix<double> & J) const
@@ -360,12 +359,12 @@ public:
             }
         case 3:
             {
-                arapJac_V_Unsafe(true, w, q, J[0]);
+                arapJac_V_Unsafe(true, w, q, 1.0, J[0]);
                 return;
             }
         case 4:
             {
-                arapJac_V_Unsafe(false, w, q, J[0]);
+                arapJac_V_Unsafe(false, w, q, 1.0, J[0]);
                 return;
             }
         }
@@ -454,8 +453,7 @@ public:
 
         arapResiduals_Unsafe(_V.GetVertex(i), _V.GetVertex(j),
                              _V1.GetVertex(i), _V1.GetVertex(j),
-                             w, q, &e[0], 
-                             _s.GetScale());
+                             w, q, _s.GetScale(), &e[0]);
     }
 
     virtual void EvaluateJacobian(const int k, const int whichParam, Matrix<double> & J) const
@@ -473,7 +471,7 @@ public:
         {
         case 0:
             {
-                arapJac_X_Unsafe(_V.GetVertex(i), _V.GetVertex(j), w, q, D, J[0]);
+                arapJac_X_Unsafe(_V.GetVertex(i), _V.GetVertex(j), w * _s.GetScale(), q, D, J[0]);
                 return;
             }
         case 1:
@@ -493,12 +491,12 @@ public:
             }
         case 4:
             {
-                arapJac_V_Unsafe(true, w, q, J[0], _s.GetScale());
+                arapJac_V_Unsafe(true, w, q, _s.GetScale(), J[0]);
                 return;
             }
         case 5:
             {
-                arapJac_V_Unsafe(false, w, q, J[0], _s.GetScale());
+                arapJac_V_Unsafe(false, w, q, _s.GetScale(), J[0]);
                 return;
             }
         }
