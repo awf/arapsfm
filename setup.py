@@ -120,6 +120,12 @@ setup(
         #           include_dirs=include_dirs + [SSLM_ROOT],
         #           define_macros=REMOVE_EXCEPTION_MACROS,
         #           language='c++'),
+
+        Extension('tests.units.test_quaternion', 
+                  ['tests/units/test_quaternion.pyx'],
+                  include_dirs=include_dirs,
+                  extra_compile_args=['-std=c++11', '-Wfatal-errors'],
+                  language='c++')
         ],
 
     cmdclass = {'build_ext' : build_ext},

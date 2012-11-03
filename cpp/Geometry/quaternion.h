@@ -112,4 +112,63 @@ void rotationMatrix_Unsafe(const Elem * q, Elem * R)
     R[8] = 1 - 2*q[0]*q[0] - 2*q[1]*q[1];
 }
 
+// quatMultiply_Unsafe
+template <typename Elem>
+inline
+void quatMultiply_Unsafe(const Elem * p, const Elem * q, Elem * r)
+{
+    r[0] = p[3]*q[0] + p[0]*q[3] + p[1]*q[2] - p[2]*q[1];
+    r[1] = p[3]*q[1] - p[0]*q[2] + p[1]*q[3] + p[2]*q[0];
+    r[2] = p[3]*q[2] + p[0]*q[1] - p[1]*q[0] + p[2]*q[3];
+    r[3] = p[3]*q[3] - p[0]*q[0] - p[1]*q[1] - p[2]*q[2];
+}
+
+// quatMultiply_dp_Unsafe
+template <typename Elem>
+inline
+void quatMultiply_dp_Unsafe(const Elem * q, Elem * Dp)
+{
+    Dp[0] = q[3];
+    Dp[1] = q[2];
+    Dp[2] = -q[1];
+    Dp[3] = q[0];
+    Dp[4] = -q[2];
+    Dp[5] = q[3];
+    Dp[6] = q[0];
+    Dp[7] = q[1];
+    Dp[8] = q[1];
+    Dp[9] = -q[0];
+    Dp[10] = q[3];
+    Dp[11] = q[2];
+    Dp[12] = -q[0];
+    Dp[13] = -q[1];
+    Dp[14] = -q[2];
+    Dp[15] = q[3];
+}
+
+
+
+// quatMultiply_dq_Unsafe
+template <typename Elem>
+inline
+void quatMultiply_dq_Unsafe(const Elem * p, Elem * Dq)
+{
+    Dq[0] = p[3];
+    Dq[1] = -p[2];
+    Dq[2] = p[1];
+    Dq[3] = p[0];
+    Dq[4] = p[2];
+    Dq[5] = p[3];
+    Dq[6] = -p[0];
+    Dq[7] = p[1];
+    Dq[8] = -p[1];
+    Dq[9] = p[0];
+    Dq[10] = p[3];
+    Dq[11] = p[2];
+    Dq[12] = -p[0];
+    Dq[13] = -p[1];
+    Dq[14] = -p[2];
+    Dq[15] = p[3];
+}
 #endif
+
