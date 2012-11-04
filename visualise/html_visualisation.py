@@ -392,6 +392,51 @@ def main_cheetah1B_Cheetah_4():
 
     page.generate()
 
+# main_polynomial_residual_transform
+def main_polynomial_residual_transform():
+    title = 'Single frame recovery w/ PiecewisePolynomialTransform'
+
+    page = VisualisationPage('Cheetah_4_6_PiecewisePolynomialTransform',
+        vis_vars=['mesh',
+                  'input', 
+                  'solver', 
+                  'user_constraints', 
+                  'output', 
+                  'input_frame', 
+                  'lambdas', 
+                  'preconditioners',
+                  'polynomial_piecewise',
+                  'solver_options', 
+                  'narrowband'],
+
+        vis_args=['-c', 'SetParallelProjection=True,',
+                  '-c', 'Azimuth=-90,', 
+                  '-c', 'Azimuth=0',
+                  '-c', 'Azimuth=45',
+                  '-c', 'Azimuth=45',
+                  '-c', 'Azimuth=45',
+                  '-c', 'Azimuth=45', 
+                  '-c', 'Azimuth=-90,',
+                  '-c', 'Elevation=60',
+                  '-a', 'model:SetRepresentation=3',
+                  '--magnification', '3'])
+
+
+    def subheading_fn(path):
+        z = np.load(path)
+        tau, p = map(float, z['piecewise_polynomial'].split(','))
+        if p == 2.0:
+            return 'Quadratic Only'
+        else:
+            return 'Extension: tau = %.3f (pixels), p = %.3f' % (tau, p)
+
+    for path in ('Cheetah_4_6_wRegularExtension.dat',
+                 'Cheetah_4_6_wCubicExtension.dat'):
+        subheading = subheading_fn(path)
+        page.add_test(path, subheading=subheading)
+
+    page.generate()
+
 # main_cheetah1B_Cheetah_5
 def main_cheetah1B_Cheetah_5():
     # Test Laplacian lambdas
@@ -482,5 +527,6 @@ if __name__ == '__main__':
     # main()
     # main_single_frames()
     # main_cheetah1B_Cheetah_4()
-    main_cheetah1B_Cheetah_5()
+    # main_cheetah1B_Cheetah_5()
+    main_polynomial_residual_transform()
     
