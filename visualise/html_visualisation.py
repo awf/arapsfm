@@ -10,6 +10,9 @@ import StringIO
 import datetime
 from operator import itemgetter
 
+# Defaults
+DEF_VIS_SCRIPT = 'visualise/visualise_standalone.py'
+
 # Templates
 ENTRY_TEMPLATE = '''<div class="vis_info">
     {subheading}
@@ -54,7 +57,8 @@ def variable_summary(input_path, variables):
 # VisualisationPage
 class VisualisationPage(object):
     def __init__(self, project_root, title=None, subheading=None,
-                 vis_args=[], vis_vars=[], var_aliases={}):
+                 vis_args=[], vis_vars=[], var_aliases={},
+                 vis_script=DEF_VIS_SCRIPT):
 
         if not os.path.exists(project_root):
             os.makedirs(project_root)
@@ -65,6 +69,7 @@ class VisualisationPage(object):
         self.vis_args = vis_args
         self.vis_vars = vis_vars
         self.var_aliases = var_aliases
+        self.vis_script = vis_script
 
         self.tests = []
 
@@ -78,8 +83,7 @@ class VisualisationPage(object):
 
         output_dir = os.path.join(self.project_root, output_subdir)
 
-        args = ['python', 'visualise/visualise_standalone.py',
-                input_path,                          
+        args = ['python', self.vis_script, input_path,                          
                 '-o', output_dir] + self.vis_args
 
         print 'Calling:', ' '.join(args)
@@ -516,6 +520,46 @@ def main_cheetah1B_Cheetah_5():
 
     page.generate()
 
+# main_scaled_rotations
+def main_scaled_rotations():
+    title = 'Scaling of individual ARAP rotations in axis-angle representation'
+
+    scales = '(0.5, 0.75, 1.0, 1.25, 1.5)'
+
+    page = VisualisationPage('Cheetah_4_6_Individual_ARAP_Rotations',
+        vis_script = 'visualise/visualise_scaled_rotations.py',
+        title=title,
+
+        vis_vars=['mesh',
+                  'input', 
+                  'solver', 
+                  'user_constraints', 
+                  'output', 
+                  'input_frame', 
+                  'lambdas', 
+                  'preconditioners',
+                  'polynomial_piecewise',
+                  'solver_options', 
+                  'narrowband'],
+
+        vis_args=[scales,
+                  '-c', 'SetParallelProjection=True,',
+                  '-c', 'Azimuth=0', 
+                  '-c', 'Azimuth=-90,', 
+                  '-c', 'Azimuth=0',
+                  '-c', 'Azimuth=45',
+                  '-c', 'Azimuth=45',
+                  '-c', 'Azimuth=45',
+                  '-c', 'Azimuth=45', 
+                  '-c', 'Azimuth=-90,',
+                  '-c', 'Elevation=60',
+                  '--magnification', '3'])
+
+    page.add_test('cheetah1B/Cheetah_4/Experiments/Cheetah_4_6.dat',
+                  subheading='Scales: %s' % scales)
+
+    page.generate()
+
 # test_variable_summary
 def test_variable_summary():
     input_path = '../working/chihuahua_lap_silhouette.npz'
@@ -528,5 +572,6 @@ if __name__ == '__main__':
     # main_single_frames()
     # main_cheetah1B_Cheetah_4()
     # main_cheetah1B_Cheetah_5()
-    main_polynomial_residual_transform()
+    # main_polynomial_residual_transform()
+    main_scaled_rotations()
     
