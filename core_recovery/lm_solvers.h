@@ -55,6 +55,56 @@ int solve_single_arap_proj(PyArrayObject * npy_V,
     return problem.Minimise(*options);
 }
 
+// solve_single_rigid_arap_proj
+int solve_single_rigid_arap_proj(PyArrayObject * npy_V,
+                                 PyArrayObject * npy_T,
+                                 PyArrayObject * npy_X,
+                                 PyArrayObject * npy_Xg,
+                                 PyArrayObject * npy_s,
+                                 PyArrayObject * npy_V1,
+                                 PyArrayObject * npy_C,
+                                 PyArrayObject * npy_P,
+                                 PyArrayObject * npy_lambdas,
+                                 bool uniformWeights,
+                                 const OptimiserOptions * options)
+{
+    PYARRAY_AS_MATRIX(double, npy_V, V);
+    PYARRAY_AS_MATRIX(int, npy_T, T);
+    PYARRAY_AS_MATRIX(double, npy_X, X);
+    PYARRAY_AS_MATRIX(double, npy_Xg, Xg);
+    PYARRAY_AS_MATRIX(double, npy_s, s);
+    PYARRAY_AS_MATRIX(double, npy_V1, V1);
+    PYARRAY_AS_VECTOR(int, npy_C, C);
+    PYARRAY_AS_MATRIX(double, npy_P, P);
+    PYARRAY_AS_VECTOR(double, npy_lambdas, lambdas);
+
+    Mesh mesh(V.num_rows(), T);
+
+    VertexNode * nodeV = new VertexNode(V);
+    VertexNode * nodeV1 = new VertexNode(V1);
+    RotationNode * nodeX = new RotationNode(X);
+    RotationNode * nodeXg = new RotationNode(Xg);
+    ScaleNode * nodes = new ScaleNode(s);
+
+    Problem problem;
+    problem.AddFixedNode(nodeV);
+    problem.AddNode(nodeV1);
+    problem.AddNode(nodeX);
+    problem.AddNode(nodeXg);
+    problem.AddNode(nodes);
+
+    RigidTransformARAPEnergy * arapEnergy = new RigidTransformARAPEnergy(
+        *nodeV, *nodeX, *nodeXg, *nodes, *nodeV1, mesh, sqrt(lambdas[0]), uniformWeights);
+
+    ProjectionEnergy * projEnergy = new ProjectionEnergy(*nodeV1, C, P, sqrt(lambdas[1]));
+
+    problem.AddEnergy(arapEnergy);
+    problem.AddEnergy(projEnergy);
+
+    return problem.Minimise(*options);
+}
+
+
 // solve_single_lap_proj
 int solve_single_lap_proj(PyArrayObject * npy_V,
                   PyArrayObject * npy_T,

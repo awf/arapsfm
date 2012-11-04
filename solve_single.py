@@ -6,7 +6,8 @@ from util.cmdline import *
 from core_recovery.lm_solvers import \
     solve_single_arap_proj, \
     solve_single_lap_proj_silhouette, \
-    solve_single_lap_proj_sil_spil
+    solve_single_lap_proj_sil_spil, \
+    solve_single_rigid_arap_proj
 
 from core_recovery.silhouette_global_solver import \
     shortest_path_solve
@@ -112,6 +113,32 @@ def main():
         vis.add_projection(C, P)
 
         # augment output dictionary
+        output_d['C'] = C
+        output_d['P'] = P
+        output_d['V'] = V1
+    
+    elif args.solver == 'single_rigid_arap_proj':
+        C, P = load_args(user_constraints, 'C', 'P')
+        print 'C.shape:', C.shape
+        print 'P.shape:', P.shape
+
+        X = np.zeros_like(V)
+        Xg = np.zeros((1, 3), dtype=np.float64)
+        s = np.ones((1, 1), dtype=np.float64)
+        V1 = V.copy()
+
+        status = solve_single_rigid_arap_proj(
+            V, T, X, Xg, s, V1, C, P, lambdas,
+            **solver_options)
+
+        # augment visualisation
+        vis.add_mesh(V1, T)
+        vis.add_projection(C, P)
+
+        # augment output dictionary
+        output_d['X'] = X
+        output_d['Xg'] = Xg
+        output_d['s'] = s
         output_d['C'] = C
         output_d['P'] = P
         output_d['V'] = V1
