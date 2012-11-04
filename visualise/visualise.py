@@ -335,3 +335,41 @@ def visualise_multiple_geometries(mesh_objects):
     renWin.Render()
     iren.Start()
 
+# bool_from_string
+def bool_from_string(string):
+    if string == 'True': return True
+    if string == 'False' : return False
+
+    raise ValueError('unable to create bool from string: %s' %
+                     string)
+
+# tuple_from_string
+def tuple_from_string(string):
+    if not string: return tuple()
+
+    tup_strings = string.split(',')
+    for type_ in [int, float, bool_from_string]:
+        try:
+            return tuple(type_(v) for v in tup_strings)
+        except ValueError:
+            continue
+
+    raise ValueError('unable to create tuple from string: %s' %
+                     string)
+
+# parse_camera_action
+def parse_camera_action(action):
+    # get method and value string
+    method, value_string = action.split('=')
+
+    # check if immediately save rendering after this camera action
+    save_after = True
+    if value_string.endswith(','):
+        save_after = False
+        value_string = value_string[:-1]
+    
+    # convert value string to tuple
+    tup = tuple_from_string(value_string)
+
+    return method, tup, save_after
+
