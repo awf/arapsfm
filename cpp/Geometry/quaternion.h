@@ -201,26 +201,27 @@ void quatInvDq_Unsafe(const Elem * q, Elem * Dq)
                     dtdq3};
 
     Elem a = half_sinc_half_t(t);
+    Elem a2 = a * a;
     Elem dadt = half_sinc_half_t_p(t);
     Elem dadq[4] = {dadt * dtdq[0],
                     dadt * dtdq[1],
                     dadt * dtdq[2],
                     dadt * dtdq[3]};
 
-    Dq[0] = (-q[0] * dadq[0]) / (a * a) + 1.0 / a;
-    Dq[1] = (-q[0] * dadq[1]) / (a * a);
-    Dq[2] = (-q[0] * dadq[2]) / (a * a);
-    Dq[3] = (-q[0] * dadq[3]) / (a * a);
+    Dq[0] = (-q[0] * dadq[0]) / a2 + 1.0 / a;
+    Dq[1] = (-q[0] * dadq[1]) / a2;
+    Dq[2] = (-q[0] * dadq[2]) / a2;
+    Dq[3] = (-q[0] * dadq[3]) / a2;
 
-    Dq[4] = (-q[1] * dadq[0]) / (a * a);
-    Dq[5] = (-q[1] * dadq[1]) / (a * a) + 1.0 / a;
-    Dq[6] = (-q[1] * dadq[2]) / (a * a);
-    Dq[7] = (-q[1] * dadq[3]) / (a * a);
+    Dq[4] = (-q[1] * dadq[0]) / a2;
+    Dq[5] = (-q[1] * dadq[1]) / a2 + 1.0 / a;
+    Dq[6] = (-q[1] * dadq[2]) / a2;
+    Dq[7] = (-q[1] * dadq[3]) / a2;
 
-    Dq[8]  = (-q[2] * dadq[0]) / (a * a);
-    Dq[9]  = (-q[2] * dadq[1]) / (a * a);
-    Dq[10] = (-q[2] * dadq[2]) / (a * a) + 1.0 / a;
-    Dq[11] = (-q[2] * dadq[3]) / (a * a);
+    Dq[8]  = (-q[2] * dadq[0]) / a2;
+    Dq[9]  = (-q[2] * dadq[1]) / a2;
+    Dq[10] = (-q[2] * dadq[2]) / a2 + 1.0 / a;
+    Dq[11] = (-q[2] * dadq[3]) / a2;
 }
 
 #endif
