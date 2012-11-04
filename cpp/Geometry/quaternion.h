@@ -4,6 +4,7 @@
 
 #include <cmath>
 #include <cassert>
+#include "Math/static_linear.h"
 
 // Functions for manipulating and evaluating quaternions from a vector of 3
 // elements (axis-angle representation)
@@ -146,8 +147,6 @@ void quatMultiply_dp_Unsafe(const Elem * q, Elem * Dp)
     Dp[15] = q[3];
 }
 
-
-
 // quatMultiply_dq_Unsafe
 template <typename Elem>
 inline
@@ -170,5 +169,59 @@ void quatMultiply_dq_Unsafe(const Elem * p, Elem * Dq)
     Dq[14] = -p[2];
     Dq[15] = p[3];
 }
+
+// quatInv_Unsafe
+template <typename Elem>
+inline
+void quatInv_Unsafe(const Elem * q, Elem * x)
+{
+    Elem t = 2.0 * atan2(sqrt(q[0]*q[0] + q[1]*q[1] + q[2]*q[2]), q[3]);
+    // t in [-pi, pi]
+
+    Elem a = 1.0 / half_sinc_half_t(t);
+    x[0] = q[0] * a;
+    x[1] = q[1] * a;
+    x[2] = q[2] * a;
+}
+
+// quatInvDq_Unsafe
+template <typename Elem>
+inline
+void quatInvDq_Unsafe(const Elem * q, Elem * Dq)
+{
+    Elem m = sqrt(q[0]*q[0] + q[1]*q[1] + q[2]*q[2]);
+    Elem dmdq[3] = {q[0] / m, q[1] / m, q[2] / m};
+
+    Elem t = 2.0 * atan2(m, q[3]);
+    Elem dtdm = 2.0 * q[3] / (m * m + q[3] * q[3]);
+    Elem dtdq3 = -2.0 * m / (m * m + q[3] * q[3]);
+    Elem dtdq[4] = {dtdm * dmdq[0],
+                    dtdm * dmdq[1],
+                    dtdm * dmdq[2],
+                    dtdq3};
+
+    Elem a = half_sinc_half_t(t);
+    Elem dadt = half_sinc_half_t_p(t);
+    Elem dadq[4] = {dadt * dtdq[0],
+                    dadt * dtdq[1],
+                    dadt * dtdq[2],
+                    dadt * dtdq[3]};
+
+    Dq[0] = (-q[0] * dadq[0]) / (a * a) + 1.0 / a;
+    Dq[1] = (-q[0] * dadq[1]) / (a * a);
+    Dq[2] = (-q[0] * dadq[2]) / (a * a);
+    Dq[3] = (-q[0] * dadq[3]) / (a * a);
+
+    Dq[4] = (-q[1] * dadq[0]) / (a * a);
+    Dq[5] = (-q[1] * dadq[1]) / (a * a) + 1.0 / a;
+    Dq[6] = (-q[1] * dadq[2]) / (a * a);
+    Dq[7] = (-q[1] * dadq[3]) / (a * a);
+
+    Dq[8]  = (-q[2] * dadq[0]) / (a * a);
+    Dq[9]  = (-q[2] * dadq[1]) / (a * a);
+    Dq[10] = (-q[2] * dadq[2]) / (a * a) + 1.0 / a;
+    Dq[11] = (-q[2] * dadq[3]) / (a * a);
+}
+
 #endif
 
