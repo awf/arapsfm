@@ -18,6 +18,11 @@ def main():
     print 'z:', z
     print 'z[0] (deg):', np.rad2deg(z[0])
 
+    print 'axScale(0.3, v): ', axScale(0.3, v)
+    print 'axScale(0.6, w): ', axScale(0.6, w)
+    print 'axAdd(axScale(0.3, v), axScale(0.6, w)): ', 
+    print  axAdd(axScale(0.3, v), axScale(0.6, w))
+
 if __name__ == '__main__':
     main()
 
