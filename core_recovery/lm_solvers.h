@@ -522,6 +522,7 @@ int solve_multiview_lap_silhouette(
     PyArrayObject * npy_T,
     PyArrayObject * npy_V,
     PyObject * list_multiX,
+    PyObject * list_multiXg,
     PyObject * list_multis,
     PyObject * list_multiV,
     PyObject * list_multiU,
@@ -541,6 +542,7 @@ int solve_multiview_lap_silhouette(
     PYARRAY_AS_MATRIX(double, npy_V, V);
                             
     auto multiX = PyList_to_vector_of_Matrix<double>(list_multiX);
+    auto multiXg = PyList_to_vector_of_Matrix<double>(list_multiXg);
     auto multis = PyList_to_vector_of_Matrix<double>(list_multis);
     auto multiV = PyList_to_vector_of_Matrix<double>(list_multiV);
     auto multiU = PyList_to_vector_of_Matrix<double>(list_multiU);
@@ -580,6 +582,14 @@ int solve_multiview_lap_silhouette(
     }
     instRotationNodes.back()->SetPreconditioner(preconditioners[1]);
 
+    // instance global rotations
+    vector<RotationNode * > instGlobalRotationNodes;
+    for (auto i = multiXg.begin(); i != multiXg.end(); ++i)
+    {
+        instGlobalRotationNodes.push_back(new RotationNode(*(*i)));
+        problem.AddNode(instGlobalRotationNodes.back());
+    }
+
     // instance scales
     vector<ScaleNode *> instScaleNodes;
     for (auto i = multis.begin(); i != multis.end(); ++i)
@@ -608,9 +618,10 @@ int solve_multiview_lap_silhouette(
     // dual scaled arap
     for (int i = 0; i < instVertexNodes.size(); ++i)
     {
-        problem.AddEnergy(new DualScaledARAPEnergy(
+        problem.AddEnergy(new DualRigidTransformArapEnergy(
                           *coreVertexNode, 
                           *instRotationNodes[i], 
+                          *instGlobalRotationNodes[i],
                           *instScaleNodes[i], 
                           *instVertexNodes[i], 
                           mesh, sqrt(lambdas[0]), uniformWeights));

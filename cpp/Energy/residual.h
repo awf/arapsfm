@@ -8,6 +8,7 @@ struct ResidualTransform
 {
     virtual double Transform(const double r) const = 0;
     virtual double Derivative(const double r) const = 0;
+    virtual ~ResidualTransform() {};
 };
 
 // LinearTransform
