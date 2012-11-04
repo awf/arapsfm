@@ -46,7 +46,7 @@ if HAS_VTK:
             self.ren_win = ren_win
             self.iren = iren
 
-        def add_mesh(self, V, T, L=None):
+        def add_mesh(self, V, T, L=None, actor_name='model'):
             cells = faces_to_vtkCellArray(T)
 
             self.keys = {}
@@ -95,12 +95,11 @@ if HAS_VTK:
             model_actor = vtk.vtkActor()
             model_actor.SetMapper(model_mapper)
             model_actor.VisibilityOn()
-            model_actor.GetProperty().SetColor(0.26, 0.58, 0.76)
             model_actor.GetProperty().SetLighting(True)
             model_actor.GetProperty().SetRepresentationToWireframe()
             model_actor.GetProperty().SetOpacity(1.0)
 
-            self.actors['model'] = model_actor
+            self.actors[actor_name] = model_actor
             self.ren.AddActor(model_actor)
 
         def add_image(self, filename):
