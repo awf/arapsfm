@@ -114,6 +114,7 @@ cdef extern from "lm_solvers.h":
         np.ndarray T,
         np.ndarray V,
         list multiX,
+        list multiXg,
         list multis,
         list multiV,
         list multiU,
@@ -343,6 +344,7 @@ def solve_multiview_arap_silhouette(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
 def solve_multiview_lap_silhouette(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
                                    np.ndarray[np.float64_t, ndim=2, mode='c'] V, 
                                    list multiX,
+                                   list multiXg,
                                    list multis,
                                    list multiV,
                                    list multiU,
@@ -366,7 +368,7 @@ def solve_multiview_lap_silhouette(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
     if preconditioners.shape[0] != 4:
         raise ValueError('preconditioners.shape[0] != 4')
 
-    cdef int status = solve_multiview_lap_silhouette_c(T, V, multiX, multis, multiV, multiU, multiL,
+    cdef int status = solve_multiview_lap_silhouette_c(T, V, multiX, multiXg, multis, multiV, multiU, multiL,
         multiS, multiSN, multiRx, multiRy,
         lambdas, preconditioners, narrowBand, uniformWeights, &options)
 
