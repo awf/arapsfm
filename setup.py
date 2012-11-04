@@ -114,6 +114,12 @@ setup(
                   extra_compile_args=['-std=c++11', '-Wfatal-errors'],
                   language='c++'),
 
+        Extension('geometry.axis_angle', 
+                  ['geometry/axis_angle.pyx'],
+                  include_dirs=include_dirs,
+                  extra_compile_args=['-std=c++11', '-Wfatal-errors'],
+                  language='c++'),
+
         # Extension('Test.test_mesh_walker',
         #           ['Test/test_mesh_walker.pyx',
         #            'Geometry/mesh_walker.cpp'],
