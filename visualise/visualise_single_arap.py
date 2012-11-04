@@ -1,4 +1,4 @@
-# visualise_arap.py
+# visualise_single_arap.py
 
 # Imports
 import argparse
