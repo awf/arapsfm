@@ -4,6 +4,7 @@
 
 #include <cmath>
 #include <cassert>
+#include <algorithm>
 #include "Math/static_linear.h"
 
 // Functions for manipulating and evaluating quaternions from a vector of 3
@@ -190,6 +191,16 @@ inline
 void quatInvDq_Unsafe(const Elem * q, Elem * Dq)
 {
     Elem m = sqrt(q[0]*q[0] + q[1]*q[1] + q[2]*q[2]);
+
+    if (m < 1e-6)
+    {
+        std::fill(Dq, Dq+12, 0.);
+        Dq[0] = 2.0;
+        Dq[5] = 2.0;
+        Dq[10] = 2.0;
+        return;
+    }
+
     Elem dmdq[3] = {q[0] / m, q[1] / m, q[2] / m};
 
     Elem t = 2.0 * atan2(m, q[3]);
