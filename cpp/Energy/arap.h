@@ -13,6 +13,7 @@ using namespace V3D;
 
 #include <cmath>
 #include <vector>
+#include <algorithm>
 using namespace std;
 
 // arapResiduals_Unsafe
@@ -861,7 +862,7 @@ public:
                 return;
             }
         case 6:
-            // Vi
+            // Vj
             {
                 arapJac_V_Unsafe(false, w, q, _s.GetScale(), J[0]);
                 return;
@@ -940,8 +941,7 @@ public:
             return _mesh.GetHalfEdge(k, 0) + _X[j]->GetOffset();
         else
         {
-            j -= _n;
-            return _y[j]->GetOffset();
+            return _y[j - _n]->GetOffset();
         }
     }
 
@@ -988,7 +988,169 @@ public:
 
     virtual void EvaluateJacobian(const int k, const int whichParam, Matrix<double> & J) const
     {
-        // XXX
+        // qi
+        int i = _mesh.GetHalfEdge(k, 0), j = _mesh.GetHalfEdge(k, 1);
+        const double w = GetEdgeWeight(k);
+
+        // Initialise S[-1] (S.num_rows() == _n + 1)
+        Matrix<double> S(_n + 1, 3, 0.);
+        Matrix<double> yX(_n, 3);
+
+        // Set remaining S
+        for (int l = 0; l < _n; ++l)
+        {
+            axScale_Unsafe(_y[l]->GetScale(), _X[l]->GetRotation(i), yX[l]);
+            axAdd_Unsafe(S[l], yX[l], S[l+1]);
+        }
+
+        // qi
+        double qi[4];
+        quat_Unsafe(S[_n], qi);
+
+        // qg
+        double qg[4];
+        quat_Unsafe(_Xg.GetRotation(0), qg);
+
+        // qg * qi -> q
+        double q[4];
+        quatMultiply_Unsafe(qg, qi, q);
+        
+        switch (whichParam)
+        {
+        case 0:
+            // Xg
+            {
+                // dr/dq
+                double Jq[12];
+                arapJac_Q_Unsafe(_V.GetVertex(i), _V.GetVertex(j), w * _s.GetScale(), q, Jq);
+
+                // dq/dqg
+                double Dqg[16];
+                quatMultiply_dp_Unsafe(qi, Dqg);
+
+                // dqg/xg
+                double Dg[12];
+                quatDx_Unsafe(_Xg.GetRotation(0), Dg);
+
+                double A[12];
+                multiply_A_B_Static<double, 3, 4, 4>(Jq, Dqg, A);
+                multiply_A_B_Static<double, 3, 4, 3>(A, Dg, J[0]);
+
+                return;
+            }
+        case 1:
+            // s
+            {
+                arapJac_s_Unsafe(w, q, _V.GetVertex(i), _V.GetVertex(j), J[0]);
+                return;
+            }
+        case 2:
+            // Vi
+            {
+                arapJac_V_Unsafe(true, w, q, _s.GetScale(), J[0]);
+                return;
+            }
+        case 3:
+            // Vj
+            {
+                arapJac_V_Unsafe(false, w, q, _s.GetScale(), J[0]);
+                return;
+            }
+        case 4:
+            // V1i 
+            {
+                arapJac_V1_Unsafe(true, w, J[0]);
+                return;
+            }
+        case 5:
+            // V1j
+            {
+                arapJac_V1_Unsafe(false, w, J[0]);
+                return;
+            }
+        default:
+            break;
+        }
+
+        // dr/dq
+        double Jq[12];
+        arapJac_Q_Unsafe(_V.GetVertex(i), _V.GetVertex(j), w * _s.GetScale(), q, Jq);
+
+        // dq/dqi
+        double Dqi[16];
+        quatMultiply_dq_Unsafe(qg, Dqi);
+
+        // dqi/xi
+        double Di[12];
+        quatDx_Unsafe(S[_n], Di);
+
+        int l = whichParam - 6;
+        if (l < _n)
+        {
+            // Xl
+
+            // Initialise `dxdxl` to eye(3)
+            double dxdxl[9] = {1., 0., 0., 0., 1., 0., 0., 0., 1.};
+
+            // Apply chain rule `l-1` times
+            for (int m = _n - 1; m > l; --m)
+            {
+                // S[m-1], yX[m]
+                double Da[9];
+                axAdd_da_Unsafe(S[m], yX[m], Da);
+
+                double A[9];
+                multiply_A_B_Static<double, 3, 3, 3>(dxdxl, Da, A);
+                copy(A, A+9, dxdxl);
+            }
+
+            // Apply final product
+            double Db[9];
+            axAdd_db_Unsafe(S[l], yX[l], Db);
+            scaleVectorIP_Static<double, 9>(_y[l]->GetScale(), Db);
+
+            double A[12], B[9];
+            multiply_A_B_Static<double, 3, 3, 3>(dxdxl, Db, A);
+            copy(A, A+9, dxdxl);
+
+            // J
+            multiply_A_B_Static<double, 3, 4, 4>(Jq, Dqi, A);
+            multiply_A_B_Static<double, 3, 4, 3>(A, Di, B);
+            multiply_A_B_Static<double, 3, 3, 3>(B, dxdxl, J[0]);
+        }
+        else
+        {
+            // yl
+            l -= _n;
+
+            // Initialise `dxdyl` to eye(3) (eventually only has 3 elements)
+            double dxdyl[9] = {1., 0., 0., 0., 1., 0., 0., 0., 1.};
+
+            // Apply chain rule `l-1` times
+            for (int m = _n - 1; m > l; --m)
+            {
+                // S[m-1], yX[m]
+                double Da[9];
+                axAdd_da_Unsafe(S[m], yX[m], Da);
+
+                double A[9];
+                multiply_A_B_Static<double, 3, 3, 3>(dxdyl, Da, A);
+                copy(A, A+9, dxdyl);
+            }
+
+            // Apply final product
+            double Db[9];
+            axAdd_db_Unsafe(S[l], yX[l], Db);
+
+            double A[12], B[9];
+            multiply_A_B_Static<double, 3, 3, 3>(dxdyl, Db, A);
+            multiply_A_v_Static<double, 3, 3>(A, _X[l]->GetRotation(i), dxdyl);
+
+            // J
+            multiply_A_B_Static<double, 3, 4, 4>(Jq, Dqi, A);
+            multiply_A_B_Static<double, 3, 4, 3>(A, Di, B);
+            multiply_A_v_Static<double, 3, 3>(B, dxdyl, J[0]);
+        }
     }
 
 protected:
