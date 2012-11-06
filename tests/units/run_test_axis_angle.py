@@ -23,6 +23,24 @@ def main():
     print 'axAdd(axScale(0.3, v), axScale(0.6, w)): ', 
     print  axAdd(axScale(0.3, v), axScale(0.6, w))
 
+    approx_Dv = approx_jac(lambda x: axAdd(x, w), v, epsilon=1e-3)
+    print 'approx_Dv:'
+    print np.around(approx_Dv, decimals=3)
+
+    Dv = axAdd_da(v, w)
+    print 'Dv:'
+    print np.around(Dv, decimals=3)
+    print 'allclose? ', np.allclose(Dv, approx_Dv, atol=1e-4)
+
+    approx_Dw = approx_jac(lambda x: axAdd(v, x), w, epsilon=1e-6)
+    print 'approx_Dw:'
+    print np.around(approx_Dw, decimals=3)
+
+    Dw = axAdd_db(v, w)
+    print 'Dw:'
+    print np.around(Dw, decimals=3)
+    print 'allclose? ', np.allclose(Dw, approx_Dw, atol=1e-4)
+
 if __name__ == '__main__':
     main()
 

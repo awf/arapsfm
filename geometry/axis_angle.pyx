@@ -17,6 +17,8 @@ cdef extern from "Geometry/axis_angle.h":
     void axMakeInterpolated_Unsafe(double a, double * v, 
                                    double b, double * w,
                                    double * z)
+    void axAdd_da_Unsafe(double * a, double * b, double * Da)
+    void axAdd_db_Unsafe(double * a, double * b, double * Db)
 
 # axScale
 def axScale(DTYPE_t s, np.ndarray[DTYPE_t] x):
@@ -62,3 +64,33 @@ def axMakeInterpolated(DTYPE_t a,
 
     return z
 
+# axAdd_da
+def axAdd_da(np.ndarray[DTYPE_t] a, np.ndarray[DTYPE_t] b):
+    if a.shape[0] != 3:
+        raise ValueError('a.shape[0] != 3')
+    
+    if b.shape[0] != 3:
+        raise ValueError('b.shape[0] != 3')
+
+    cdef np.ndarray[DTYPE_t, ndim=2, mode='c'] Da = np.empty((3, 3), dtype=DTYPE)
+    axAdd_da_Unsafe(<double *>a.data, 
+                    <double *>b.data, 
+                    <double *>Da.data)
+
+    return Da
+
+# axAdd_db
+def axAdd_db(np.ndarray[DTYPE_t] a, np.ndarray[DTYPE_t] b):
+    if a.shape[0] != 3:
+        raise ValueError('a.shape[0] != 3')
+    
+    if b.shape[0] != 3:
+        raise ValueError('b.shape[0] != 3')
+
+    cdef np.ndarray[DTYPE_t, ndim=2, mode='c'] Db = np.empty((3, 3), dtype=DTYPE)
+    axAdd_db_Unsafe(<double *>a.data, 
+                    <double *>b.data, 
+                    <double *>Db.data)
+
+    return Db
+    
