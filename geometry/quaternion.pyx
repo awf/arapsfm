@@ -13,6 +13,7 @@ DTYPE = np.float64
 
 cdef extern from "Geometry/quaternion.h":
     void quat_Unsafe(double * x, double * q)
+    void quatDx_Unsafe(double * x, double * Dx)
     void quatMultiply_Unsafe(double * p, double * q, double * r)
     void rotationMatrix_Unsafe(double * q, double * R)
     void quatMultiply_dp_Unsafe(double * q, double * Dp)
@@ -28,6 +29,15 @@ def quat(np.ndarray[DTYPE_t, ndim=1] x):
     quat_Unsafe(<double *>x.data, <double *>q.data)
 
     return q
+
+def quatDx(np.ndarray[DTYPE_t, ndim=1] x):
+    if x.shape[0] != 3:
+        raise ValueError('x.shape[0] != 3')
+
+    cdef np.ndarray[DTYPE_t, ndim=2, mode='c'] D = np.empty((4, 3), dtype=DTYPE)
+    quatDx_Unsafe(<double *>x.data, <double *>D.data)
+
+    return D
 
 def rotationMatrix(np.ndarray[DTYPE_t, ndim=1] q):
     if q.shape[0] != 4:
