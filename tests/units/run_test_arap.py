@@ -2,7 +2,7 @@
 
 # Imports
 import numpy as np
-from test_arap import EvaluateSingleARAP, EvaluateDualARAP
+from test_arap import *
 from pprint import pprint
 from misc.scipy_ import approx_jac
 
@@ -191,94 +191,125 @@ def main_EvaluateDualNonLinearBasisARAP():
               2., 0., 0.,
               1., 1., 1.].reshape(-1, 3).astype(np.float64)
 
-    X = np.zeros((5, 3), dtype=np.float64)
     Xg = np.zeros((1, 3), dtype=np.float64)
-
     s = np.r_[1.0].reshape(1, 1).astype(np.float64)
+
+    # n = 1
+    # Xs = [np.zeros((5, 3), dtype=np.float64) for i in xrange(n)]
+    # Xs[0][4, -1] = np.pi
+    # ys = [np.r_[1.0 / n].reshape(1, 1).astype(np.float64) for i in xrange(n)]
+
+    n = 5
+    Xs = [np.random.randn(V.size).reshape(V.shape) for i in xrange(n)]
+    ys = [np.random.randn(1).reshape(1,1) for i in xrange(n)]
     V1 = V.copy()
 
-    s = np.abs(np.random.randn(1).reshape(1, 1).astype(np.float64))
-    V = np.random.randn(V.size).reshape(V.shape)
-    V1 = np.random.randn(V1.size).reshape(V1.shape)
-    X = np.random.randn(X.size).reshape(X.shape)
-    Xg = np.random.randn(Xg.size).reshape(Xg.shape)
-
-    print 's:'
-    print s
-
-    print 'X:'
-    print X
-
     k = 5
-
 
     print 'V:'
     print V
     print 'V1:'
     print V1
 
-    r = EvaluateDualARAP(T, V, X, Xg, s, V1, k, verbose=True)
-    e, Jx, Jxg, Js, JV1i, JV1j, JVi, JVj = r
+    r = EvaluateDualNonLinearBasisARAP(T, V, Xg, s, Xs, ys, V1, k, verbose=True)
+    e, Jxg, Js, JVi, JVj, JV1i, JV1j = r[:7]
     print 'e:', e
 
-    print '\nJx:'
-    print Jx
-    print 'approx_Jx:'
-    approx_Jx = approx_jac(
-        lambda x: EvaluateDualARAP(T, V, x.reshape(V.shape), Xg, s, V1, k)[0], 
-        np.ravel(X))
-    print approx_Jx[:, 12:15]
-    print 'allclose? ', np.allclose(Jx, approx_Jx[:, 12:15], atol=1e-3)
+    JXs = r[7:7+n]
+    Jys = r[7+n:]
 
     print '\nJxg:' 
-    print Jxg
+    print np.around(Jxg, decimals=4)
     print 'approx_Jxg:'
     approx_Jxg = approx_jac(
-        lambda x: EvaluateDualARAP(T, V, X, x.reshape(1, 3), s, V1, k)[0], 
-        np.ravel(Xg))
-    print approx_Jxg
+        lambda x: EvaluateDualNonLinearBasisARAP(
+            T, V, x.reshape(Xg.shape), s, Xs, ys, V1, k)[0], 
+            np.ravel(Xg))
+
+    print np.around(approx_Jxg, decimals=4)
     print 'allclose? ', np.allclose(Jxg, approx_Jxg, atol=1e-3)
 
-    print '\nJs:'
-    print Js
+    print '\nJs:' 
+    print np.around(Js, decimals=4)
     print 'approx_Js:'
     approx_Js = approx_jac(
-        lambda x: EvaluateDualARAP(T, V, X, Xg, x.reshape(1, 1), V1, k)[0], 
-        np.ravel(s))
-    print approx_Js
+        lambda x: EvaluateDualNonLinearBasisARAP(
+            T, V, Xg, x.reshape(1, 1), Xs, ys, V1, k)[0], np.ravel(s))
+    print np.around(approx_Js, decimals=4)
     print 'allclose? ', np.allclose(Js, approx_Js, atol=1e-3)
 
-    print '\nJV1i:'
-    print JV1i
-    print 'approx_JV1i:'
-    approx_JV1 = approx_jac(
-        lambda x: EvaluateDualARAP(T, V, X, Xg, s, x.reshape(V1.shape), k)[0], 
-        np.ravel(V1))
-    print approx_JV1[:, 12:15]
-    print 'allclose? ', np.allclose(JV1i, approx_JV1[:, 12:15], atol=1e-3)
-
-    print '\nJV1j:'
-    print JV1j
-    print 'approx_JV1j:'
-    print approx_JV1[:, 6:9]
-    print 'allclose? ', np.allclose(JV1j, approx_JV1[:, 6:9], atol=1e-3)
-
-    print '\nJVi:'
-    print JVi
+    print '\nJVi:' 
+    print np.around(JVi, decimals=4)
     print 'approx_JVi:'
     approx_JV = approx_jac(
-        lambda x: EvaluateDualARAP(T, x.reshape(V.shape), X, Xg, s, V1, k)[0], 
-        np.ravel(V))
-    print approx_JV[:, 12:15]
-    print 'allclose? ', np.allclose(JVi, approx_JV[:, 12:15], atol=1e-3)
+        lambda x: EvaluateDualNonLinearBasisARAP(
+            T, x.reshape(V.shape), Xg, s, Xs, ys, V1, k)[0], 
+            np.ravel(V))
+    print np.around(approx_JV[:, 12:15], decimals=4)
+    print 'allclose? ', np.allclose(JVi, 
+        approx_JV[:, 12:15], atol=1e-3)
 
-    print '\nJVj:'
-    print JVj
+    print '\nJVj:' 
+    print np.around(JVj, decimals=4)
     print 'approx_JVj:'
-    print approx_JV[:, 6:9]
-    print 'allclose? ', np.allclose(JVj, approx_JV[:, 6:9], atol=1e-3)
+    print np.around(approx_JV[:, 6:9], decimals=4)
+    print 'allclose? ', np.allclose(JVj, 
+        approx_JV[:, 6:9], atol=1e-3)
+
+    print '\nJV1i:' 
+    print np.around(JV1i, decimals=4)
+    print 'approx_JV1i:'
+    approx_JV1 = approx_jac(
+        lambda x: EvaluateDualNonLinearBasisARAP(
+            T, V, Xg, s, Xs, ys, x.reshape(V1.shape), k)[0], 
+            np.ravel(V1))
+    print np.around(approx_JV1[:, 12:15], decimals=4)
+    print 'allclose? ', np.allclose(JV1i, 
+        approx_JV1[:, 12:15], atol=1e-3)
+
+    print '\nJV1j:' 
+    print np.around(JV1j, decimals=4)
+    print 'approx_JV1j:'
+    print np.around(approx_JV1[:, 6:9], decimals=4)
+    print 'allclose? ', np.allclose(JV1j, 
+        approx_JV1[:, 6:9], atol=1e-3)
+
+    for i in xrange(n):
+        print '\nJX[%d]' % i
+        print np.around(JXs[i], decimals=4)
+    
+        def f(x):
+            _Xs = Xs[:]
+            _Xs[i] = x.reshape(_Xs[i].shape)
+            return EvaluateDualNonLinearBasisARAP(
+                T, V, Xg, s, _Xs, ys, V1, k)[0]
+
+        approx_JX = approx_jac(f, np.ravel(Xs[i]))
+        print 'approx_JX[%d]' % i
+        print np.around(approx_JX[:, 12:15], decimals=4)
+        print 'allclose? ', np.allclose(
+            JXs[i], approx_JX[:, 12:15], atol=1e-3)
+
+    for i in xrange(n):
+        print '\nJy[%d]' % i
+        print np.around(Jys[i], decimals=4)
+    
+        def f(x):
+            _ys = ys[:]
+            _ys[i] = x.reshape(_ys[i].shape)
+            return EvaluateDualNonLinearBasisARAP(
+                T, V, Xg, s, Xs, _ys, V1, k)[0]
+
+        approx_Jy = approx_jac(f, np.ravel(ys[i]))
+        print 'approx_Jy[%d]' % i
+        print np.around(approx_Jy, decimals=4)
+        print 'allclose? ', np.allclose(
+            Jys[i], approx_Jy, atol=1e-3)
+
+    return 
 
 if __name__ == '__main__':
     # main_EvaluateSingleARAP()
-    main_EvaluateDualARAP()
+    # main_EvaluateDualARAP()
+    main_EvaluateDualNonLinearBasisARAP()
 

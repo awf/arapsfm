@@ -171,15 +171,15 @@ PyObject * EvaluateDualNonLinearBasisARAP(PyArrayObject * npy_T,
     VertexNode node_V1(V1);
 
     auto Xs = PyList_to_vector_of_Matrix<double>(py_Xs);
-    vector<RotationNode *> nodes_X;
-
     auto ys = PyList_to_vector_of_Matrix<double>(py_ys);
+
+    vector<RotationNode *> nodes_X;
     vector<ScaleNode *> nodes_y;
 
     for (int i=0; i < Xs.size(); ++i)
     {
-        nodes_X[i] = new RotationNode(*Xs[i]);
-        nodes_y[i] = new ScaleNode(*ys[i]);
+        nodes_X.push_back(new RotationNode(*Xs[i]));
+        nodes_y.push_back(new ScaleNode(*ys[i]));
     }
 
     // Setup `energy`
@@ -198,11 +198,10 @@ PyObject * EvaluateDualNonLinearBasisARAP(PyArrayObject * npy_T,
 
     PyList_Append(py_list, (PyObject *)npy_e);
 
-    /*
     // Calculate Jacobians
-    npy_intp dims [][2] = {{3, 3}, {3, 3}, {3, 1}, {3, 3}, {3, 3}, {3, 3}, {3, 3}};
+    npy_intp dims [][2] = {{3, 3}, {3, 1}, {3, 3}, {3, 3}, {3, 3}, {3, 3}};
 
-    for (int i=0; i < 7; i++)
+    for (int i=0; i < 6; i++)
     {
         PyArrayObject * npy_J = (PyArrayObject *)PyArray_SimpleNew(2, dims[i], NPY_FLOAT64);
         PYARRAY_AS_MATRIX(double, npy_J, J);
@@ -210,7 +209,26 @@ PyObject * EvaluateDualNonLinearBasisARAP(PyArrayObject * npy_T,
 
         PyList_Append(py_list, (PyObject *)npy_J);
     }
-    */
+
+    // Xl
+    for (int i=0; i < Xs.size(); i++)
+    {
+        PyArrayObject * npy_J = (PyArrayObject *)PyArray_SimpleNew(2, dims[0], NPY_FLOAT64);
+        PYARRAY_AS_MATRIX(double, npy_J, J);
+        energy.EvaluateJacobian(k, i + 6, J);
+
+        PyList_Append(py_list, (PyObject *)npy_J);
+    }
+
+    // yl
+    for (int i=0; i < Xs.size(); i++)
+    {
+        PyArrayObject * npy_J = (PyArrayObject *)PyArray_SimpleNew(2, dims[1], NPY_FLOAT64);
+        PYARRAY_AS_MATRIX(double, npy_J, J);
+        energy.EvaluateJacobian(k, i + 6 + Xs.size(), J);
+
+        PyList_Append(py_list, (PyObject *)npy_J);
+    }
 
     // Clean-up
     dealloc_vector(nodes_X);
