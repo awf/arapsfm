@@ -9,8 +9,11 @@ using namespace V3D;
 #include "Energy/energy.h"
 #include "Geometry/mesh.h"
 #include "Geometry/quaternion.h"
+#include "Geometry/axis_angle.h"
 
 #include <cmath>
+#include <vector>
+using namespace std;
 
 // arapResiduals_Unsafe
 inline void arapResiduals_Unsafe(const double * Vi, const double * Vj,
@@ -878,6 +881,128 @@ protected:
     const Mesh & _mesh;
     const double _w;
     bool _uniformWeights;
+};
+
+// DualNonLinearBasisArapEnergy
+class DualNonLinearBasisArapEnergy : public Energy
+{
+public:
+    DualNonLinearBasisArapEnergy(const VertexNode & V, const RotationNode & Xg, const ScaleNode & s,
+                                 const vector<RotationNode *> & X, const vector<ScaleNode *> & y, 
+                                 const VertexNode & V1, const Mesh & mesh, const double w,
+                                 bool uniformWeights = true)
+        : _V(V), _Xg(Xg), _s(s), _X(X), _y(y), _V1(V1), _mesh(mesh), 
+          _w(w), _uniformWeights(uniformWeights), _n(X.size())
+    {}
+
+    virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
+    {
+        vector<int> * pUsedParamTypes = new vector<int>;
+        pUsedParamTypes->push_back(_Xg.GetParamId());
+        pUsedParamTypes->push_back(_s.GetParamId());
+        pUsedParamTypes->push_back(_V.GetParamId());
+        pUsedParamTypes->push_back(_V.GetParamId());
+        pUsedParamTypes->push_back(_V1.GetParamId());
+        pUsedParamTypes->push_back(_V1.GetParamId());
+
+        for (int i=0; i < _n; ++i)
+            pUsedParamTypes->push_back(_X[i]->GetParamId());
+
+        for (int i=0; i < _n; ++i)
+            pUsedParamTypes->push_back(_y[i]->GetParamId());
+
+        costFunctions.push_back(new Energy_CostFunction(*this, pUsedParamTypes, 3));
+    }
+
+    virtual int GetCorrespondingParam(const int k, const int i) const
+    {
+        switch (i)
+        {
+        case 0:
+            return _Xg.GetOffset();
+        case 1:
+            return _s.GetOffset();
+        case 2:
+            return _mesh.GetHalfEdge(k, 0) + _V.GetOffset();
+        case 3:
+            return _mesh.GetHalfEdge(k, 1) + _V.GetOffset();
+        case 4:
+            return _mesh.GetHalfEdge(k, 0) + _V1.GetOffset();
+        case 5:
+            return _mesh.GetHalfEdge(k, 1) + _V1.GetOffset();
+        default:
+            break;
+        }
+
+        int j = i - 6;
+
+        if (j < _n)
+            return _mesh.GetHalfEdge(k, 0) + _X[j]->GetOffset();
+        else
+        {
+            j -= _n;
+            return _y[j]->GetOffset();
+        }
+    }
+
+    virtual int GetNumberOfMeasurements() const
+    {
+        return _mesh.GetNumberOfHalfEdges();
+    }
+
+    virtual double GetEdgeWeight(int k) const
+    {
+        double w = _w;
+        if (!_uniformWeights)
+            w *= sqrt(_mesh.GetCotanWeight(_V.GetVertices(), k));
+
+        return w;
+    }
+
+    virtual void EvaluateResidual(const int k, Vector<double> & e) const
+    {
+        int i = _mesh.GetHalfEdge(k, 0), j = _mesh.GetHalfEdge(k, 1);
+        const double w = GetEdgeWeight(k);
+
+        double x[3] = {0.}, xl[3];
+
+        for (int l = 0; l < _n; ++l)
+        {
+            axScale_Unsafe(_y[l]->GetScale(), _X[l]->GetRotation(i), xl);
+            axAdd_Unsafe(x, xl, x);
+        }
+
+        double qi[4];
+        quat_Unsafe(x, qi);
+
+        double qg[4];
+        quat_Unsafe(_Xg.GetRotation(0), qg);
+
+        double q[4];
+        quatMultiply_Unsafe(qg, qi, q);
+
+        arapResiduals_Unsafe(_V.GetVertex(i), _V.GetVertex(j),
+                             _V1.GetVertex(i), _V1.GetVertex(j),
+                             w, q, _s.GetScale(), &e[0]);
+    }
+
+    virtual void EvaluateJacobian(const int k, const int whichParam, Matrix<double> & J) const
+    {
+        // XXX
+    }
+
+protected:
+    const VertexNode & _V;
+    const RotationNode & _Xg;
+    const ScaleNode & _s;
+    const vector<RotationNode *> & _X;
+    const vector<ScaleNode *> & _y;
+    const VertexNode & _V1;
+
+    const Mesh & _mesh;
+    const double _w;
+    bool _uniformWeights;
+    int _n;
 };
 
 #endif

@@ -270,5 +270,28 @@ protected:
     static double _preconditioner;
 };
 
+// CoefficientsNode
+class CoefficientsNode : public Node
+{
+public:
+    CoefficientsNode(Matrix<double> & scale)
+        : Node(scale)
+    {}
+
+    virtual ~CoefficientsNode()
+    {}
+
+    virtual const double & GetCoefficient(int i) const { return _X[i][0]; }
+
+    virtual int TypeId() const { return 5; }
+    virtual int Dimension() const { return 1; }
+
+    virtual void SetPreconditioner(const double & preconditioner) { _preconditioner = preconditioner; }
+    virtual const double & GetPreconditioner () const { return _preconditioner; }
+
+protected:
+    static double _preconditioner;
+};
+
 #endif
 
