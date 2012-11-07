@@ -161,6 +161,26 @@ cdef extern from "lm_solvers.h":
         np.ndarray npy_Ry,
         OptimiserOptions * options)
 
+    int solve_multiview_nonlinear_basis_c "solve_multiview_nonlinear_basis"(
+        np.ndarray npy_T,
+        np.ndarray npy_V,
+        list list_multiXg,
+        list list_multis,
+        list list_multiX,
+        list list_multiy,
+        list list_multiV,
+        list list_multiU,
+        list list_multiL,
+        list list_multiS,
+        list list_multiSN,
+        list list_multiRx,
+        list list_multiRy,
+        np.ndarray npy_lambdas,
+        np.ndarray npy_preconditioners,
+        int narrowBand,
+        bint uniformWeights,
+        OptimiserOptions * options)
+
 # additional_optimiser_options
 DEFAULT_OPTIMISER_OPTIONS = {
     'maxIterations' : 50,
@@ -466,3 +486,43 @@ def solve_single_lap_proj_sil_spil(np.ndarray[np.float64_t, ndim=2, mode='c'] V,
 
     return status, STATUS_CODES[status]
 
+# solve_multiview_nonlinear_basis
+def solve_multiview_nonlinear_basis(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
+                                   np.ndarray[np.float64_t, ndim=2, mode='c'] V, 
+                                   list multiXg,
+                                   list multis,
+                                   list multiX,
+                                   list multiy,
+                                   list multiV,
+                                   list multiU,
+                                   list multiL,
+                                   list multiS,
+                                   list multiSN,
+                                   list multiRx,
+                                   list multiRy,
+                                   np.ndarray[np.float64_t, ndim=1] lambdas,
+                                   np.ndarray[np.float64_t, ndim=1] preconditioners,
+                                   int narrowBand,
+                                   bint uniformWeights,
+                                   **kwargs):
+
+    cdef OptimiserOptions options
+    additional_optimiser_options(&options, kwargs)
+
+    if lambdas.shape[0] != 5:
+        raise ValueError('lambdas.shape[0] != 5')
+
+    if preconditioners.shape[0] != 4:
+        raise ValueError('preconditioners.shape[0] != 4')
+
+    for i, y in enumerate(multiy):
+        if y.ndim != 2 or y.shape[0] != len(multiX):
+            raise ValueError('y[{i}].ndim != 2 y[{i}].shape[0] != len(multiX)'
+                             .format(i=i))
+
+    cdef int status = solve_multiview_nonlinear_basis_c(
+        T, V, multiXg, multis, multiX, multiy, multiV, 
+        multiU, multiL, multiS, multiSN, multiRx, multiRy,
+        lambdas, preconditioners, narrowBand, uniformWeights, &options)
+
+    return status, STATUS_CODES[status]
