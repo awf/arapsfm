@@ -575,6 +575,143 @@ def test_variable_summary():
     print variable_summary(input_path, 
         variables=['lm_lambdas', 'lm_preconditioners'])
 
+# main_nonlinear_basis_preconditioner_test
+def main_nonlinear_basis_preconditioner_test():
+    title = ('Non-linear rotation basis - Changing preconditioner on basis '
+             'coefficients')
+
+    scales = np.linspace(-0.5, 0.5, 6)
+    scales = str(tuple(np.around(scales, decimals=2)))
+
+    def_vis_args = ['--output_image_first',
+                    '-c', 'SetParallelProjection=True,',
+                    '-c', 'Azimuth=0', 
+                    '-c', 'Azimuth=-90,', 
+                    '-c', 'Azimuth=0',
+                    '-c', 'Azimuth=45',
+                    '-c', 'Azimuth=45',
+                    '-c', 'Azimuth=45',
+                    '-c', 'Azimuth=45', 
+                    '-c', 'Azimuth=-90,',
+                    '-c', 'Elevation=60',
+                    '--magnification', '3',
+                    '-a', 'model:SetRepresentation=3']
+
+    page = VisualisationPage('Cheetah_4_6-7-8_Preconditioner_Test',
+        title=title,
+        var_aliases={'indices':'frame number(s)',
+                     'index':'frame number'},
+        vis_vars=['mesh',
+                  'lambdas', 
+                  'preconditioners',
+                  'solver_options', 
+                  'uniform_weights',
+                  'find_circular_path',
+                  'max_restarts',
+                  'narrowband',
+                  'num_basis_rotations',
+                  'indices',
+                  'index'],
+
+        vis_args=def_vis_args)
+
+    page.add_test('6-7-8_NB=1_y_=64.0/core.npz', 
+                  vis_script='visualise/visualise_scaled_rotations.py',
+                  vis_args=[scales, 
+                            '--rotations_index', '0', '--affine_register'] 
+                            + def_vis_args[1:-2])
+    page.add_test('6-7-8_NB=1_y_=64.0/6.npz')
+    page.add_test('6-7-8_NB=1_y_=64.0/7.npz')
+    page.add_test('6-7-8_NB=1_y_=64.0/8.npz')
+
+    page.generate()
+
+# main_nonlinear_basis_experiment
+def main_nonlinear_basis_experiment(dir_, title, output):
+    scales = np.linspace(-1.0, 1.0, 6)
+    scales = str(tuple(np.around(scales, decimals=2)))
+
+    def_vis_args = ['--output_image_first',
+                    '-c', 'SetParallelProjection=True,',
+                    '-c', 'Azimuth=0', 
+                    '-c', 'Azimuth=-90,', 
+                    '-c', 'Azimuth=0',
+                    '-c', 'Azimuth=45',
+                    '-c', 'Azimuth=45',
+                    '-c', 'Azimuth=45',
+                    '-c', 'Azimuth=45', 
+                    '-c', 'Azimuth=-90,',
+                    '-c', 'Elevation=60',
+                    '--magnification', '3',
+                    '-a', 'model:SetRepresentation=3']
+
+    page = VisualisationPage(output,
+        title=title,
+        var_aliases={'indices':'frame number(s)',
+                     'index':'frame number'},
+        vis_vars=['mesh',
+                  'lambdas', 
+                  'preconditioners',
+                  'solver_options', 
+                  'uniform_weights',
+                  'find_circular_path',
+                  'max_restarts',
+                  'narrowband',
+                  'num_basis_rotations',
+                  'indices',
+                  'index'],
+
+        vis_args=def_vis_args)
+
+    full_path = lambda f: os.path.join(dir_, f)
+
+    def valid_file(f):
+        return os.path.isfile(f) and (f.endswith('.dat') or f.endswith('.npz'))
+    files = filter(lambda f: valid_file(full_path(f)), os.listdir(dir_))
+
+    def key(f):
+        root, ext = os.path.splitext(f)
+        try:
+            return int(root)
+        except ValueError:
+            return -1
+
+    for f in sorted(files, key=key):
+        abs_f = full_path(f)
+
+        if 'core' in f:
+            z = np.load(abs_f)
+            num_basis_rotations = z['num_basis_rotations']
+
+            for i in xrange(num_basis_rotations):
+                page.add_test(abs_f,
+                              vis_script=('visualise/'
+                                          'visualise_scaled_rotations.py'),
+                              vis_args=[scales, 
+                                        '--rotations_index', str(i),
+                                        '--rigidly_register',
+                                        '--normalise_rotations'] 
+                                        + def_vis_args[1:-2],
+                              output_subdir='core_%d' % i,
+                              skip_summary=(i > 0),
+                              is_core=True)
+        else:
+            page.add_test(abs_f)
+
+    page.generate()
+
+# main
+def main():
+    walker = os.walk('cheetah1B/Cheetah_4/Experiments/NonlinearRotationBasis/')
+    dir_, subdirs, files = next(walker)
+
+    for subdir in subdirs:
+        full_path = os.path.join(dir_, subdir)
+        title = subdir
+        output = os.path.join('NonlinearRotationBasis', subdir)
+
+        main_nonlinear_basis_experiment(full_path, title, output)
+
 if __name__ == '__main__':
     # test_variable_summary()
     # main()
@@ -582,5 +719,7 @@ if __name__ == '__main__':
     # main_cheetah1B_Cheetah_4()
     # main_cheetah1B_Cheetah_5()
     # main_polynomial_residual_transform()
-    main_scaled_rotations()
+    # main_scaled_rotations()
+    # main_nonlinear_basis_experiment()
+    main()
     
