@@ -142,7 +142,7 @@ PyObject * EvaluateDualNonLinearBasisARAP(PyArrayObject * npy_T,
                             PyArrayObject * npy_Xg,
                             PyArrayObject * npy_s,
                             PyObject * py_Xs,
-                            PyObject * py_ys,
+                            PyArrayObject * npy_y,
                             PyArrayObject * npy_V1,
                             int k,
                             bool verbose)
@@ -171,20 +171,17 @@ PyObject * EvaluateDualNonLinearBasisARAP(PyArrayObject * npy_T,
     VertexNode node_V1(V1);
 
     auto Xs = PyList_to_vector_of_Matrix<double>(py_Xs);
-    auto ys = PyList_to_vector_of_Matrix<double>(py_ys);
+    PYARRAY_AS_MATRIX(double, npy_y, y);
+    CoefficientsNode node_y(y);
 
     vector<RotationNode *> nodes_X;
-    vector<ScaleNode *> nodes_y;
 
     for (int i=0; i < Xs.size(); ++i)
-    {
         nodes_X.push_back(new RotationNode(*Xs[i]));
-        nodes_y.push_back(new ScaleNode(*ys[i]));
-    }
 
     // Setup `energy`
     DualNonLinearBasisArapEnergy energy(node_V, node_Xg, node_s, 
-                                        nodes_X, nodes_y,
+                                        nodes_X, node_y,
                                         node_V1, mesh, 1.0, true);
 
     // Calculate residual
@@ -232,9 +229,7 @@ PyObject * EvaluateDualNonLinearBasisARAP(PyArrayObject * npy_T,
 
     // Clean-up
     dealloc_vector(nodes_X);
-    dealloc_vector(nodes_y);
     dealloc_vector(Xs);
-    dealloc_vector(ys);
 
     return py_list;
 }
