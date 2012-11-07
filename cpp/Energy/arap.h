@@ -889,7 +889,7 @@ class DualNonLinearBasisArapEnergy : public Energy
 {
 public:
     DualNonLinearBasisArapEnergy(const VertexNode & V, const RotationNode & Xg, const ScaleNode & s,
-                                 const vector<RotationNode *> & X, const vector<ScaleNode *> & y, 
+                                 const vector<RotationNode *> & X, const CoefficientsNode & y,
                                  const VertexNode & V1, const Mesh & mesh, const double w,
                                  bool uniformWeights = true)
         : _V(V), _Xg(Xg), _s(s), _X(X), _y(y), _V1(V1), _mesh(mesh), 
@@ -910,7 +910,7 @@ public:
             pUsedParamTypes->push_back(_X[i]->GetParamId());
 
         for (int i=0; i < _n; ++i)
-            pUsedParamTypes->push_back(_y[i]->GetParamId());
+            pUsedParamTypes->push_back(_y.GetParamId());
 
         costFunctions.push_back(new Energy_CostFunction(*this, pUsedParamTypes, 3));
     }
@@ -939,10 +939,8 @@ public:
 
         if (j < _n)
             return _mesh.GetHalfEdge(k, 0) + _X[j]->GetOffset();
-        else
-        {
-            return _y[j - _n]->GetOffset();
-        }
+        else 
+            return _y.GetOffset() + (j - _n);
     }
 
     virtual int GetNumberOfMeasurements() const
@@ -968,7 +966,7 @@ public:
 
         for (int l = 0; l < _n; ++l)
         {
-            axScale_Unsafe(_y[l]->GetScale(), _X[l]->GetRotation(i), xl);
+            axScale_Unsafe(_y.GetCoefficient(l), _X[l]->GetRotation(i), xl);
             axAdd_Unsafe(x, xl, x);
         }
 
@@ -999,7 +997,7 @@ public:
         // Set remaining S
         for (int l = 0; l < _n; ++l)
         {
-            axScale_Unsafe(_y[l]->GetScale(), _X[l]->GetRotation(i), yX[l]);
+            axScale_Unsafe(_y.GetCoefficient(l), _X[l]->GetRotation(i), yX[l]);
             axAdd_Unsafe(S[l], yX[l], S[l+1]);
         }
 
@@ -1107,7 +1105,7 @@ public:
             // Apply final product
             double Db[9];
             axAdd_db_Unsafe(S[l], yX[l], Db);
-            scaleVectorIP_Static<double, 9>(_y[l]->GetScale(), Db);
+            scaleVectorIP_Static<double, 9>(_y.GetCoefficient(l), Db);
 
             double A[12], B[9];
             multiply_A_B_Static<double, 3, 3, 3>(dxdxl, Db, A);
@@ -1158,7 +1156,7 @@ protected:
     const RotationNode & _Xg;
     const ScaleNode & _s;
     const vector<RotationNode *> & _X;
-    const vector<ScaleNode *> & _y;
+    const CoefficientsNode & _y;
     const VertexNode & _V1;
 
     const Mesh & _mesh;
