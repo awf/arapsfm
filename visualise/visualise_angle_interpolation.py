@@ -9,24 +9,8 @@ from solvers.arap import ARAPVertexSolver
 from mesh import weights, faces
 from geometry import quaternion as quat, axis_angle
 from itertools import izip, product
-from scipy.linalg import block_diag
 from matplotlib import cm
-
-# right_multiply_affine_transform
-def right_multiply_affine_transform(V0, V):
-    t0 = np.mean(V0, axis=0)
-    t = np.mean(V, axis=0)
-
-    V0 = V0 - t0
-    A = block_diag(V0, V0, V0)
-    A_T = np.transpose(A)
-    A_pinv = np.dot(np.linalg.inv(np.dot(A_T, A)), A_T)
-    x = np.dot(A_pinv, np.ravel(np.transpose(V - t)))
-
-    T = np.transpose(x.reshape(3, 3))
-    d = t - np.dot(t0, T)
-
-    return T, d
+from geometry.register import right_multiply_rigid_transform
 
 # main
 def main():
@@ -84,12 +68,13 @@ def main():
         V12 = solve_V_X(map(lambda x: quat.rotationMatrix(quat.quat(x)), X12))
 
         # Register bottom fixed layers
-        A, d = right_multiply_affine_transform(V12[C[L1:]], V[C[L1:]])
+        A, d = right_multiply_rigid_transform(V12[C[L1:]], V[C[L1:]])
+        V12 = np.dot(V12, A) + d
 
-        return np.dot(V12, A) + d
+        return V12
 
     # Visualise the interpolation of the distortions
-    t = np.linspace(-1., 1., 3, endpoint=True)
+    t = np.linspace(-2., 2., 5, endpoint=True)
     N = t.shape[0] * t.shape[0]
     cmap = cm.jet(np.linspace(0., 1., N, endpoint=True))
 
@@ -109,7 +94,7 @@ def main():
         vis.actor_properties(actor_name, ('SetRepresentation', (3,)))
 
     vis.camera_actions(('SetParallelProjection', (True,)))
-    vis.execute()
+    vis.execute(magnification=4)
 
 if __name__ == '__main__':
     main()
