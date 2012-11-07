@@ -73,7 +73,13 @@ class VisualisationPage(object):
 
         self.tests = []
 
-    def add_test(self, input_path, output_subdir=None, subheading=None):
+    def add_test(self, input_path, output_subdir=None, subheading=None,
+                 skip_summary=False, **kwargs):
+
+        vis_script = kwargs.get('vis_script', self.vis_script)
+        vis_args = kwargs.get('vis_args', self.vis_args)
+        vis_vars = kwargs.get('vis_vars', self.vis_vars)
+
         # create figures by calling `visualise_standalone`
         source_dir, filename = os.path.split(input_path)
         root, ext = os.path.splitext(filename)
@@ -83,8 +89,8 @@ class VisualisationPage(object):
 
         output_dir = os.path.join(self.project_root, output_subdir)
 
-        args = ['python', self.vis_script, input_path,                          
-                '-o', output_dir] + self.vis_args
+        args = ['python', vis_script, input_path,                          
+                '-o', output_dir] + vis_args
 
         print 'Calling:', ' '.join(args)
         subprocess.check_call(args)
@@ -116,9 +122,12 @@ class VisualisationPage(object):
         def map_key_to_alias(key):
             return self.var_aliases.get(key, key)
             
-        summary = map(lambda t: 
-            VARIABLE_TEMPLATE.format(key=map_key_to_alias(t[0]), value=t[1]),
-            variable_summary(input_path, self.vis_vars))
+        if skip_summary:
+            summary = []
+        else:
+            summary = map(lambda t: 
+                VARIABLE_TEMPLATE.format(key=map_key_to_alias(t[0]), value=t[1]),
+                variable_summary(input_path, vis_vars))
 
         if subheading is not None:
             subheading = '<h1 class="subheading">%s</h1>' % subheading
