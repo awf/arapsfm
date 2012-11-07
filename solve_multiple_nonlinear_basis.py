@@ -10,7 +10,7 @@ from core_recovery.lm_solvers import \
 from core_recovery.silhouette_global_solver import \
     shortest_path_solve
 
-from time import time
+from time import time, ctime
 from visualise import *
     
 # Utilities
@@ -107,6 +107,10 @@ def main():
     # parse the arguments
     args = parser.parse_args()
 
+    print ctime()
+    print 'args:'
+    pprint(args.__dict__)
+
     # parse argments and load variables
     # ------------------------------------------------------------------------ 
 
@@ -149,6 +153,9 @@ def main():
     preconditioners = parse_float_string(args.preconditioners)
     print 'lambdas:', lambdas
     print 'preconditioners:', preconditioners
+
+    # output parameters
+    print 'num_basis_rotations:', args.num_basis_rotations
 
     # solver arguments
     solver_options = parse_solver_options(args.solver_options,
