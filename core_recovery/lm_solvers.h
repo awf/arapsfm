@@ -862,6 +862,7 @@ int solve_multiview_nonlinear_basis(
         basisCoefficientNodes.push_back(new CoefficientsNode(*(*i)));
         problem.AddNode(basisCoefficientNodes.back());
     }
+    basisCoefficientNodes.back()->SetPreconditioner(preconditioners[4]);
 
     // instance barycentric coordinates
     vector<BarycentricNode *> instBarycentricNodes;
