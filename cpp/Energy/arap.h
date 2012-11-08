@@ -916,7 +916,7 @@ protected:
 class DualNonLinearBasisArapEnergy : public Energy
 {
 public:
-    DualNonLinearBasisArapEnergy(const VertexNode & V, const RotationNode & Xg, const ScaleNode & s,
+    DualNonLinearBasisArapEnergy(const VertexNode & V, const GlobalRotationNode & Xg, const ScaleNode & s,
                                  const vector<RotationNode *> & X, const CoefficientsNode & y,
                                  const VertexNode & V1, const Mesh & mesh, const double w,
                                  bool uniformWeights = true)
@@ -1002,14 +1002,14 @@ public:
         quat_Unsafe(x, qi);
 
         double qg[4];
-        quat_Unsafe(_Xg.GetRotation(0), qg);
+        quat_Unsafe(_Xg.GetRotation(), qg);
 
         double q[4];
         quatMultiply_Unsafe(qg, qi, q);
 
-        arapResiduals_Unsafe(_V.GetVertex(i), _V.GetVertex(j),
-                             _V1.GetVertex(i), _V1.GetVertex(j),
-                             w, q, _s.GetScale(), &e[0]);
+        arapResiduals_ScaleV_Unsafe(_V.GetVertex(i), _V.GetVertex(j),
+                                    _V1.GetVertex(i), _V1.GetVertex(j),
+                                    w, q, _s.GetScale(), &e[0]);
     }
 
     virtual void EvaluateJacobian(const int k, const int whichParam, Matrix<double> & J) const
@@ -1035,7 +1035,7 @@ public:
 
         // qg
         double qg[4];
-        quat_Unsafe(_Xg.GetRotation(0), qg);
+        quat_Unsafe(_Xg.GetRotation(), qg);
 
         // qg * qi -> q
         double q[4];
@@ -1048,7 +1048,7 @@ public:
             {
                 // dr/dq
                 double Jq[12];
-                arapJac_Q_Unsafe(_V.GetVertex(i), _V.GetVertex(j), w * _s.GetScale(), q, Jq);
+                arapJac_Q_Unsafe(_V.GetVertex(i), _V.GetVertex(j), w, q, Jq);
 
                 // dq/dqg
                 double Dqg[16];
@@ -1056,7 +1056,7 @@ public:
 
                 // dqg/xg
                 double Dg[12];
-                quatDx_Unsafe(_Xg.GetRotation(0), Dg);
+                quatDx_Unsafe(_Xg.GetRotation(), Dg);
 
                 double A[12];
                 multiply_A_B_Static<double, 3, 4, 4>(Jq, Dqg, A);
@@ -1067,31 +1067,34 @@ public:
         case 1:
             // s
             {
-                arapJac_s_Unsafe(w, q, _V.GetVertex(i), _V.GetVertex(j), J[0]);
+                // arapJac_s_Unsafe(w, q, _V.GetVertex(i), _V.GetVertex(j), J[0]);
+                subtractVectors_Static<double, 3>(_V1.GetVertex(i), _V1.GetVertex(j), J[0]);
+                scaleVectorIP_Static<double, 3>(w, J[0]);
+
                 return;
             }
         case 2:
             // Vi
             {
-                arapJac_V_Unsafe(true, w, q, _s.GetScale(), J[0]);
+                arapJac_V_Unsafe(true, w, q, 1.0, J[0]);
                 return;
             }
         case 3:
             // Vj
             {
-                arapJac_V_Unsafe(false, w, q, _s.GetScale(), J[0]);
+                arapJac_V_Unsafe(false, w, q, 1.0, J[0]);
                 return;
             }
         case 4:
             // V1i 
             {
-                arapJac_V1_Unsafe(true, w, J[0]);
+                arapJac_V1_Unsafe(true, w * _s.GetScale(), J[0]);
                 return;
             }
         case 5:
             // V1j
             {
-                arapJac_V1_Unsafe(false, w, J[0]);
+                arapJac_V1_Unsafe(false, w * _s.GetScale(), J[0]);
                 return;
             }
         default:
@@ -1100,7 +1103,7 @@ public:
 
         // dr/dq
         double Jq[12];
-        arapJac_Q_Unsafe(_V.GetVertex(i), _V.GetVertex(j), w * _s.GetScale(), q, Jq);
+        arapJac_Q_Unsafe(_V.GetVertex(i), _V.GetVertex(j), w, q, Jq);
 
         // dq/dqi
         double Dqi[16];
@@ -1181,7 +1184,7 @@ public:
 
 protected:
     const VertexNode & _V;
-    const RotationNode & _Xg;
+    const GlobalRotationNode & _Xg;
     const ScaleNode & _s;
     const vector<RotationNode *> & _X;
     const CoefficientsNode & _y;
