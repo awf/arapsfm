@@ -52,3 +52,7 @@ def right_multiply_rigid_uniform_scale_transform(V0, V, verbose=False):
 
     return rotationMatrix(quat(x)), d
 
+# displacement
+def displacement(V0, V):
+    return np.mean(V - V0, axis=0)
+    
