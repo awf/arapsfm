@@ -55,12 +55,12 @@ protected:
        this->Save(); 
     }
 
+    Matrix<double> & _X;
+    Matrix<double> _savedX;
+
     int _count;
     int _offset;
     int _paramId;
-
-    Matrix<double> & _X;
-    Matrix<double> _savedX;
 };
 
 // VertexNode
@@ -111,14 +111,36 @@ protected:
     static double _preconditioner;
 };
 
+// GlobalRotationNode
+class GlobalRotationNode : public Node
+{
+public:
+    GlobalRotationNode(Matrix<double> & X)
+        : Node(X)
+    {}
+
+    virtual ~GlobalRotationNode()
+    {}
+
+    virtual const double * GetRotation() const { return _X[0]; }
+
+    virtual int TypeId() const { return 6; }
+    virtual int Dimension() const { return 3; }
+
+    virtual void SetPreconditioner(const double & preconditioner) { _preconditioner = preconditioner; }
+    virtual const double & GetPreconditioner () const { return _preconditioner; }
+
+protected:
+    static double _preconditioner;
+};
+
 // BarycentricNode
 class BarycentricNode : public Node
 {
 public:
     BarycentricNode(Matrix<double> & U, Vector<int> & L, const MeshWalker & meshWalker)
-        : _L(L), _savedL(L.size()),
-          _meshWalker(meshWalker),
-          Node(U)
+        : Node(U), _L(L), _savedL(L.size()),
+         _meshWalker(meshWalker)
     {}
 
     virtual int TypeId() const { return 2; }
