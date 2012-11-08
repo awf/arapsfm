@@ -44,6 +44,34 @@ inline void arapResiduals_Unsafe(const double * Vi, const double * Vj,
     // END SymPy
 }
 
+// arapResiduals_ScaleV_Unsafe
+inline void arapResiduals_ScaleV_Unsafe(const double * Vi, const double * Vj,
+           const double * V1i, const double * V1j,
+           const double w, const double * q, 
+           const double s, double * e)
+{
+    // BEGIN SymPy
+    double x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11;
+
+    x0 = Vi[2] - Vj[2];
+    x1 = Vi[1] - Vj[1];
+    x2 = Vi[0] - Vj[0];
+    x3 = q[2]*q[2];
+    x4 = q[2]*q[3];
+    x5 = q[0]*q[1];
+    x6 = q[0]*q[2];
+    x7 = q[1]*q[3];
+    x8 = q[1]*q[2];
+    x9 = q[0]*q[3];
+    x10 = q[1]*q[1];
+    x11 = q[0]*q[0];
+
+    e[0] = w*(s*(V1i[0] - V1j[0]) - (x0*(2*x6 + 2*x7) + x1*(-2*x4 + 2*x5) + x2*(-2*x10 - 2*x3 + 1)));
+    e[1] = w*(s*(V1i[1] - V1j[1]) - (x0*(2*x8 - 2*x9) + x1*(-2*x11 - 2*x3 + 1) + x2*(2*x4 + 2*x5)));
+    e[2] = w*(s*(V1i[2] - V1j[2]) - (x0*(-2*x10 - 2*x11 + 1) + x1*(2*x8 + 2*x9) + x2*(2*x6 - 2*x7)));
+    // END SymPy
+}
+
 // arapJac_Q_Unsafe
 inline void arapJac_Q_Unsafe(const double * Vi, const double * Vj,
                  const double w, const double * q, 
