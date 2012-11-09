@@ -512,8 +512,8 @@ def solve_multiview_nonlinear_basis(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
     if lambdas.shape[0] != 5:
         raise ValueError('lambdas.shape[0] != 5')
 
-    if preconditioners.shape[0] != 5:
-        raise ValueError('preconditioners.shape[0] != 5')
+    if preconditioners.shape[0] != 6:
+        raise ValueError('preconditioners.shape[0] != 6')
 
     for i, y in enumerate(multiy):
         if y.ndim != 2 or y.shape[0] != len(multiX):

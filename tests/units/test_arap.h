@@ -162,7 +162,7 @@ PyObject * EvaluateDualNonLinearBasisARAP(PyArrayObject * npy_T,
     }
 
     PYARRAY_AS_MATRIX(double, npy_Xg, Xg);
-    RotationNode node_Xg(Xg);
+    GlobalRotationNode node_Xg(Xg);
 
     PYARRAY_AS_MATRIX(double, npy_s, s);
     ScaleNode node_s(s);
