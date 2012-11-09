@@ -192,7 +192,8 @@ def main_EvaluateDualNonLinearBasisARAP():
               1., 1., 1.].reshape(-1, 3).astype(np.float64)
 
     Xg = np.zeros((1, 3), dtype=np.float64)
-    s = np.r_[1.0].reshape(1, 1).astype(np.float64)
+    # s = np.r_[1.0].reshape(1, 1).astype(np.float64)
+    s = np.r_[np.random.rand()].reshape(1, 1).astype(np.float64)
 
     # n = 1
     # Xs = [np.zeros((5, 3), dtype=np.float64) for i in xrange(n)]
@@ -206,6 +207,8 @@ def main_EvaluateDualNonLinearBasisARAP():
 
     k = 5
 
+    print 's:'
+    print s
     print 'V:'
     print V
     print 'V1:'
@@ -234,7 +237,8 @@ def main_EvaluateDualNonLinearBasisARAP():
     print 'approx_Js:'
     approx_Js = approx_jac(
         lambda x: EvaluateDualNonLinearBasisARAP(
-            T, V, Xg, x.reshape(1, 1), Xs, y, V1, k)[0], np.ravel(s))
+            T, V, Xg, x.reshape(1, 1), Xs, y, V1, k)[0], np.ravel(s),
+            epsilon=1e-6)
     print np.around(approx_Js, decimals=4)
     print 'allclose? ', np.allclose(Js, approx_Js, atol=1e-3)
 
