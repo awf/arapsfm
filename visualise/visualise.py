@@ -83,6 +83,10 @@ if HAS_VTK:
             lut.SetNumberOfTableValues(2)
             lut.Build()
 
+            lut_SetTableValue = lut.SetTableValue
+            def SetTableValue(i, r, g, b, alpha=1.0):
+                return lut_SetTableValue(i, r, g, b, alpha)
+            lut.SetTableValue = SetTableValue
             lut.SetTableValue(0, *int2dbl(31, 120, 180))
             lut.SetTableValue(1, *int2dbl(178, 223, 138))
 
@@ -105,10 +109,17 @@ if HAS_VTK:
         def add_image(self, filename):
             reader = vtk.vtkPNGReader()
             reader.SetFileName(filename)
-            self.objects.append(reader)
+
+            cast = vtk.vtkImageCast()
+            cast.SetInput(reader.GetOutput())
+            cast.SetOutputScalarTypeToUnsignedChar()
+            cast.Update()
+
+            image_data = cast.GetOutput()
+            self.objects.append(image_data)
 
             image_actor = vtk.vtkImageActor()
-            image_actor.GetMapper().SetInputConnection(reader.GetOutputPort())
+            image_actor.SetInput(image_data)
             image_actor.PickableOff()
 
             self.actors['image'] = image_actor
