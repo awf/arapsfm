@@ -5,8 +5,15 @@ import os
 import inspect
 import argparse
 from visualise import *
-from itertools import ifilter, count
+from itertools import ifilter, count, izip
 from functools import wraps
+
+from geometry.axis_angle import *
+from geometry.quaternion import *
+from geometry import register
+from mesh.weights import weights
+from mesh.faces import faces_to_cell_array
+from solvers.arap import ARAPVertexSolver
 
 # requires
 def requires(*keys, **kwargs):
@@ -36,8 +43,15 @@ def requires(*keys, **kwargs):
 class StandaloneVisualisation(object):
     def __init__(self, filename, **kwargs):
         restrict_setup = kwargs.pop('restrict_setup', None)
+        with_core = kwargs.pop('with_core', None)
 
         self.z = np.load(filename)
+
+        if with_core is not None:
+            self.core_V = np.load(with_core)['V']
+        else:
+            self.core_V = None
+
         self.vis = VisualiseMesh()
 
         self.used = set()
@@ -84,6 +98,46 @@ class StandaloneVisualisation(object):
         self.vis.add_mesh(self[self.vertices_key], 
                           self['T'],
                           self['L'])
+
+    @requires('T', 'Xg', 's', 'X', 'y', attrs=['vertices_key'])
+    def _add_basis_arap(self):
+        if self.core_V is None:
+            return
+
+        X = self['X']
+        y = self['y']
+        if len(X) != y.shape[0]:
+            return
+
+        T = self['T'] 
+        core_V = self.core_V.copy()
+        adj, W = weights(core_V, faces_to_cell_array(T), weights_type='uniform')
+
+        solve_V = ARAPVertexSolver(adj, W, core_V)
+
+        scaled_X = []
+        for y_, X_ in izip(y, X):
+            scaled_X.append(map(lambda x: axScale(y_, x), X_))
+
+        N = core_V.shape[0]
+        X = []
+        for i in xrange(N):
+            X.append(reduce(axAdd, [X_[i] for X_ in scaled_X]))
+
+        rotM = lambda x: rotationMatrix(quat(x))
+        V1 = solve_V(map(lambda x: rotM(x), X))
+
+        xg = np.ravel(self['Xg'])
+        # A = (1.0 / self['s']) * rotM(xg)
+        A = self['s'] * rotM(xg)
+
+        V1 = np.dot(V1, np.transpose(A))
+
+        V1 += register.displacement(V1, self[self.vertices_key])
+
+        self.vis.add_mesh(V1, T, actor_name='arap')
+        lut = self.vis.actors['arap'].GetMapper().GetLookupTable()
+        lut.SetTableValue(0, 1., 0., 1.)
 
     @requires('image')
     def _add_image(self):
@@ -151,6 +205,7 @@ def main():
     parser.add_argument('--output_image_first', 
                         action='store_true',
                         default=False)
+    parser.add_argument('--with_core', type=str, default=None)
 
     args = parser.parse_args()
 
@@ -165,7 +220,8 @@ def main():
 
     vis = StandaloneVisualisation(args.input,
                                   vertices_key=args.vertices_key,
-                                  restrict_setup=restrict_setup)
+                                  restrict_setup=restrict_setup,
+                                  with_core=args.with_core)
 
     # is visualisation interface or to file?
     interactive_session = args.output_directory is None
