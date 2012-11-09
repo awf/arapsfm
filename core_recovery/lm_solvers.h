@@ -826,18 +826,23 @@ int solve_multiview_nonlinear_basis(
     instVertexNodes.back()->SetPreconditioner(preconditioners[0]);
 
     // instance global rotations
-    vector<RotationNode * > instGlobalRotationNodes;
+    vector<GlobalRotationNode * > instGlobalRotationNodes;
     for (auto i = multiXg.begin(); i != multiXg.end(); ++i)
     {
-        instGlobalRotationNodes.push_back(new RotationNode(*(*i)));
+        instGlobalRotationNodes.push_back(new GlobalRotationNode(*(*i)));
         problem.AddNode(instGlobalRotationNodes.back());
     }
+    instGlobalRotationNodes.back()->SetPreconditioner(preconditioners[5]);
 
     // instance scales
     vector<ScaleNode *> instScaleNodes;
     for (auto i = multis.begin(); i != multis.end(); ++i)
     {
-        instScaleNodes.push_back(new ScaleNode(*(*i)));
+        // invert scales
+        Matrix<double> & s = *(*i);
+        s[0][0] = 1.0 / s[0][0];
+
+        instScaleNodes.push_back(new ScaleNode(s));
         problem.AddNode(instScaleNodes.back());
     }
     instScaleNodes.back()->SetPreconditioner(preconditioners[2]);
@@ -916,6 +921,13 @@ int solve_multiview_nonlinear_basis(
 
     // minimise
     int ret = problem.Minimise(*options);
+
+    // invert scales
+    for (auto i = multis.begin(); i != multis.end(); ++i)
+    {
+        Matrix<double> & s = *(*i);
+        s[0][0] = 1.0 / s[0][0];
+    }
 
     // dealloc 
     dealloc_vector(meshWalkers);
