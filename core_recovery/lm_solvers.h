@@ -745,8 +745,6 @@ int solve_single_lap_proj_sil_spil(PyArrayObject * npy_V,
     else
         residualTransform = new TruncatedQuadraticTransform(piecewisePolynomial[0]);
 
-    TruncatedQuadraticTransform polynomialTransform(piecewisePolynomial[0]);
-
     SilhouetteProjectionEnergy * silProjEnergy = new SilhouetteProjectionEnergy(*nodeV, *nodeU, S, mesh,
         sqrt(lambdas[2]), narrowBand, residualTransform);
 
@@ -785,6 +783,7 @@ int solve_multiview_nonlinear_basis(
     PyObject * list_multiRy,
     PyArrayObject * npy_lambdas,
     PyArrayObject * npy_preconditioners,
+    PyArrayObject * npy_piecewisePolynomial,
     int narrowBand,
     bool uniformWeights,
     const OptimiserOptions * options)
@@ -807,6 +806,7 @@ int solve_multiview_nonlinear_basis(
 
     PYARRAY_AS_VECTOR(double, npy_lambdas, lambdas);
     PYARRAY_AS_VECTOR(double, npy_preconditioners, preconditioners);
+    PYARRAY_AS_VECTOR(double, npy_piecewisePolynomial, piecewisePolynomial);
 
     Mesh mesh(V.num_rows(), T);
 
@@ -885,6 +885,9 @@ int solve_multiview_nonlinear_basis(
 
     // add energies
 
+    ResidualTransform * residualTransform = new PiecewisePolynomialTransform_C1(
+        piecewisePolynomial[0], piecewisePolynomial[1]);
+
     // dual rigid arap with non-linear basis
     for (int i = 0; i < instVertexNodes.size(); ++i)
     {
@@ -904,7 +907,7 @@ int solve_multiview_nonlinear_basis(
     for (int i = 0; i < instVertexNodes.size(); ++i)
     {
         problem.AddEnergy(new SilhouetteProjectionEnergy(*instVertexNodes[i], *instBarycentricNodes[i],
-            *multiS[i], mesh, sqrt(lambdas[1]), narrowBand));
+            *multiS[i], mesh, sqrt(lambdas[1]), narrowBand, residualTransform));
 
         problem.AddEnergy(new SilhouetteNormalEnergy(*instVertexNodes[i], *instBarycentricNodes[i],
             *multiSN[i], mesh, sqrt(lambdas[2]), narrowBand));
@@ -939,6 +942,8 @@ int solve_multiview_nonlinear_basis(
     dealloc_vector(multiSN);
     dealloc_vector(multiRx);
     dealloc_vector(multiRy);
+
+    delete residualTransform;
 
     return ret;
 }

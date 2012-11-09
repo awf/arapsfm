@@ -177,6 +177,7 @@ cdef extern from "lm_solvers.h":
         list list_multiRy,
         np.ndarray npy_lambdas,
         np.ndarray npy_preconditioners,
+        np.ndarray npy_piecewisePolynomial,
         int narrowBand,
         bint uniformWeights,
         OptimiserOptions * options)
@@ -502,6 +503,7 @@ def solve_multiview_nonlinear_basis(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
                                    list multiRy,
                                    np.ndarray[np.float64_t, ndim=1] lambdas,
                                    np.ndarray[np.float64_t, ndim=1] preconditioners,
+                                   np.ndarray[np.float64_t, ndim=1] piecewisePolynomial,
                                    int narrowBand,
                                    bint uniformWeights,
                                    **kwargs):
@@ -515,6 +517,9 @@ def solve_multiview_nonlinear_basis(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
     if preconditioners.shape[0] != 6:
         raise ValueError('preconditioners.shape[0] != 6')
 
+    if piecewisePolynomial.shape[0] != 2:
+        raise ValueError('piecewisePolynomial.shape[0] != 2')
+
     for i, y in enumerate(multiy):
         if y.ndim != 2 or y.shape[0] != len(multiX):
             raise ValueError('y[{i}].ndim != 2 or y[{i}].shape[0] != len(multiX)'
@@ -523,6 +528,7 @@ def solve_multiview_nonlinear_basis(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
     cdef int status = solve_multiview_nonlinear_basis_c(
         T, V, multiXg, multis, multiX, multiy, multiV, 
         multiU, multiL, multiS, multiSN, multiRx, multiRy,
-        lambdas, preconditioners, narrowBand, uniformWeights, &options)
+        lambdas, preconditioners, piecewisePolynomial,
+        narrowBand, uniformWeights, &options)
 
     return status, STATUS_CODES[status]
