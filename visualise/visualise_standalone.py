@@ -11,6 +11,7 @@ from functools import wraps
 from geometry.axis_angle import *
 from geometry.quaternion import *
 from geometry import register
+from geometry import loop
 from mesh.weights import weights
 from mesh.faces import faces_to_cell_array
 from solvers.arap import ARAPVertexSolver
@@ -43,6 +44,9 @@ def requires(*keys, **kwargs):
 class StandaloneVisualisation(object):
     def __init__(self, filename, **kwargs):
         restrict_setup = kwargs.pop('restrict_setup', None)
+        self.subdivide = kwargs.pop('subdivide', 0)
+        self.compute_normals = kwargs.pop('compute_normals', 0)
+
         with_core = kwargs.pop('with_core', None)
 
         self.z = np.load(filename)
@@ -95,9 +99,17 @@ class StandaloneVisualisation(object):
     # "_add" methods
     @requires('T', attrs=['vertices_key'])
     def _add_mesh(self):
-        self.vis.add_mesh(self[self.vertices_key], 
-                          self['T'],
-                          self['L'])
+        if self.subdivide == 0:
+            self.vis.add_mesh(self[self.vertices_key], 
+                              self['T'],
+                              self['L'],
+                              compute_normals=self.compute_normals)
+        else:
+            T, V = self['T'], self[self.vertices_key]
+            for i in xrange(self.subdivide):
+                T, V = loop.subdivide(T, V)
+                              
+            self.vis.add_mesh(V, T, compute_normals=self.compute_normals)
 
     @requires('T', 'Xg', 's', 'X', 'y', attrs=['vertices_key'])
     def _add_basis_arap(self):
@@ -206,6 +218,8 @@ def main():
                         action='store_true',
                         default=False)
     parser.add_argument('--with_core', type=str, default=None)
+    parser.add_argument('--subdivide', type=int, default=0)
+    parser.add_argument('--compute_normals', action='store_true', default=False)
 
     args = parser.parse_args()
 
@@ -221,7 +235,9 @@ def main():
     vis = StandaloneVisualisation(args.input,
                                   vertices_key=args.vertices_key,
                                   restrict_setup=restrict_setup,
-                                  with_core=args.with_core)
+                                  with_core=args.with_core,
+                                  subdivide=args.subdivide,
+                                  compute_normals=args.compute_normals)
 
     # is visualisation interface or to file?
     interactive_session = args.output_directory is None
