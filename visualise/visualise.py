@@ -46,7 +46,8 @@ if HAS_VTK:
             self.ren_win = ren_win
             self.iren = iren
 
-        def add_mesh(self, V, T, L=None, actor_name='model'):
+        def add_mesh(self, V, T, L=None, actor_name='model',
+                     compute_normals=False, feature_angle=90.):
             cells = faces_to_vtkCellArray(T)
 
             self.keys = {}
@@ -55,6 +56,14 @@ if HAS_VTK:
 
             self.objects = []
             model_pd = numpy_to_vtkPolyData(V, cells)
+
+            if compute_normals:
+                pd_normals = vtk.vtkPolyDataNormals()
+                pd_normals.SetInput(model_pd)
+                pd_normals.ComputeCellNormalsOn()
+                pd_normals.SetFeatureAngle(feature_angle)
+                pd_normals.Update()
+                model_pd = pd_normals.GetOutput()
 
             # setup the programmable filter to color specific faces
             color_face = vtk.vtkProgrammableFilter()
