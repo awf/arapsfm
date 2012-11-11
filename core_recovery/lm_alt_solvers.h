@@ -123,4 +123,106 @@ int solve_instance(PyArrayObject * npy_T,
     return ret;
 }
 
+// solve_core
+int solve_core(PyArrayObject * npy_T,
+               PyArrayObject * npy_V,
+               PyObject * list_Xg,
+               PyObject * list_s,
+               PyObject * list_X,
+               PyObject * list_V1,
+               // PyObject * list_C,
+               // PyObject * list_P,
+               PyArrayObject * npy_lambdas,
+               PyArrayObject * npy_preconditioners,
+               int narrowBand,
+               bool uniformWeights,
+               const OptimiserOptions * options)
+{
+    PYARRAY_AS_MATRIX(int, npy_T, T);
+    PYARRAY_AS_MATRIX(double, npy_V, V);
+
+    auto Xg = PyList_to_vector_of_Matrix<double>(list_Xg);
+    auto s = PyList_to_vector_of_Matrix<double>(list_s);
+    auto X = PyList_to_vector_of_Matrix<double>(list_X);
+    auto V1 = PyList_to_vector_of_Matrix<double>(list_V1);
+
+    PYARRAY_AS_VECTOR(double, npy_lambdas, lambdas);
+    PYARRAY_AS_VECTOR(double, npy_preconditioners, preconditioners);
+
+    Problem problem;
+    Mesh mesh(V.num_rows(), T);
+
+    auto nodeV = new VertexNode(V);
+    nodeV->SetPreconditioner(preconditioners[0]);
+    problem.AddNode(nodeV);
+
+    vector<GlobalRotationNode *> instGlobalRotationNodes;
+    for (auto i = Xg.begin(); i != Xg.end(); ++i)
+    {
+        instGlobalRotationNodes.push_back(new GlobalRotationNode(*(*i)));
+        problem.AddNode(instGlobalRotationNodes.back());
+    }
+    instGlobalRotationNodes.back()->SetPreconditioner(preconditioners[3]);
+
+    vector<ScaleNode *> instScaleNodes;
+    for (auto i = s.begin(); i != s.end(); ++i)
+    {
+        // Invert scale for `RigidTransformARAPEnergy2`
+        (*(*i))[0][0] = 1.0 / (*(*i))[0][0];
+        instScaleNodes.push_back(new ScaleNode(*(*i)));
+        problem.AddNode(instScaleNodes.back());
+    }
+    instScaleNodes.back()->SetPreconditioner(preconditioners[2]);
+
+    vector<RotationNode *> instRotationNodes;
+    for (auto i = X.begin(); i != X.end(); ++i)
+    {
+        instRotationNodes.push_back(new RotationNode(*(*i)));
+        problem.AddNode(instRotationNodes.back());
+    }
+    instRotationNodes.back()->SetPreconditioner(preconditioners[1]);
+
+    vector<VertexNode *> instVertexNodes;
+    for (auto i = V1.begin(); i != V1.end(); ++i)
+    {
+        instVertexNodes.push_back(new VertexNode(*(*i)));
+        problem.AddFixedNode(instVertexNodes.back());
+    }
+    instVertexNodes.back()->SetPreconditioner(preconditioners[0]);
+
+    // RigidTransformARAPEnergy2
+    for (int i = 0; i < instVertexNodes.size(); ++i)
+    {
+        problem.AddEnergy(new RigidTransformARAPEnergy2B(
+            *nodeV, 
+            *instGlobalRotationNodes[i], 
+            *instScaleNodes[i], 
+            *instRotationNodes[i], 
+            *instVertexNodes[i], 
+            mesh, 
+            sqrt(lambdas[0]), 
+            uniformWeights));
+    }
+
+    // LaplacianEnergy
+    problem.AddEnergy(new LaplacianEnergy(*nodeV, mesh, sqrt(lambdas[1])));
+
+    // Minimise
+    int ret = problem.Minimise(*options);
+
+    // Invert scale for `RigidTransformARAPEnergy2`
+    for (auto i = s.begin(); i != s.end(); ++i)
+    {
+        (*(*i))[0][0] = 1.0 / (*(*i))[0][0];
+    }
+
+    // dealloc 
+    dealloc_vector(Xg);
+    dealloc_vector(s);
+    dealloc_vector(X);
+    dealloc_vector(V1);
+
+    return ret;
+}
+
 #endif

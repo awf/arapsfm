@@ -42,6 +42,18 @@ cdef extern from "lm_alt_solvers.h":
                                            bint uniformWeights,
                                            OptimiserOptions * options)
 
+    int solve_core_c "solve_core" (np.ndarray npy_T,
+                                   np.ndarray npy_V,
+                                   list list_Xg,
+                                   list list_s,
+                                   list list_X,
+                                   list list_V1,
+                                   np.ndarray npy_lambdas,
+                                   np.ndarray npy_preconditioners,
+                                   int narrowBand,
+                                   bint uniformWeights,
+                                   OptimiserOptions * options)
+
 # additional_optimiser_options
 DEFAULT_OPTIMISER_OPTIONS = {
     'maxIterations' : 50,
@@ -123,6 +135,36 @@ def solve_instance(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
                                        narrowBand,
                                        uniformWeights,
                                        &options)
+
+    return status, STATUS_CODES[status]
+
+def solve_core(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
+               np.ndarray[np.float64_t, ndim=2, mode='c'] V, 
+               list Xg,
+               list s,
+               list X,
+               list V1,
+               np.ndarray[np.float64_t, ndim=1] lambdas,
+               np.ndarray[np.float64_t, ndim=1] preconditioners,
+               int narrowBand,
+               bint uniformWeights,
+               **kwargs):
+
+    if lambdas.shape[0] != 1:
+        raise ValueError('lambdas.shape[0] != 1')
+
+    if preconditioners.shape[0] != 4:
+        raise ValueError('preconditioners.shape[0] != 4')
+
+    cdef OptimiserOptions options
+    additional_optimiser_options(&options, kwargs)
+
+    cdef int status = solve_core_c(T, V, Xg, s, X, V1, 
+                                   lambdas, 
+                                   preconditioners,
+                                   narrowBand,
+                                   uniformWeights,
+                                   &options)
 
     return status, STATUS_CODES[status]
 
