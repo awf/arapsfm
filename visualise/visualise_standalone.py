@@ -111,6 +111,31 @@ class StandaloneVisualisation(object):
                               
             self.vis.add_mesh(V, T, compute_normals=self.compute_normals)
 
+    @requires('T', 'Xg', 's', 'X', attrs=['vertices_key'])
+    def _add_regular_arap(self):
+        if self['y'] is not None:
+            return
+
+        T = self['T'] 
+        core_V = self.core_V.copy()
+        adj, W = weights(core_V, faces_to_cell_array(T), weights_type='uniform')
+
+        solve_V = ARAPVertexSolver(adj, W, core_V)
+
+        rotM = lambda x: rotationMatrix(quat(x))
+        V1 = solve_V(map(lambda x: rotM(x), self['X']))
+
+        xg = np.ravel(self['Xg'])
+        A = self['s'] * rotM(xg)
+
+        V1 = np.dot(V1, np.transpose(A))
+        V1 += register.displacement(V1, self[self.vertices_key])
+
+        self.vis.add_mesh(V1, T, actor_name='arap')
+
+        lut = self.vis.actors['arap'].GetMapper().GetLookupTable()
+        lut.SetTableValue(0, 1., 0.667, 0.)
+
     @requires('T', 'Xg', 's', 'X', 'y', attrs=['vertices_key'])
     def _add_basis_arap(self):
         if self.core_V is None:
@@ -140,7 +165,6 @@ class StandaloneVisualisation(object):
         V1 = solve_V(map(lambda x: rotM(x), X))
 
         xg = np.ravel(self['Xg'])
-        # A = (1.0 / self['s']) * rotM(xg)
         A = self['s'] * rotM(xg)
 
         V1 = np.dot(V1, np.transpose(A))
