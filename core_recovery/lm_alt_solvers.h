@@ -73,6 +73,8 @@ int solve_instance(PyArrayObject * npy_T,
     nodeXg->SetPreconditioner(preconditioners[4]);
     problem.AddNode(nodeXg);
 
+    // Invert scale for RigidTransformARAPEnergy2
+    s[0][0] = 1.0 / s[0][0];
     auto nodes = new ScaleNode(s);
     nodes->SetPreconditioner(preconditioners[2]);
     if (fixedScale)
@@ -92,8 +94,8 @@ int solve_instance(PyArrayObject * npy_T,
     nodeU->SetPreconditioner(preconditioners[3]);
     problem.AddNode(nodeU);
 
-    // RigidTransformARAPEnergy3
-    problem.AddEnergy(new RigidTransformARAPEnergy3(
+    // RigidTransformARAPEnergy2
+    problem.AddEnergy(new RigidTransformARAPEnergy2(
         *nodeV, *nodeXg, *nodes, *nodeX, *nodeV1, 
         mesh, sqrt(lambdas[0]), uniformWeights, fixedScale));
 
@@ -116,6 +118,9 @@ int solve_instance(PyArrayObject * npy_T,
 
     // Minimise
     int ret = problem.Minimise(*options);
+
+    // Invert scale for RigidTransformARAPEnergy2
+    s[0][0] = 1.0 / s[0][0];
 
     delete residualTransform;
 
@@ -166,6 +171,7 @@ int solve_core(PyArrayObject * npy_T,
     vector<ScaleNode *> instScaleNodes;
     for (int i=0; i < s.size(); ++i)
     {
+        (*s[i])[0][0] = 1.0 / (*s[i])[0][0];
         instScaleNodes.push_back(new ScaleNode(*s[i]));
 
         if (i == 0)
@@ -191,10 +197,10 @@ int solve_core(PyArrayObject * npy_T,
     }
     instVertexNodes.back()->SetPreconditioner(preconditioners[0]);
 
-    // RigidTransformARAPEnergy3B
+    // RigidTransformARAPEnergy2B
     for (int i = 0; i < instVertexNodes.size(); ++i)
     {
-        problem.AddEnergy(new RigidTransformARAPEnergy3B(
+        problem.AddEnergy(new RigidTransformARAPEnergy2B(
             *nodeV, 
             *instGlobalRotationNodes[i], 
             *instScaleNodes[i], 
@@ -211,6 +217,12 @@ int solve_core(PyArrayObject * npy_T,
 
     // Minimise
     int ret = problem.Minimise(*options);
+
+    // Invert scale for `RigidTransformARAPEnergy2`
+    for (auto i = s.begin(); i != s.end(); ++i)
+    {
+        (*(*i))[0][0] = 1.0 / (*(*i))[0][0];
+    }
 
     // dealloc 
     dealloc_vector(Xg);
