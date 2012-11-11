@@ -86,6 +86,7 @@ def main():
     # general
     parser.add_argument('lambdas', type=str)
     parser.add_argument('preconditioners', type=str)
+    parser.add_argument('piecewise_polynomial', type=str)
     parser.add_argument('num_basis_rotations', type=int)
 
     parser.add_argument('--output', type=str)
@@ -148,11 +149,14 @@ def main():
     (R,) = load_instance_variables(args.spillage, 'R')
     Rx, Ry = map(list, izip(*R))
 
-    # parse the lambdas and preconditioners
+    # parse the lambdas, preconditioners, and piecewise-polynomial residual
+    # transform coefficients
     lambdas = parse_float_string(args.lambdas)
     preconditioners = parse_float_string(args.preconditioners)
+    piecewise_polynomial = parse_float_string(args.piecewise_polynomial)
     print 'lambdas:', lambdas
     print 'preconditioners:', preconditioners
+    print 'piecewise_polynomial:', piecewise_polynomial
 
     # output parameters
     print 'num_basis_rotations:', args.num_basis_rotations
@@ -239,7 +243,7 @@ def main():
 
     def solve_iteration(i):
         status = solve_multiview_nonlinear_basis(T, V, Xg, instScales, X, y, V1, U, L, S, SN, 
-            Rx, Ry, lm_lambdas, preconditioners, 
+            Rx, Ry, lm_lambdas, preconditioners, piecewise_polynomial,
             args.narrowband, args.uniform_weights, **solver_options)
 
         print 'LM Status (%d): ' % status[0], status[1]
@@ -266,6 +270,7 @@ def main():
                           mesh=args.mesh,
                           lambdas=lambdas, 
                           preconditioners=preconditioners, 
+                          piecewise_polynomial=piecewise_polynomial,
                           num_basis_rotations=args.num_basis_rotations,
                           solver_options=solver_options,
                           narrowband=args.narrowband,
@@ -326,6 +331,7 @@ def main():
              mesh=args.mesh,
              lambdas=lambdas, 
              preconditioners=preconditioners, 
+             piecewise_polynomial=piecewise_polynomial,
              num_basis_rotations=args.num_basis_rotations,
              solver_options=solver_options,
              narrowband=args.narrowband,

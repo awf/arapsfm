@@ -305,7 +305,7 @@ def generate_silhouette_candidate_info(V, faces, step=np.inf, verbose=True):
     info['SilEdgeCands'] = np.atleast_2d(np.array(
         [edge for edge, t in edge_points_info], dtype=np.int32))
     info['SilEdgeCandParam'] = np.array(
-        [t for edge, t in edge_points_info], dtype=np.float64))
+        [t for edge, t in edge_points_info], dtype=np.float64)
 
     all_face_info = vertex_face_info + edge_points_face_info
     info['SilCandAssignedFaces'] = np.array(map(itemgetter(0), all_face_info),
