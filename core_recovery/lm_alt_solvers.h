@@ -164,12 +164,14 @@ int solve_core(PyArrayObject * npy_T,
     instGlobalRotationNodes.back()->SetPreconditioner(preconditioners[3]);
 
     vector<ScaleNode *> instScaleNodes;
-    for (auto i = s.begin(); i != s.end(); ++i)
+    for (int i=0; i < s.size(); ++i)
     {
-        // Invert scale for `RigidTransformARAPEnergy2`
-        (*(*i))[0][0] = 1.0 / (*(*i))[0][0];
-        instScaleNodes.push_back(new ScaleNode(*(*i)));
-        problem.AddNode(instScaleNodes.back());
+        instScaleNodes.push_back(new ScaleNode(*s[i]));
+
+        if (i == 0)
+            problem.AddFixedNode(instScaleNodes.back());
+        else
+            problem.AddNode(instScaleNodes.back());
     }
     instScaleNodes.back()->SetPreconditioner(preconditioners[2]);
 
@@ -189,10 +191,10 @@ int solve_core(PyArrayObject * npy_T,
     }
     instVertexNodes.back()->SetPreconditioner(preconditioners[0]);
 
-    // RigidTransformARAPEnergy2
+    // RigidTransformARAPEnergy3B
     for (int i = 0; i < instVertexNodes.size(); ++i)
     {
-        problem.AddEnergy(new RigidTransformARAPEnergy2B(
+        problem.AddEnergy(new RigidTransformARAPEnergy3B(
             *nodeV, 
             *instGlobalRotationNodes[i], 
             *instScaleNodes[i], 
@@ -200,7 +202,8 @@ int solve_core(PyArrayObject * npy_T,
             *instVertexNodes[i], 
             mesh, 
             sqrt(lambdas[0]), 
-            uniformWeights));
+            uniformWeights,
+            i == 0));
     }
 
     // LaplacianEnergy
@@ -208,12 +211,6 @@ int solve_core(PyArrayObject * npy_T,
 
     // Minimise
     int ret = problem.Minimise(*options);
-
-    // Invert scale for `RigidTransformARAPEnergy2`
-    for (auto i = s.begin(); i != s.end(); ++i)
-    {
-        (*(*i))[0][0] = 1.0 / (*(*i))[0][0];
-    }
 
     // dealloc 
     dealloc_vector(Xg);
