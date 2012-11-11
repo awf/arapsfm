@@ -21,6 +21,15 @@ cdef extern from "test_arap.h":
                                                       int k,
                                                       bint verbose)
 
+    object EvaluateSingleARAP2_c 'EvaluateSingleARAP2' (np.ndarray npy_T,
+                                                        np.ndarray npy_V,
+                                                        np.ndarray npy_X,
+                                                        np.ndarray npy_Xg,
+                                                        np.ndarray npy_s,
+                                                        np.ndarray npy_V1,
+                                                        int k,
+                                                        bint verbose)
+
     object EvaluateDualARAP_c 'EvaluateDualARAP' (np.ndarray npy_T,
                                                   np.ndarray npy_V,
                                                   np.ndarray npy_X,
@@ -43,6 +52,9 @@ cdef extern from "test_arap.h":
 
 def EvaluateSingleARAP(T, V, X, Xg, s, V1, k, verbose=False):
     return EvaluateSingleARAP_c(T, V, X, Xg, s, V1, k, verbose)
+
+def EvaluateSingleARAP2(T, V, X, Xg, s, V1, k, verbose=False):
+    return EvaluateSingleARAP2_c(T, V, X, Xg, s, V1, k, verbose)
    
 def EvaluateDualARAP(T, V, X, Xg, s, V1, k, verbose=False):
     return EvaluateDualARAP_c(T, V, X, Xg, s, V1, k, verbose)

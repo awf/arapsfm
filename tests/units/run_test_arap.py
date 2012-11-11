@@ -78,6 +78,78 @@ def main_EvaluateSingleARAP():
     print 'approx_JV1j:'
     print approx_JV1[:, 6:9]
 
+# main_EvaluateSingleARAP2
+def main_EvaluateSingleARAP2():
+    T = np.r_[1, 2, 4,
+              2, 3, 4,
+              3, 0, 4,
+              0, 1, 4].reshape(-1, 3).astype(np.int32)
+
+    V = np.r_[0., 0., 0.,
+              0., 2., 0.,
+              2., 2., 0.,
+              2., 0., 0.,
+              1., 1., 1.].reshape(-1, 3).astype(np.float64)
+
+    X = np.zeros((5, 3), dtype=np.float64)
+    Xg = np.zeros((1, 3), dtype=np.float64)
+
+    s = np.abs(np.random.randn(1).reshape(1, 1).astype(np.float64))
+
+    V = np.random.randn(V.size).reshape(V.shape)
+    V1 = np.random.randn(V.size).reshape(V.shape)
+
+    k = 5
+
+    print 'V:'
+    print V
+    print 'V1:'
+    print V1
+
+    r = EvaluateSingleARAP2(T, V, X, Xg, s, V1, k, verbose=True)
+    e, Jx, Jxg, Js, JV1i, JV1j = r
+    print 'e:', e
+
+    print '\nJx:'
+    print Jx
+    print 'approx_Jx:'
+    approx_Jx = approx_jac(
+        lambda x: EvaluateSingleARAP2(T, V, x.reshape(V.shape), Xg, s, V1, k)[0], 
+        np.ravel(X))
+    print approx_Jx[:, 12:15]
+    print 'allclose? ', np.allclose(Jx, approx_Jx[:, 12:15], atol=1e-3)
+
+    print '\nJxg:' 
+    print Jxg
+    print 'approx_Jxg:'
+    approx_Jxg = approx_jac(
+        lambda x: EvaluateSingleARAP2(T, V, X, x.reshape(1, 3), s, V1, k)[0], 
+        np.ravel(Xg))
+    print approx_Jxg
+    print 'allclose? ', np.allclose(Jxg, approx_Jxg, atol=1e-3)
+
+    print '\nJs:'
+    print Js
+    print 'approx_Js:'
+    approx_Js = approx_jac(
+        lambda x: EvaluateSingleARAP2(T, V, X, Xg, x.reshape(1, 1), V1, k)[0], 
+        np.ravel(s))
+    print approx_Js
+    print 'allclose? ', np.allclose(Js, approx_Js, atol=1e-3)
+
+    print '\nJV1i:'
+    print JV1i
+    print 'approx_JV1i:'
+    approx_JV1 = approx_jac(
+        lambda x: EvaluateSingleARAP2(T, V, X, Xg, s, x.reshape(V1.shape), k)[0], 
+        np.ravel(V1))
+    print approx_JV1[:, 12:15]
+
+    print '\nJV1j:'
+    print JV1j
+    print 'approx_JV1j:'
+    print approx_JV1[:, 6:9]
+
 # main_EvaluateDualARAP
 def main_EvaluateDualARAP():
     T = np.r_[1, 2, 4,
@@ -309,6 +381,7 @@ def main_EvaluateDualNonLinearBasisARAP():
 
 if __name__ == '__main__':
     # main_EvaluateSingleARAP()
+    main_EvaluateSingleARAP2()
     # main_EvaluateDualARAP()
-    main_EvaluateDualNonLinearBasisARAP()
+    # main_EvaluateDualNonLinearBasisARAP()
 
