@@ -627,11 +627,12 @@ def main_nonlinear_basis_preconditioner_test():
     page.generate()
 
 # main_nonlinear_basis_experiment
-def main_nonlinear_basis_experiment(dir_, title, output):
+def main_nonlinear_basis_experiment(dir_, title, output, *args):
     scales = np.linspace(-1.0, 1.0, 6)
     scales = str(tuple(np.around(scales, decimals=2)))
 
-    def_vis_args = ['--output_image_first',
+    def_vis_args = ['--with_core', None,
+                    '--output_image_first',
                     '-c', 'SetParallelProjection=True,',
                     '-c', 'Azimuth=0', 
                     '-c', 'Azimuth=-90,', 
@@ -644,24 +645,6 @@ def main_nonlinear_basis_experiment(dir_, title, output):
                     '-c', 'Elevation=60',
                     '--magnification', '3',
                     '-a', 'model:SetRepresentation=3']
-
-    page = VisualisationPage(output,
-        title=title,
-        var_aliases={'indices':'frame number(s)',
-                     'index':'frame number'},
-        vis_vars=['mesh',
-                  'lambdas', 
-                  'preconditioners',
-                  'solver_options', 
-                  'uniform_weights',
-                  'find_circular_path',
-                  'max_restarts',
-                  'narrowband',
-                  'num_basis_rotations',
-                  'indices',
-                  'index'],
-
-        vis_args=def_vis_args)
 
     full_path = lambda f: os.path.join(dir_, f)
 
@@ -676,39 +659,80 @@ def main_nonlinear_basis_experiment(dir_, title, output):
         except ValueError:
             return -1
 
-    for f in sorted(files, key=key):
+    sorted_files = sorted(files, key=key)
+    def_vis_args[1] = full_path(sorted_files[0])
+
+    page = VisualisationPage(output,
+        title=title,
+        var_aliases={'indices':'frame number(s)',
+                     'index':'frame number'},
+        vis_vars=['mesh',
+                  'lambdas', 
+                  'preconditioners',
+                  'piecewise_polynomial',
+                  'solver_options', 
+                  'uniform_weights',
+                  'find_circular_path',
+                  'max_restarts',
+                  'narrowband',
+                  'num_basis_rotations',
+                  'indices',
+                  'index'],
+
+        vis_args=def_vis_args)
+
+    for f in sorted_files:
         abs_f = full_path(f)
 
         if 'core' in f:
-            z = np.load(abs_f)
-            num_basis_rotations = z['num_basis_rotations']
+            # skip core
+            continue
 
-            for i in xrange(num_basis_rotations):
-                page.add_test(abs_f,
-                              vis_script=('visualise/'
-                                          'visualise_scaled_rotations.py'),
-                              vis_args=[scales, 
-                                        '--rotations_index', str(i),
-                                        '--rigidly_register',
-                                        '--normalise_rotations'] 
-                                        + def_vis_args[1:-2],
-                              output_subdir='core_%d' % i,
-                              skip_summary=(i > 0),
-                              is_core=True)
+            z = np.load(abs_f)
+            if 'num_basis_rotations' in z.keys():
+                # show core with deformations
+                num_basis_rotations = z['num_basis_rotations']
+
+                for i in xrange(num_basis_rotations):
+                    page.add_test(abs_f,
+                                  vis_script=('visualise/'
+                                              'visualise_scaled_rotations.py'),
+                                  vis_args=[scales, 
+                                            '--rotations_index', str(i),
+                                            '--rigidly_register',
+                                            '--normalise_rotations'] 
+                                            + def_vis_args[3:-2],
+                                  output_subdir='core_%d' % i,
+                                  skip_summary=(i > 0))
+            else:
+                # show core as a regular test
+                page.add_test(abs_f)
+                
         else:
-            page.add_test(abs_f)
+            # page.add_test(abs_f)
+            page.add_test(abs_f, vis_args=def_vis_args[2:] + 
+                          ['--subdivide', '2', '--compute_normals'])
 
     page.generate()
 
 # main
 def main():
-    walker = os.walk('cheetah1B/Cheetah_4/Experiments/NonlinearRotationBasis/')
+    # walker = os.walk('cheetah1B/Cheetah_4/Experiments/NonlinearRotationBasis/')
+    # walker = os.walk('/mnt/sshfs/RichardStebbing_fbg-cluster/Code/Projects/Core_Recovery/')
+    # walker = os.walk('.')
+    walker = os.walk('20121110')
+
     dir_, subdirs, files = next(walker)
 
     for subdir in subdirs:
+        # if '4B_5-6-10_NB=2_y_=128.0_ARAP=4.0_U=64.0_R=64.0_s=128.0_1e-4_R2=128.0_PP' not in subdir:
+        #     continue
+        if 'OLD' in subdir:
+            continue
+
         full_path = os.path.join(dir_, subdir)
         title = subdir
-        output = os.path.join('NonlinearRotationBasis', subdir)
+        output = os.path.join('NonlinearRotationBasis/TO/Subdivided/', subdir)
 
         main_nonlinear_basis_experiment(full_path, title, output)
 
