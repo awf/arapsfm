@@ -1,2 +1,3 @@
 silhouette_global_solver.cpp
 lm_solvers.cpp
+lm_alt_solvers.cpp
