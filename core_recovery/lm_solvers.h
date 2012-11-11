@@ -595,6 +595,10 @@ int solve_multiview_lap_silhouette(
     vector<ScaleNode *> instScaleNodes;
     for (auto i = multis.begin(); i != multis.end(); ++i)
     {
+        // invert scales
+        Matrix<double> & s = *(*i);
+        s[0][0] = 1.0 / s[0][0];
+
         instScaleNodes.push_back(new ScaleNode(*(*i)));
         problem.AddNode(instScaleNodes.back());
     }
@@ -649,6 +653,13 @@ int solve_multiview_lap_silhouette(
 
     // minimise
     int ret = problem.Minimise(*options);
+
+    // invert scales
+    for (auto i = multis.begin(); i != multis.end(); ++i)
+    {
+        Matrix<double> & s = *(*i);
+        s[0][0] = 1.0 / s[0][0];
+    }
 
     // dealloc 
     dealloc_vector(meshWalkers);
