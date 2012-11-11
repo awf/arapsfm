@@ -468,8 +468,9 @@ class RigidTransformARAPEnergy2: public Energy
 public:
     RigidTransformARAPEnergy2(const VertexNode & V, const GlobalRotationNode & Xg, const ScaleNode & s,
                               const RotationNode & X, const VertexNode & V1, const Mesh & mesh, const double w,
-                              bool uniformWeights)
-        : _V(V), _X(X), _Xg(Xg), _s(s), _V1(V1), _mesh(mesh), _w(w), _uniformWeights(uniformWeights)
+                              bool uniformWeights, bool fixedScale)
+        : _V(V), _X(X), _Xg(Xg), _s(s), _V1(V1), _mesh(mesh), _w(w), 
+          _uniformWeights(uniformWeights), _fixedScale(fixedScale)
     {}
 
     virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
@@ -477,9 +478,10 @@ public:
         vector<int> * pUsedParamTypes = new vector<int>;
         pUsedParamTypes->push_back(_X.GetParamId());
         pUsedParamTypes->push_back(_Xg.GetParamId());
-        pUsedParamTypes->push_back(_s.GetParamId());
         pUsedParamTypes->push_back(_V1.GetParamId());
         pUsedParamTypes->push_back(_V1.GetParamId());
+        if (!_fixedScale)
+            pUsedParamTypes->push_back(_s.GetParamId());
 
         costFunctions.push_back(new Energy_CostFunction(*this, pUsedParamTypes, 3));
     }
@@ -493,11 +495,11 @@ public:
         case 1:
             return _Xg.GetOffset(); 
         case 2:
-            return _s.GetOffset(); 
-        case 3:
             return _mesh.GetHalfEdge(k, 0) + _V1.GetOffset();
-        case 4:
+        case 3:
             return _mesh.GetHalfEdge(k, 1) + _V1.GetOffset();
+        case 4:
+            return _s.GetOffset(); 
         }
 
         assert(false);
@@ -597,25 +599,26 @@ public:
 
                 return;
             }
-        case 2:
-            // s
-            {
-                subtractVectors_Static<double, 3>(_V1.GetVertex(i), _V1.GetVertex(j), J[0]);
-                scaleVectorIP_Static<double, 3>(w, J[0]);
-                return;
-            }
 
-        case 3:
+        case 2:
             // V1i
             {
                 
                 arapJac_V1_Unsafe(true, w * _s.GetScale(), J[0]);
                 return;
             }
-        case 4:
+        case 3:
             // V1j
             {
                 arapJac_V1_Unsafe(false, w * _s.GetScale(), J[0]);
+                return;
+            }
+
+        case 4:
+            // s
+            {
+                subtractVectors_Static<double, 3>(_V1.GetVertex(i), _V1.GetVertex(j), J[0]);
+                scaleVectorIP_Static<double, 3>(w, J[0]);
                 return;
             }
         }
@@ -633,6 +636,7 @@ protected:
     const Mesh & _mesh;
     const double _w;
     bool _uniformWeights;
+    bool _fixedScale;
 };
 
 // RigidTransformARAPEnergy2B (uses `arapResiduals_ScaleV_Unsafe` and
@@ -642,8 +646,9 @@ class RigidTransformARAPEnergy2B: public Energy
 public:
     RigidTransformARAPEnergy2B(const VertexNode & V, const GlobalRotationNode & Xg, const ScaleNode & s,
                                const RotationNode & X, const VertexNode & V1, const Mesh & mesh, const double w,
-                               bool uniformWeights)
-        : _V(V), _X(X), _Xg(Xg), _s(s), _V1(V1), _mesh(mesh), _w(w), _uniformWeights(uniformWeights)
+                               bool uniformWeights, bool fixedScale)
+        : _V(V), _X(X), _Xg(Xg), _s(s), _V1(V1), _mesh(mesh), _w(w), 
+          _uniformWeights(uniformWeights), _fixedScale(fixedScale)
     {}
 
     virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
@@ -651,9 +656,10 @@ public:
         vector<int> * pUsedParamTypes = new vector<int>;
         pUsedParamTypes->push_back(_X.GetParamId());
         pUsedParamTypes->push_back(_Xg.GetParamId());
-        pUsedParamTypes->push_back(_s.GetParamId());
         pUsedParamTypes->push_back(_V.GetParamId());
         pUsedParamTypes->push_back(_V.GetParamId());
+        if (!_fixedScale)
+            pUsedParamTypes->push_back(_s.GetParamId());
 
         costFunctions.push_back(new Energy_CostFunction(*this, pUsedParamTypes, 3));
     }
@@ -667,11 +673,11 @@ public:
         case 1:
             return _Xg.GetOffset(); 
         case 2:
-            return _s.GetOffset(); 
-        case 3:
             return _mesh.GetHalfEdge(k, 0) + _V.GetOffset();
-        case 4:
+        case 3:
             return _mesh.GetHalfEdge(k, 1) + _V.GetOffset();
+        case 4:
+            return _s.GetOffset(); 
         }
 
         assert(false);
@@ -771,25 +777,26 @@ public:
 
                 return;
             }
-        case 2:
-            // s
-            {
-                subtractVectors_Static<double, 3>(_V1.GetVertex(i), _V1.GetVertex(j), J[0]);
-                scaleVectorIP_Static<double, 3>(w, J[0]);
-                return;
-            }
 
-        case 3:
+        case 2:
             // Vi
             {
                 arapJac_V_Unsafe(true, w, q, 1.0, J[0]);
                 return;
             }
 
-        case 4:
+        case 3:
             // Vj
             {
                 arapJac_V_Unsafe(false, w, q, 1.0, J[0]);
+                return;
+            }
+
+        case 4:
+            // s
+            {
+                subtractVectors_Static<double, 3>(_V1.GetVertex(i), _V1.GetVertex(j), J[0]);
+                scaleVectorIP_Static<double, 3>(w, J[0]);
                 return;
             }
         }
@@ -807,6 +814,7 @@ protected:
     const Mesh & _mesh;
     const double _w;
     bool _uniformWeights;
+    bool _fixedScale;
 };
 
 // RigidTransformARAPEnergy3 (uses `GlobalRotationNode`)
