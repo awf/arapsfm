@@ -64,7 +64,7 @@ def main():
     D = np.sum(D * D, axis=-1)
     
     # get argument distance transform
-    arg_D = np.argmin(D, axis=1)
+    arg_D = np.argmin(D, axis=1).astype(np.int32)
 
     # propagate constraints accordingly
     C1 = arg_D[input_constraints['C']]
