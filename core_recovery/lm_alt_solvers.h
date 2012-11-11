@@ -38,6 +38,7 @@ int solve_instance(PyArrayObject * npy_T,
                    PyArrayObject * npy_piecewisePolynomial,
                    int narrowBand,
                    bool uniformWeights,
+                   bool fixedScale,
                    const OptimiserOptions * options)
 {
     PYARRAY_AS_MATRIX(int, npy_T, T);
@@ -72,11 +73,12 @@ int solve_instance(PyArrayObject * npy_T,
     nodeXg->SetPreconditioner(preconditioners[4]);
     problem.AddNode(nodeXg);
 
-    // Invert scale for `RigidTransformARAPEnergy2`
-    s[0][0] = 1.0 / s[0][0];
     auto nodes = new ScaleNode(s);
     nodes->SetPreconditioner(preconditioners[2]);
-    problem.AddNode(nodes);
+    if (fixedScale)
+        problem.AddFixedNode(nodes);
+    else
+        problem.AddNode(nodes);
 
     auto nodeX = new RotationNode(X);
     nodeX->SetPreconditioner(preconditioners[1]);
@@ -90,10 +92,10 @@ int solve_instance(PyArrayObject * npy_T,
     nodeU->SetPreconditioner(preconditioners[3]);
     problem.AddNode(nodeU);
 
-    // RigidTransformARAPEnergy2
-    problem.AddEnergy(new RigidTransformARAPEnergy2(
+    // RigidTransformARAPEnergy3
+    problem.AddEnergy(new RigidTransformARAPEnergy3(
         *nodeV, *nodeXg, *nodes, *nodeX, *nodeV1, 
-        mesh, sqrt(lambdas[0]), uniformWeights));
+        mesh, sqrt(lambdas[0]), uniformWeights, fixedScale));
 
     // SilhouetteProjectionEnergy
     auto residualTransform = new PiecewisePolynomialTransform_C1(
@@ -114,9 +116,6 @@ int solve_instance(PyArrayObject * npy_T,
 
     // Minimise
     int ret = problem.Minimise(*options);
-
-    // Invert scale for `RigidTransformARAPEnergy2`
-    s[0][0] = 1.0 / s[0][0];
 
     delete residualTransform;
 
