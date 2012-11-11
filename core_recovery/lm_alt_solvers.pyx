@@ -40,6 +40,7 @@ cdef extern from "lm_alt_solvers.h":
                                            np.ndarray npy_piecewisePolynomial,
                                            int narrowBand,
                                            bint uniformWeights,
+                                           bint fixedScale,
                                            OptimiserOptions * options)
 
     int solve_core_c "solve_core" (np.ndarray npy_T,
@@ -112,6 +113,7 @@ def solve_instance(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
                    np.ndarray[np.float64_t, ndim=1] piecewisePolynomial,
                    int narrowBand,
                    bint uniformWeights,
+                   bint fixedScale,
                    **kwargs):
 
     if lambdas.shape[0] != 4:
@@ -134,6 +136,7 @@ def solve_instance(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
                                        piecewisePolynomial,
                                        narrowBand,
                                        uniformWeights,
+                                       fixedScale,
                                        &options)
 
     return status, STATUS_CODES[status]
@@ -150,8 +153,8 @@ def solve_core(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
                bint uniformWeights,
                **kwargs):
 
-    if lambdas.shape[0] != 1:
-        raise ValueError('lambdas.shape[0] != 1')
+    if lambdas.shape[0] != 2:
+        raise ValueError('lambdas.shape[0] != 2')
 
     if preconditioners.shape[0] != 4:
         raise ValueError('preconditioners.shape[0] != 4')
