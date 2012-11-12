@@ -280,17 +280,27 @@ def main():
         print 'Creating directory:', output
         os.makedirs(output)
 
+    # transfer vertices to shared memory
+    # ------------------------------------------------------------------------
+    def to_shared(a):
+        b = mparray.empty_like(a)
+        b.flat = a.flat
+        return b
+
+    V = to_shared(V)
+    V1 = map(to_shared, V1)
+
     # initialise all auxilarity variables
     # ------------------------------------------------------------------------ 
 
     # instance rotations (X)
-    X = [np.zeros_like(v) for v in V1]
+    X = [mparray.zeros_like(v) for v in V1]
 
     # global rotations (X)
-    Xg = [np.zeros((1, 3), dtype=np.float64) for v in V1]
+    Xg = [mparray.zeros((1, 3), dtype=np.float64) for v in V1]
 
     # instance scales (s)
-    instScales = [np.ones((1, 1), dtype=np.float64) for v in V1]
+    instScales = [mparray.ones((1, 1), dtype=np.float64) for v in V1]
 
     # initialise silhouette (U, L)
     print 'initialising silhouette information:'
@@ -312,6 +322,9 @@ def main():
                                    isCircular=args.find_circular_path)
         U.append(u)
         L.append(l)
+
+    U = map(to_shared, U)
+    L = map(to_shared, L)
 
     # optional frames
     if args.frames is not None:
@@ -372,9 +385,9 @@ def main():
         else:
             instance_lambdas[0] = lambdas[3]
 
-        statuses = np.empty(num_instances + 1, dtype=np.int32)
+        statuses = mparray.empty(num_instances + 1, dtype=np.int32)
 
-        for i in xrange(num_instances):
+        def run_solve_instance(i):
             for j in xrange(args.max_restarts):
                 status = solve_instance(i)
 
@@ -385,6 +398,9 @@ def main():
                     break
 
             statuses[i] = status[0]
+
+        async_exec(run_solve_instance, ((i,) for i in xrange(num_instances)), 
+                   n=2, chunksize=2)
 
         print instScales
 
