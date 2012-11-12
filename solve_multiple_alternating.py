@@ -14,6 +14,10 @@ from core_recovery.silhouette_global_solver import \
 from time import time
 from visualise import *
 from misc.bunch import Bunch
+
+import multiprocessing as mp
+from itertools import izip_longest
+from misc.numpy_ import mparray
     
 # Utilities
 
@@ -55,6 +59,47 @@ def quick_visualise(V, T, L, U, S, frame=None):
 
     VIS_CACHE.append(vis)
     
+# Multiprocessing
+
+# grouper (from `itertools`)
+def grouper(n, iterable, fillvalue=None):
+    "grouper(3, 'ABCDEFG', 'x') --> ABC DEF Gxx"
+    args = [iter(iterable)] * n
+    return izip_longest(fillvalue=fillvalue, *args)
+
+# async_exec
+def async_exec(f, iterable, n=None, poll=1., chunksize=1):
+    def _async_exec_process(args_list):
+        for args in args_list:
+            if args is None:
+                return
+
+            f(*args)
+
+    if n is None:
+        n = mp.cpu_count()
+
+    if n == 1:
+        return _async_map_process(iterable)
+
+    active_processes = []
+
+    for args_list in grouper(chunksize, iterable, None):
+        while len(active_processes) >= n:
+            for i, p in enumerate(active_processes):
+                p.join(poll)
+                if not p.is_alive():
+                    del active_processes[i]
+                    break
+        
+        # launch next process
+        p = mp.Process(target=_async_exec_process, args=(args_list, ))
+        p.start()
+        active_processes.append(p)
+
+    for p in active_processes:
+        p.join()
+
 # Main
 
 # save_state
