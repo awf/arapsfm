@@ -113,7 +113,7 @@ class StandaloneVisualisation(object):
 
     @requires('T', 'Xg', 's', 'X', attrs=['vertices_key'])
     def _add_regular_arap(self):
-        if self['y'] is not None:
+        if self['y'] is not None or self.core_V is None:
             return
 
         T = self['T'] 
