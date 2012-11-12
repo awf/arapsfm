@@ -115,8 +115,7 @@ def save_state(output_dir, **kwargs):
     print '-> %s' % output_file
 
     pickle_.dump(output_file,
-                dict(solve_iteration=b.i,
-                     T=b.T, 
+                dict(T=b.T, 
                      V=b.V,
                      lambdas=b.lambdas,
                      preconditioners=b.preconditioners,
@@ -204,6 +203,7 @@ def main():
                          default=False)
     parser.add_argument('--max_restarts', type=int, default=5)
     parser.add_argument('--outer_loops', type=int, default=5)
+    parser.add_argument('--num_processes', type=int, default=1)
 
     # parse the arguments
     args = parser.parse_args()
@@ -227,6 +227,7 @@ def main():
     # load instance initial vertex positions
     print 'initialisations:'
     (V1,) = load_instance_variables(args.instance_initialisations, 'V')
+    num_instances = len(V1)
 
     # load user constraints
     print 'user_constraints:'
@@ -261,6 +262,12 @@ def main():
         improvementThreshold=1e-6,
         verbosenessLevel=1)
     print 'solver_options:', solver_options
+
+    num_processes = args.num_processes
+    if num_processes < 0:
+        num_processes = mp.cpu_count()
+
+    print 'num_processes:', num_processes
 
     # setup output directory
     # ------------------------------------------------------------------------ 
@@ -309,10 +316,12 @@ def main():
     print 'global_silhoutte_lambdas:', global_silhoutte_lambdas
     print 'isCircular:', args.find_circular_path
 
-    U, L = [], []
-    for l in xrange(len(indices)):
-        s = silhouette_info[l]
-        u, l = shortest_path_solve(V1[l], T, S[l], SN[l],
+    U = [mparray.empty((s.shape[0], 2), np.float64) for s in S]
+    L = [mparray.empty(s.shape[0], np.int32) for s in S]
+
+    def solve_silhouette_info(i):
+        s = silhouette_info[i]
+        u, l = shortest_path_solve(V1[i], T, S[i], SN[i],
                                    s['SilCandDistances'],
                                    s['SilEdgeCands'],
                                    s['SilEdgeCandParam'],
@@ -320,11 +329,14 @@ def main():
                                    s['SilCandU'],
                                    global_silhoutte_lambdas,
                                    isCircular=args.find_circular_path)
-        U.append(u)
-        L.append(l)
 
-    U = map(to_shared, U)
-    L = map(to_shared, L)
+        U[i].flat = u.flat
+        L[i].flat = l.flat
+
+    async_exec(solve_silhouette_info,
+               ((i,) for i in xrange(num_instances)),
+               n=num_processes,
+               chunksize=max(1, num_instances / num_processes))
 
     # optional frames
     if args.frames is not None:
@@ -356,24 +368,6 @@ def main():
     print 'narrowband:', args.narrowband
     print 'uniform_weights:', args.uniform_weights
 
-    def solve_instance(i):
-        print '# solve_instance:', i
-        status = lm_solve_instance(T, V, 
-            Xg[i], instScales[i], X[i], V1[i], U[i], L[i],
-            S[i], SN[i], Rx[i], Ry[i], 
-            instance_lambdas, 
-            preconditioners,
-            piecewise_polynomial,
-            args.narrowband,
-            args.uniform_weights,
-            i == 0,
-            **solver_options)
-
-        print 'LM Status (%d): ' % status[0], status[1]
-
-        return status
-
-    num_instances = len(V1)
     print 'num_instances:', num_instances
     print 'max_restarts:', args.max_restarts
     print 'outer_loops:', args.outer_loops
@@ -387,9 +381,21 @@ def main():
 
         statuses = mparray.empty(num_instances + 1, dtype=np.int32)
 
-        def run_solve_instance(i):
+        def solve_instance(i):
             for j in xrange(args.max_restarts):
-                status = solve_instance(i)
+                print '# solve_instance:', i
+                status = lm_solve_instance(T, V, 
+                    Xg[i], instScales[i], X[i], V1[i], U[i], L[i],
+                    S[i], SN[i], Rx[i], Ry[i], 
+                    instance_lambdas, 
+                    preconditioners,
+                    piecewise_polynomial,
+                    args.narrowband,
+                    args.uniform_weights,
+                    i == 0,
+                    **solver_options)
+
+                print 'LM Status (%d): ' % status[0], status[1]
 
                 # break loop if any ret status is:
                 #   0 (OPTIMIZER_TIMEOUT) 
@@ -399,8 +405,10 @@ def main():
 
             statuses[i] = status[0]
 
-        async_exec(run_solve_instance, ((i,) for i in xrange(num_instances)), 
-                   n=2, chunksize=2)
+        async_exec(solve_instance, 
+                   ((i,) for i in xrange(num_instances)), 
+                   n=num_processes, 
+                   chunksize=max(1, num_instances / num_processes))
 
         print instScales
 
