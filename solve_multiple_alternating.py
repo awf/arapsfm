@@ -5,13 +5,15 @@ from util.cmdline import *
 from itertools import count, izip
 
 from core_recovery.lm_alt_solvers import \
-    solve_instance as lm_solve_instance
+    solve_instance as lm_solve_instance, \
+    solve_core as lm_solve_core
 
 from core_recovery.silhouette_global_solver import \
     shortest_path_solve
 
 from time import time
 from visualise import *
+from misc.bunch import Bunch
     
 # Utilities
 
@@ -55,6 +57,59 @@ def quick_visualise(V, T, L, U, S, frame=None):
     
 # Main
 
+# save_state
+def save_state(output_dir, **kwargs):
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    make_path = lambda f: os.path.join(output_dir, f)
+    output_file = make_path('core.npz')
+
+    b = Bunch(kwargs)
+
+    print '-> %s' % output_file
+
+    pickle_.dump(output_file,
+                dict(solve_iteration=b.i,
+                     T=b.T, 
+                     V=b.V,
+                     lambdas=b.lambdas,
+                     preconditioners=b.preconditioners,
+                     piecewise_polynomial=b.piecewise_polynomial,
+                     solver_options=b.solver_options,
+                     max_restarts=b.max_restarts,
+                     narrowband=b.narrowband,
+                     uniform_weights=b.uniform_weights,
+                     find_circular_path=b.find_circular_path,
+                     frames=b.frames,
+                     indices=b.indices))
+
+    for l, index in enumerate(b.indices):
+        Q = geometry.path2pos(b.V1[l], b.T, b.L[l], b.U[l])
+
+        d = dict(T=b.T,
+                 V=b.V1[l],
+                 Xg=b.Xg[l],
+                 s=b.instScales[l],
+                 X=b.X[l],
+                 L=b.L[l],
+                 U=b.U[l],
+                 Q=Q,
+                 S=b.S[l],
+                 C=b.C[l],
+                 P=b.P[l],
+                 lambdas=b.lambdas,
+                 preconditioners=b.preconditioners,
+                 index=index)
+
+        if b.frames[l] is not None:
+            d['image'] = b.frames[l]
+
+        output_file = make_path('%d.npz' % index)
+
+        print '-> %s' % output_file
+        pickle_.dump(output_file, d)
+
 # main
 def main():
     # setup parser
@@ -86,8 +141,9 @@ def main():
     # general
     parser.add_argument('lambdas', type=str)
     parser.add_argument('preconditioners', type=str)
+    parser.add_argument('piecewise_polynomial', type=str)
 
-    parser.add_argument('--output', type=str)
+    parser.add_argument('--output', type=str, default=None)
 
     # visualisation
     parser.add_argument('--frames', type=str, default=None)
@@ -102,6 +158,7 @@ def main():
                          action='store_true',
                          default=False)
     parser.add_argument('--max_restarts', type=int, default=5)
+    parser.add_argument('--outer_loops', type=int, default=5)
 
     # parse the arguments
     args = parser.parse_args()
@@ -146,8 +203,10 @@ def main():
     # parse the lambdas and preconditioners
     lambdas = parse_float_string(args.lambdas)
     preconditioners = parse_float_string(args.preconditioners)
+    piecewise_polynomial = parse_float_string(args.piecewise_polynomial)
     print 'lambdas:', lambdas
     print 'preconditioners:', preconditioners
+    print 'piecewise_polynomial:', piecewise_polynomial
 
     # solver arguments
     solver_options = parse_solver_options(args.solver_options,
@@ -160,9 +219,21 @@ def main():
 
     # setup output directory
     # ------------------------------------------------------------------------ 
-    if not os.path.exists(args.output):
-        print 'Creating directory:', args.output
-        os.makedirs(args.output)
+    output = args.output
+    if output == 'default':
+        make_str = lambda a: ",".join('%.4g' % a_ for a_ in a)
+        mesh_file = os.path.split(args.mesh)[1]
+        output = '%s_%s_%s_%s_%s' % (os.path.splitext(mesh_file)[0],
+                                     make_str(indices),
+                                     make_str(lambdas), 
+                                     make_str(preconditioners),
+                                     make_str(piecewise_polynomial))
+
+    print 'output:', output
+
+    if output is not None and not os.path.exists(output):
+        print 'Creating directory:', output
+        os.makedirs(output)
 
     # initialise all auxilarity variables
     # ------------------------------------------------------------------------ 
@@ -213,23 +284,31 @@ def main():
     instance_lambdas = np.r_[lambdas[3],    # as-rigid-as-possible
                              lambdas[1:3],  # silhouette
                              lambdas[4],    # spillage
-                             # lambdas[6]]  # projection
+                                            # projection
                              ]
 
+    core_lambdas = np.r_[lambdas[3], lambdas[6]]
+    core_preconditioners = np.r_[preconditioners[:3],
+                                 preconditioners[4]]
+
     print 'instance_lambdas:', instance_lambdas
+    print 'core_lambdas:', core_lambdas
+
     print 'preconditioners:', preconditioners
     print 'narrowband:', args.narrowband
     print 'uniform_weights:', args.uniform_weights
 
     def solve_instance(i):
+        print '# solve_instance:', i
         status = lm_solve_instance(T, V, 
             Xg[i], instScales[i], X[i], V1[i], U[i], L[i],
             S[i], SN[i], Rx[i], Ry[i], 
             instance_lambdas, 
             preconditioners,
-            piecewisePolynomial,
+            piecewise_polynomial,
             args.narrowband,
             args.uniform_weights,
+            i == 0,
             **solver_options)
 
         print 'LM Status (%d): ' % status[0], status[1]
@@ -239,29 +318,70 @@ def main():
     num_instances = len(V1)
     print 'num_instances:', num_instances
     print 'max_restarts:', args.max_restarts
+    print 'outer_loops:', args.outer_loops
 
     t1 = time()
-    for i in xrange(args.max_restarts):
-        inst_ret = map(solve_instance, xrange(num_instances))
-
-        # break loop if any ret status is 0 (OPTIMIZER_TIMEOUT) 
-        # or 4 (OPTIMIZER_CANT_BEGIN_ITERATION)
-        for status in inst_ret:
-            if status[0] in (0, 4):
-                break
+    for l in xrange(args.outer_loops):
+        if l == 0:
+            instance_lambdas[0] = lambdas[5]
         else:
-            break
+            instance_lambdas[0] = lambdas[3]
+
+        statuses = np.empty(num_instances + 1, dtype=np.int32)
+
+        for i in xrange(num_instances):
+            for j in xrange(args.max_restarts):
+                status = solve_instance(i)
+
+                # break loop if any ret status is:
+                #   0 (OPTIMIZER_TIMEOUT) 
+                #   4 (OPTIMIZER_CANT_BEGIN_ITERATION)
+                if status[0] not in (0, 4):
+                    break
+
+            statuses[i] = status[0]
+
+        print instScales
+
+        for j in xrange(args.max_restarts):
+            core_opts = solver_options.copy()
+            # core_opts['verbosenessLevel'] = 2
+
+            print '# solve_core:'
+            status = lm_solve_core(T, V, Xg, instScales, X, V1, 
+                                   core_lambdas,
+                                   core_preconditioners,
+                                   args.narrowband,
+                                   args.uniform_weights,
+                                   **core_opts)
+
+            print 'LM Status (%d): ' % status[0], status[1]
+
+            if status[0] not in (0, 4):
+                break
+
+        print instScales
+
+        statuses[-1] = status[0]
+
+        # if not np.any((statuses == 0) | (statuses == 4)):
+        #     break
 
     t2 = time()
     print 'time taken: %.3f' % (t2 - t1)
 
-    for l in xrange(len(indices)):
-        print 'viewing: %d' % indices[l]
-        quick_visualise(V1[l], T, L[l], U[l], S[l], frames[l])
+    if output is not None:
+        scope = args.__dict__.copy()
+        scope.update(locals())
+        save_state(output, **scope)
+    else:
+        for l in xrange(len(indices)):
+            print 'viewing: %d' % indices[l]
+            quick_visualise(V1[l], T, L[l], U[l], S[l], frames[l])
 
-    vis = VisualiseMesh()
-    vis.add_mesh(V, T)
-    vis.execute()
+        vis = VisualiseMesh()
+        vis.add_mesh(V, T)
+        vis.execute()
 
 if __name__ == '__main__':
     main()
