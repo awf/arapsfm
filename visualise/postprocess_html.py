@@ -57,12 +57,14 @@ def main():
     parser.add_argument('--max_height', type=int, default=100)
 
     args = parser.parse_args()
+
+    all_ = all_pngs(args.directory)
+
     print 'directory:', args.directory
     r = raw_input('proceed (y/n)? ')
     if r.lower() != 'y':
         return
 
-    all_ = all_pngs(args.directory)
     map(trim_image, all_)
     map(lambda f: make_thumbnail(f, args.max_height), all_)
 
