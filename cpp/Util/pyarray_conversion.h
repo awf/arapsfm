@@ -5,6 +5,7 @@
 
 // Includes
 #include <cassert>
+#include <utility>
 
 #include <Math/v3d_linear.h>
 using namespace V3D;
@@ -81,8 +82,18 @@ void dealloc_vector(vector<T *> & vec)
     vec.clear();
 }
 
+template <typename T>
+Matrix<T> make_Matrix(unsigned int rows, unsigned int cols, T * data)
+{
+    unsigned int size = rows * cols;
+    if (size > 0)
+        return Matrix<T>(rows, cols, data);
+    else
+        return Matrix<T>(0, 0, nullptr);
+}
+
 // Convenience macros
 #define PYARRAY_AS_VECTOR(T,A,V) assert(PyArray_NDIM(A) == 1); Vector<T> V(PyArray_DIMS(A)[0], PyArray_SafeCast<T>(A))
-#define PYARRAY_AS_MATRIX(T,A,M) assert(PyArray_NDIM(A) == 2); Matrix<T> M(PyArray_DIMS(A)[0], PyArray_DIMS(A)[1], PyArray_SafeCast<T>(A))
+#define PYARRAY_AS_MATRIX(T,A,M) assert(PyArray_NDIM(A) == 2); Matrix<T> M = std::move(make_Matrix(PyArray_DIMS(A)[0], PyArray_DIMS(A)[1], PyArray_SafeCast<T>(A)))
 
 #endif
