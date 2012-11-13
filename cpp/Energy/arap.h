@@ -14,6 +14,8 @@ using namespace V3D;
 #include <cmath>
 #include <vector>
 #include <algorithm>
+#include <map>
+#include <iterator>
 using namespace std;
 
 // arapResiduals_Unsafe
@@ -1903,6 +1905,392 @@ protected:
     const double _w;
     bool _uniformWeights;
     int _n;
+};
+
+// SectionedBasisArapEnergy
+class SectionedBasisArapEnergy : public Energy
+{
+public:
+    SectionedBasisArapEnergy(const VertexNode & V, const GlobalRotationNode & Xg, const ScaleNode & s,
+                             const RotationNode & Xb, const CoefficientsNode & y, 
+                             const RotationNode & X, const VertexNode & V1, 
+                             const Matrix<int> & K, const Mesh & mesh, const double w,
+                             bool uniformWeights, bool fixedScale)
+        : _V(V), _Xg(Xg), _s(s), _Xb(Xb), _y(y), _X(X), _V1(V1), _K(K), _mesh(mesh), _w(w), 
+          _uniformWeights(uniformWeights), _fixedScale(fixedScale)
+    {}
+
+    virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
+    {
+        vector<int> * fixedRotResidualMap = new vector<int>;
+        vector<int> * basisRotResidualMap = new vector<int>;
+        vector<int> * freeRotResidualMap = new vector<int>;
+
+        for (int k=0; k < _mesh.GetNumberOfHalfEdges(); k++)
+        {
+            int i = _mesh.GetHalfEdge(k, 0);
+
+            if (_K[i][0] < 0)
+            {
+                // free (independent) rotation
+                freeRotResidualMap->push_back(k);
+            }
+            else if (_K[i][0] == 0)
+            {
+                // fixed rotation
+                fixedRotResidualMap->push_back(k);
+            }
+            else
+            {
+                // single-axis (basis) rotation
+                basisRotResidualMap->push_back(k);
+            }
+        }
+
+        // construct cost functions
+        if (freeRotResidualMap->size() > 0)
+        {
+            // free (independent) rotation
+            vector<int> * pUsedParamTypes = new vector<int>;
+            pUsedParamTypes->push_back(_Xg.GetParamId());
+            pUsedParamTypes->push_back(_V1.GetParamId());
+            pUsedParamTypes->push_back(_V1.GetParamId());
+            pUsedParamTypes->push_back(_X.GetParamId());
+            if (!_fixedScale)
+                pUsedParamTypes->push_back(_s.GetParamId());
+
+            costFunctions.push_back(new Energy_CostFunction(*this, pUsedParamTypes, 3, freeRotResidualMap));
+        }
+
+        if (fixedRotResidualMap->size() > 0)
+        {
+            // fixed rotation
+            vector<int> * pUsedParamTypes = new vector<int>;
+            pUsedParamTypes->push_back(_Xg.GetParamId());
+            pUsedParamTypes->push_back(_V1.GetParamId());
+            pUsedParamTypes->push_back(_V1.GetParamId());
+            if (!_fixedScale)
+                pUsedParamTypes->push_back(_s.GetParamId());
+
+            costFunctions.push_back(new Energy_CostFunction(*this, pUsedParamTypes, 3, fixedRotResidualMap));
+        }
+
+        if (basisRotResidualMap->size() > 0)
+        {
+            // single-axis (basis) rotation
+            vector<int> * pUsedParamTypes = new vector<int>;
+            pUsedParamTypes->push_back(_Xg.GetParamId());
+            pUsedParamTypes->push_back(_V1.GetParamId());
+            pUsedParamTypes->push_back(_V1.GetParamId());
+            pUsedParamTypes->push_back(_Xb.GetParamId());
+            pUsedParamTypes->push_back(_y.GetParamId());
+            if (!_fixedScale)
+                pUsedParamTypes->push_back(_s.GetParamId());
+
+            costFunctions.push_back(new Energy_CostFunction(*this, pUsedParamTypes, 3, basisRotResidualMap));
+        }
+    }
+    virtual int GetCorrespondingParam(const int k, const int l) const
+    {
+        int i = _mesh.GetHalfEdge(k, 0), j = _mesh.GetHalfEdge(k, 1);
+
+        // parameters common to all three types of cost functions
+        switch (l)
+        {
+        case 0:
+            return _Xg.GetOffset(); 
+        case 1:
+            return i + _V1.GetOffset();
+        case 2:
+            return j + _V1.GetOffset();
+        default:
+            break;
+        }
+
+        if (_K[i][0] < 0)
+        {
+            // free (independent) rotation
+            switch (l)
+            {
+            case 3:
+                return _K[i][1] + _X.GetOffset();
+            case 4:
+                return _s.GetOffset();
+            }
+        }
+        else if (_K[i][0] == 0)
+        {
+            // fixed rotation
+            switch (l)
+            {
+            case 3:
+                return _s.GetOffset();
+            }
+        }
+        else
+        {
+            // single-axis (basis) rotation
+            switch (l)
+            {
+            case 3:
+                return _K[i][1] + _Xb.GetOffset();
+            case 4:
+                return _K[i][0] - 1 + _y.GetOffset();
+            case 5:
+                return _s.GetOffset();
+            }
+        }
+
+        assert(false);
+
+        return -1;
+    }
+
+    virtual int GetNumberOfMeasurements() const
+    {
+        return _mesh.GetNumberOfHalfEdges();
+    }
+
+    virtual double GetEdgeWeight(int k) const
+    {
+        double w = _w;
+        if (!_uniformWeights)
+            w *= sqrt(_mesh.GetCotanWeight(_V.GetVertices(), k));
+
+        return w;
+    }
+
+    virtual void EvaluateResidual(const int k, Vector<double> & e) const
+    {
+        int i = _mesh.GetHalfEdge(k, 0), j = _mesh.GetHalfEdge(k, 1);
+        const double w = GetEdgeWeight(k);
+
+        double qi[4] = {0., 0., 0., 1.};
+
+        if (_K[i][0] < 0)
+        {
+            quat_Unsafe(_X.GetRotation(_K[i][1]), qi);
+        }
+        else if (_K[i][0] > 0)
+        {
+            double x[3];
+            axScale_Unsafe(_y.GetCoefficient(_K[i][0] - 1), _Xb.GetRotation(_K[i][1]), x);
+            quat_Unsafe(x, qi);
+        }
+
+        double qg[4];
+        quat_Unsafe(_Xg.GetRotation(), qg);
+
+        double q[4];
+        quatMultiply_Unsafe(qg, qi, q);
+
+        arapResiduals_ScaleV_Unsafe(_V.GetVertex(i), _V.GetVertex(j),
+                                    _V1.GetVertex(i), _V1.GetVertex(j),
+                                    w, q, _s.GetScale(), &e[0]);
+    }
+
+    virtual void EvaluateJacobian(const int k, const int whichParam, Matrix<double> & J) const
+    {
+        int i = _mesh.GetHalfEdge(k, 0), j = _mesh.GetHalfEdge(k, 1);
+        const double w = GetEdgeWeight(k);
+
+        double qi[4] = {0., 0., 0., 1.};
+
+        if (_K[i][0] < 0)
+        {
+            quat_Unsafe(_X.GetRotation(_K[i][1]), qi);
+        }
+        else if (_K[i][0] > 0)
+        {
+            double x[3];
+            axScale_Unsafe(_y.GetCoefficient(_K[i][0] - 1), _Xb.GetRotation(_K[i][1]), x);
+            quat_Unsafe(x, qi);
+        }
+
+        double qg[4];
+        quat_Unsafe(_Xg.GetRotation(), qg);
+
+        double q[4];
+        quatMultiply_Unsafe(qg, qi, q);
+
+        switch (whichParam)
+        {
+        case 0:
+            // Xg
+            {
+                // dr/dq
+                double Jq[12];
+                arapJac_Q_Unsafe(_V.GetVertex(i), _V.GetVertex(j), w, q, Jq);
+
+                // dq/dqg
+                double Dqg[16];
+                quatMultiply_dp_Unsafe(qi, Dqg);
+
+                // dqg/xg
+                double Dg[12];
+                quatDx_Unsafe(_Xg.GetRotation(), Dg);
+
+                double A[12];
+                multiply_A_B_Static<double, 3, 4, 4>(Jq, Dqg, A);
+                multiply_A_B_Static<double, 3, 4, 3>(A, Dg, J[0]);
+
+                return;
+            }
+
+        case 1:
+            // V1i
+            {
+                
+                arapJac_V1_Unsafe(true, w * _s.GetScale(), J[0]);
+                return;
+            }
+
+        case 2:
+            // V1j
+            {
+                arapJac_V1_Unsafe(false, w * _s.GetScale(), J[0]);
+                return;
+            }
+
+        default:
+            break;
+        }
+
+        if (_K[i][0] < 0)
+        {
+            // free (independent) rotation
+            switch (whichParam)
+            {
+            case 3:
+                // X
+                {
+                    // dr/dq
+                    double Jq[12];
+                    arapJac_Q_Unsafe(_V.GetVertex(i), _V.GetVertex(j), w, q, Jq);
+
+                    // dq/dqi
+                    double Dqi[16];
+                    quatMultiply_dq_Unsafe(qg, Dqi);
+
+                    // dqi/xi
+                    double Di[12];
+                    quatDx_Unsafe(_X.GetRotation(_K[i][1]), Di);
+
+                    double A[12];
+                    multiply_A_B_Static<double, 3, 4, 4>(Jq, Dqi, A);
+                    multiply_A_B_Static<double, 3, 4, 3>(A, Di, J[0]);
+
+                    return;
+                }
+
+            case 4:
+                // s
+                {
+                    subtractVectors_Static<double, 3>(_V1.GetVertex(i), _V1.GetVertex(j), J[0]);
+                    scaleVectorIP_Static<double, 3>(w, J[0]);
+                    return;
+                }
+            }
+        }
+        else if (_K[i][0] == 0)
+        {
+            // fixed rotation
+            switch (whichParam)
+            {
+            case 3:
+                // s
+                {
+                    subtractVectors_Static<double, 3>(_V1.GetVertex(i), _V1.GetVertex(j), J[0]);
+                    scaleVectorIP_Static<double, 3>(w, J[0]);
+                    return;
+                }
+            }
+        }
+        else
+        {
+            // single-axis (basis) rotation
+            switch (whichParam)
+            {
+            case 3:
+                // Xb
+                {
+                    // dr/dq
+                    double Jq[12];
+                    arapJac_Q_Unsafe(_V.GetVertex(i), _V.GetVertex(j), w, q, Jq);
+
+                    // dq/dqi
+                    double Dqi[16];
+                    quatMultiply_dq_Unsafe(qg, Dqi);
+
+                    // dqi/xi
+                    double x[3];
+                    axScale_Unsafe(_y.GetCoefficient(_K[i][0] - 1), _Xb.GetRotation(_K[i][1]), x);
+
+                    double Di[12];
+                    quatDx_Unsafe(x, Di);
+
+                    double A[12];
+                    multiply_A_B_Static<double, 3, 4, 4>(Jq, Dqi, A);
+                    multiply_A_B_Static<double, 3, 4, 3>(A, Di, J[0]);
+
+                    // dxi/dxb
+                    scaleVectorIP_Static<double, 9>(_y.GetCoefficient(_K[i][0] - 1), J[0]);
+                    return;
+                }
+            case 4:
+                // y
+                {
+                    // dr/dq
+                    double Jq[12];
+                    arapJac_Q_Unsafe(_V.GetVertex(i), _V.GetVertex(j), w, q, Jq);
+
+                    // dq/dqi
+                    double Dqi[16];
+                    quatMultiply_dq_Unsafe(qg, Dqi);
+
+                    // dqi/xi
+                    double x[3];
+                    axScale_Unsafe(_y.GetCoefficient(_K[i][0] - 1), _Xb.GetRotation(_K[i][1]), x);
+
+                    double Di[12];
+                    quatDx_Unsafe(x, Di);
+
+                    double A[12], B[9];
+                    multiply_A_B_Static<double, 3, 4, 4>(Jq, Dqi, A);
+                    multiply_A_B_Static<double, 3, 4, 3>(A, Di, B);
+
+                    // dxi/y
+                    multiply_A_v_Static<double, 3, 3>(B, _Xb.GetRotation(_K[i][1]), J[0]);
+                    return;
+                }
+            case 5:
+                // s
+                {
+                    subtractVectors_Static<double, 3>(_V1.GetVertex(i), _V1.GetVertex(j), J[0]);
+                    scaleVectorIP_Static<double, 3>(w, J[0]);
+                    return;
+                }
+            }
+        }
+
+        assert(false);
+    }
+
+protected:
+    const VertexNode & _V;
+    const GlobalRotationNode & _Xg;
+    const ScaleNode & _s;
+    const RotationNode & _Xb;
+    const CoefficientsNode & _y;
+    const RotationNode & _X;
+    const VertexNode & _V1;
+
+    const Matrix<int> & _K;
+
+    const Mesh & _mesh;
+    const double _w;
+    bool _uniformWeights;
+    bool _fixedScale;
 };
 
 #endif
