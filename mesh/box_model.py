@@ -137,6 +137,8 @@ def box_model(N, H, w, h):
     faces += top
     V[top_indices] = box_end_layer_vertices(N, w, height(H-1))
 
+    V[:,2] -= h
+
     return V, np.asarray(faces, dtype=np.int32)
 
 # main
