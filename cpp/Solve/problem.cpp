@@ -11,6 +11,9 @@ Problem::Problem()
 
 void Problem::AddNode(Node * node)
 {
+    if (node->GetCount() == 0)
+        return AddFixedNode(node);
+
     const int id = node->TypeId();
 
     auto i = _allNodes.find(id);
