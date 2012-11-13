@@ -46,6 +46,37 @@ if HAS_VTK:
             self.ren_win = ren_win
             self.iren = iren
 
+        def add_points(self, P, sphere_radius=1.0, color=(1., 0., 0.), 
+                       actor_name='points'):
+            points = vtk.vtkPoints()
+            points.SetNumberOfPoints(P.shape[0])
+
+            for i, p in enumerate(P):
+                points.SetPoint(i, *p)
+
+            poly_data = vtk.vtkPolyData()
+            poly_data.SetPoints(points)
+
+            sphere = vtk.vtkSphereSource()
+            sphere.SetRadius(sphere_radius)
+            self.objects.append(sphere)
+
+            glyph = vtk.vtkGlyph3D()
+            glyph.SetInput(poly_data)
+            glyph.SetSourceConnection(sphere.GetOutputPort())
+            self.objects.append(glyph)
+
+            mapper = vtk.vtkPolyDataMapper()
+            mapper.SetInputConnection(glyph.GetOutputPort())
+
+            actor = vtk.vtkActor()
+            actor.SetMapper(mapper)
+            actor.PickableOff()
+            actor.GetProperty().SetColor(*color)
+
+            self.actors[actor_name] = actor
+            self.ren.AddActor(actor)
+
         def add_mesh(self, V, T, L=None, actor_name='model',
                      compute_normals=False, feature_angle=90.):
             cells = faces_to_vtkCellArray(T)
