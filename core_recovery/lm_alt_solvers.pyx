@@ -55,6 +55,25 @@ cdef extern from "lm_alt_solvers.h":
                                    bint uniformWeights,
                                    OptimiserOptions * options)
 
+    int solve_forward_sectioned_arap_proj_c 'solve_forward_sectioned_arap_proj' (
+        np.ndarray npy_T,
+        np.ndarray npy_V,
+        np.ndarray npy_Xg,
+        np.ndarray npy_s,
+        np.ndarray npy_Xb,
+        np.ndarray npy_y,
+        np.ndarray npy_X,
+        np.ndarray npy_V1,
+        np.ndarray npy_K,
+        np.ndarray npy_C,
+        np.ndarray npy_P,
+        np.ndarray npy_lambdas,
+        np.ndarray npy_preconditioners,
+        bint isProjection,
+        bint uniformWeights,
+        bint fixedScale,
+        OptimiserOptions * options)
+
 # additional_optimiser_options
 DEFAULT_OPTIMISER_OPTIONS = {
     'maxIterations' : 50,
@@ -171,3 +190,73 @@ def solve_core(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
 
     return status, STATUS_CODES[status]
 
+def solve_forward_sectioned_arap_proj(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
+                                      np.ndarray[np.float64_t, ndim=2, mode='c'] V, 
+                                      np.ndarray[np.float64_t, ndim=2, mode='c'] Xg, 
+                                      np.ndarray[np.float64_t, ndim=2, mode='c'] s, 
+                                      np.ndarray[np.float64_t, ndim=2, mode='c'] Xb, 
+                                      np.ndarray[np.float64_t, ndim=2, mode='c'] y, 
+                                      np.ndarray[np.float64_t, ndim=2, mode='c'] X, 
+                                      np.ndarray[np.float64_t, ndim=2, mode='c'] V1, 
+                                      np.ndarray[np.int32_t, ndim=2, mode='c'] K, 
+                                      np.ndarray[np.int32_t, ndim=1] C,
+                                      np.ndarray[np.float64_t, ndim=2, mode='c'] P,
+                                      np.ndarray[np.float64_t, ndim=1] lambdas,
+                                      np.ndarray[np.float64_t, ndim=1] preconditioners,
+                                      bint isProjection,
+                                      bint uniformWeights,
+                                      bint fixedScale,
+                                      **kwargs):
+
+    cdef OptimiserOptions options
+    additional_optimiser_options(&options, kwargs)
+
+    if lambdas.shape[0] != 2:
+        raise ValueError('lambdas.shape[0] != 2')
+
+    if preconditioners.shape[0] != 5:
+        raise ValueError('preconditioners.shape[0] != 5')
+
+    # check K is specified for all V
+    assert K.shape[0] == V.shape[0]
+
+    # check left-entries of K are valid
+    assert np.all(K >= -1)
+
+    # check free rotation indices are available in `X`
+    X_i = K[K[:,0] == -1, 1]
+    assert np.all((X_i >= 0) & (X_i < X.shape[0]))
+
+    # check all rotations in `X` are used
+    assert np.unique(X_i).shape[0] == X.shape[0]
+
+    # check basis rotation indices are available in `Xb`
+    i = K[:, 0] > 0
+    Xb_i = K[i, 1]
+    assert np.all((Xb_i >= 0) & (Xb_i < Xb.shape[0]))
+
+    # check all rotations in `Xb` are used
+    assert np.unique(Xb_i).shape[0] == Xb.shape[0]
+
+    # check basis coefficients are availabe in `y`
+    y_i = K[i, 0] - 1
+    assert np.all((y_i >= 0) & (y_i < y.shape[0]))
+
+    # check all coefficients in `y` are used
+    assert np.unique(y_i).shape[0] == y.shape[0]
+
+    cdef int status = solve_forward_sectioned_arap_proj_c(
+        T, V, 
+        Xg, 
+        s,
+        Xb,
+        y,
+        X,
+        V1,
+        K, C, P, lambdas, preconditioners,
+        isProjection,
+        uniformWeights,
+        fixedScale,
+        &options)
+
+    return status, STATUS_CODES[status]

@@ -18,6 +18,8 @@ using namespace V3D;
 #include "Util/pyarray_conversion.h"
 #include <utility>
 
+// Regular instance-core alternation (with free rotations solved for in both)
+
 // solve_instance
 int solve_instance(PyArrayObject * npy_T,
                    PyArrayObject * npy_V,
@@ -231,6 +233,95 @@ int solve_core(PyArrayObject * npy_T,
     dealloc_vector(V1);
 
     return ret;
+}
+
+// solve_forward_sectioned_arap_proj
+int solve_forward_sectioned_arap_proj(PyArrayObject * npy_T,
+                                      PyArrayObject * npy_V,
+                                      PyArrayObject * npy_Xg,
+                                      PyArrayObject * npy_s,
+                                      PyArrayObject * npy_Xb,
+                                      PyArrayObject * npy_y,
+                                      PyArrayObject * npy_X,
+                                      PyArrayObject * npy_V1,
+                                      PyArrayObject * npy_K,
+                                      PyArrayObject * npy_C,
+                                      PyArrayObject * npy_P,
+                                      PyArrayObject * npy_lambdas,
+                                      PyArrayObject * npy_preconditioners,
+                                      bool isProjection,
+                                      bool uniformWeights,
+                                      bool fixedScale,
+                                      const OptimiserOptions * options)
+{
+    PYARRAY_AS_MATRIX(int, npy_T, T);
+    PYARRAY_AS_MATRIX(double, npy_V, V);
+    PYARRAY_AS_MATRIX(double, npy_Xg, Xg);
+    PYARRAY_AS_MATRIX(double, npy_s, s);
+    PYARRAY_AS_MATRIX(double, npy_Xb, Xb);
+    PYARRAY_AS_MATRIX(double, npy_y, y);
+    PYARRAY_AS_MATRIX(double, npy_X, X);
+    PYARRAY_AS_MATRIX(double, npy_V1, V1);
+    PYARRAY_AS_MATRIX(int, npy_K, K);
+
+    PYARRAY_AS_VECTOR(int, npy_C, C);
+    PYARRAY_AS_MATRIX(double, npy_P, P);
+
+    PYARRAY_AS_VECTOR(double, npy_lambdas, lambdas);
+    PYARRAY_AS_VECTOR(double, npy_preconditioners, preconditioners);
+
+    Mesh mesh(V.num_rows(), T);
+
+    Problem problem;
+    auto nodeV = new VertexNode(V);
+    nodeV->SetPreconditioner(preconditioners[0]);
+    problem.AddFixedNode(nodeV);
+
+    auto nodeXg = new GlobalRotationNode(Xg);
+    nodeXg->SetPreconditioner(preconditioners[2]);
+    problem.AddNode(nodeXg);
+
+    s[0][0] = 1.0 / s[0][0];
+
+    auto nodes = new ScaleNode(s);
+    nodes->SetPreconditioner(preconditioners[4]);
+
+    if (fixedScale)
+        problem.AddFixedNode(nodes);
+    else
+        problem.AddNode(nodes);
+
+    auto nodeXb = new RotationNode(Xb);
+    nodeXb->SetPreconditioner(preconditioners[1]);
+    problem.AddNode(nodeXb);
+
+    auto nodey = new CoefficientsNode(y);
+    nodey->SetPreconditioner(preconditioners[3]);
+    problem.AddNode(nodey);
+
+    auto nodeX = new RotationNode(X);
+    problem.AddNode(nodeX);
+
+    auto nodeV1= new VertexNode(V1);
+    problem.AddNode(nodeV1);
+
+    problem.AddEnergy(new SectionedBasisArapEnergy(
+        *nodeV, *nodeXg, *nodes,
+        *nodeXb, *nodey,
+        *nodeX, *nodeV1,
+        K, mesh, sqrt(lambdas[0]), 
+        uniformWeights, fixedScale));
+
+    if (isProjection)
+        problem.AddEnergy(new ProjectionEnergy(*nodeV1, C, P, sqrt(lambdas[1])));
+    else
+        problem.AddEnergy(new AbsolutePositionEnergy(*nodeV1, C, P, sqrt(lambdas[1])));
+
+    int status = problem.Minimise(*options);
+
+    s[0][0] = 1.0 / s[0][0];
+
+    return status;
 }
 
 #endif
