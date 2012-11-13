@@ -415,9 +415,140 @@ def print_comparison(**kwargs):
 
     print 'allclose? ', np.all(r)
 
+# main_EvaluateSectionedBasisArapEnergy
+def main_EvaluateSectionedBasisArapEnergy():
+    T = np.r_[1, 2, 4,
+              2, 3, 4,
+              3, 0, 4,
+              0, 1, 4].reshape(-1, 3).astype(np.int32)
+
+    V = np.r_[0., 0., 0.,
+              0., 2., 0.,
+              2., 2., 0.,
+              2., 0., 0.,
+              1., 1., 1.].reshape(-1, 3).astype(np.float64)
+
+    Xg = np.zeros((1, 3), dtype=np.float64)
+    s = np.ones((1, 1), dtype=np.float64)
+
+    s[0,0] = 1.0
+
+    # Test K[4,0] == 0 (fixed)
+
+    k = 8 # (i, j) = (4, 3)
+
+    K = np.r_[0, 0,
+              0, 0,
+              0, 0,
+              0, 0,
+              0, 0].reshape(-1, 2).astype(np.int32)
+
+    Xb = np.array(tuple(), dtype=np.float64).reshape(0, 3)
+    y = np.array(tuple(), dtype=np.float64).reshape(0, 1)
+    X = np.array(tuple(), dtype=np.float64).reshape(0, 3)
+
+    V1 = V.copy()
+    V1[3,0] += 1.0
+
+    randomise = lambda arr: np.random.randn(arr.size).reshape(arr.shape)
+
+    V1 = randomise(V1)
+    V = randomise(V)
+    s = randomise(s)
+    Xg = randomise(Xg)
+
+    empty_jacDims = np.array(tuple(), dtype=np.int32).reshape(0, 0)
+    jacDims = np.r_[3, 3, 
+                    3, 3,
+                    3, 3,
+                    3, 1].reshape(-1, 2).astype(np.int32)
+
+    print 'Xb:', repr(Xb)
+    print 'y:', repr(y)
+    print 'X:', repr(X)
+    print 'jacDims:', repr(jacDims)
+
+    r, JXg, JV1i, JV1j, Js = EvaluateSectionedBasisArapEnergy(T, V, Xg, s, Xb, y, X, V1, K, k, jacDims, verbose=True)
+    print 'r:', r
+
+    approx_JXg, approx_Js, approx_JV1 = approx_jacs(
+        lambda *args, **kwargs: EvaluateSectionedBasisArapEnergy(*args, **kwargs)[0],
+        [2, 3, 7],
+        1e-6,
+        T, V, Xg, s, Xb, y, X, V1, K, k, empty_jacDims, verbose=False)
+
+    print_comparison(approx_JXg=approx_JXg, JXg=JXg)
+    print_comparison(approx_Js=approx_Js, Js=Js)
+    print_comparison(approx_V1i=approx_JV1[:, 12:15], JV1i=JV1i)
+    print_comparison(approx_V1j=approx_JV1[:, 9:12], JV1j=JV1j)
+
+    # Test K[4,0] == -1 (free)
+    K[4,0] = -1
+    K[4,1] = 0
+
+    X = np.zeros((1, 3), dtype=np.float64)
+    X = randomise(X)
+
+    jacDims = np.r_[3, 3, 
+                    3, 3,
+                    3, 3,
+                    3, 3,
+                    3, 1].reshape(-1, 2).astype(np.int32)
+
+    r, JXg, JV1i, JV1j, JX, Js = EvaluateSectionedBasisArapEnergy(T, V, Xg, s, Xb, y, X, V1, K, k, jacDims, verbose=True)
+
+    print 'r:', r
+
+    approx_JXg, approx_Js, approx_JX, approx_JV1 = approx_jacs(
+        lambda *args, **kwargs: EvaluateSectionedBasisArapEnergy(*args, **kwargs)[0],
+        [2, 3, 6, 7],
+        1e-6,
+        T, V, Xg, s, Xb, y, X, V1, K, k, empty_jacDims, verbose=False)
+
+    print_comparison(approx_JXg=approx_JXg, JXg=JXg)
+    print_comparison(approx_Js=approx_Js, Js=Js)
+    print_comparison(approx_JX=approx_JX, JX=JX)
+    print_comparison(approx_V1i=approx_JV1[:, 12:15], JV1i=JV1i)
+    print_comparison(approx_V1j=approx_JV1[:, 9:12], JV1j=JV1j)
+
+    # Test K[4,0] == 1 (basis)
+    K[4,0] = 1
+    K[4,1] = 0
+
+    Xb = np.zeros((1, 3), dtype=np.float64)
+    y = np.ones((1, 1), dtype=np.float64)
+
+    Xb = randomise(Xb)
+    y = randomise(y)
+
+    jacDims = np.r_[3, 3, 
+                    3, 3,
+                    3, 3,
+                    3, 3,
+                    3, 1,
+                    3, 1].reshape(-1, 2).astype(np.int32)
+
+    r, JXg, JV1i, VJ1j, JXb, Jy, Js = EvaluateSectionedBasisArapEnergy(T, V, Xg, s, Xb, y, X, V1, K, k, jacDims, verbose=True)
+
+    print 'r:', r
+
+    approx_JXg, approx_Js, approx_JXb, approx_Jy, approx_JV1 = approx_jacs(
+        lambda *args, **kwargs: EvaluateSectionedBasisArapEnergy(*args, **kwargs)[0],
+        [2, 3, 4, 5, 7],
+        1e-6,
+        T, V, Xg, s, Xb, y, X, V1, K, k, empty_jacDims, verbose=False)
+
+    print_comparison(approx_JXg=approx_JXg, JXg=JXg)
+    print_comparison(approx_Js=approx_Js, Js=Js)
+    print_comparison(approx_JXb=approx_JXb, JXb=JXb)
+    print_comparison(approx_Jy=approx_Jy, Jy=Jy)
+    print_comparison(approx_V1i=approx_JV1[:, 12:15], JV1i=JV1i)
+    print_comparison(approx_V1j=approx_JV1[:, 9:12], JV1j=JV1j)
+
 if __name__ == '__main__':
     # main_EvaluateSingleARAP()
-    main_EvaluateSingleARAP2()
+    # main_EvaluateSingleARAP2()
     # main_EvaluateDualARAP()
     # main_EvaluateDualNonLinearBasisARAP()
+    main_EvaluateSectionedBasisArapEnergy()
 
