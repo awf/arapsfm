@@ -5,6 +5,7 @@ import numpy as np
 from test_arap import *
 from pprint import pprint
 from misc.scipy_ import approx_jac
+from operator import itemgetter
 
 # main_EvaluateSingleARAP
 def main_EvaluateSingleARAP():
@@ -378,6 +379,41 @@ def main_EvaluateDualNonLinearBasisARAP():
     print 'allclose? ', np.allclose(Jy, approx_Jy, atol=1e-3)
 
     return 
+
+# approx_jacs
+def approx_jacs(f, indices, epsilon, *args, **kwargs):
+    args = list(args)
+    jacs = []
+
+    for i in indices:
+        orig_x = args[i]
+
+        def wrap_f(x):
+            args[i] = x.reshape(orig_x.shape)
+            return f(*args, **kwargs)
+
+        jacs.append(approx_jac(wrap_f, np.ravel(orig_x), epsilon))
+
+        args[i] = orig_x
+
+    return jacs
+
+# print_comparison
+def print_comparison(**kwargs):
+    atol = kwargs.pop('atol', 1e-4)
+    decimals = kwargs.pop('decimals', 3)
+
+    items = sorted(kwargs.items(), key=itemgetter(0))
+
+    for key, arr in items:
+        print '%s:\n%s' % (key, np.around(arr, decimals=decimals))
+
+    n = len(items)
+    r = np.empty(n-1, dtype=bool)
+    for i in xrange(n-1):
+        r[i] = np.allclose(items[i][1], items[i+1][1], atol=atol)
+
+    print 'allclose? ', np.all(r)
 
 if __name__ == '__main__':
     # main_EvaluateSingleARAP()
