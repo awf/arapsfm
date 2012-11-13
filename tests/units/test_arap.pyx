@@ -50,6 +50,20 @@ cdef extern from "test_arap.h":
         int k,
         bint verbose)
 
+    object EvaluateSectionedBasisArapEnergy_c 'EvaluateSectionedBasisArapEnergy' (
+        np.ndarray npy_T,
+        np.ndarray npy_V,
+        np.ndarray npy_Xg,
+        np.ndarray npy_s,
+        np.ndarray npy_Xb,
+        np.ndarray npy_y,
+        np.ndarray npy_X,
+        np.ndarray npy_V1,
+        np.ndarray npy_K,
+        int k,
+        np.ndarray npy_jacDims,
+        bint verbose)
+
 def EvaluateSingleARAP(T, V, X, Xg, s, V1, k, verbose=False):
     return EvaluateSingleARAP_c(T, V, X, Xg, s, V1, k, verbose)
 
@@ -61,4 +75,7 @@ def EvaluateDualARAP(T, V, X, Xg, s, V1, k, verbose=False):
 
 def EvaluateDualNonLinearBasisARAP(T, V, Xg, s, Xs, y, V1, k, verbose=False):
     return EvaluateDualNonLinearBasisARAP_c(T, V, Xg, s, Xs, y, V1, k, verbose)
+
+def EvaluateSectionedBasisArapEnergy(T, V, Xg, s, Xb, y, X, V1, K, k, jacDims, verbose=False):
+    return EvaluateSectionedBasisArapEnergy_c(T, V, Xg, s, Xb, y, X, V1, K, k, jacDims, verbose)
 

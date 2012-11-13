@@ -109,7 +109,7 @@ PyObject * EvaluateSingleARAP2(PyArrayObject * npy_T,
     VertexNode node_V1(V1);
 
     // Setup `energy`
-    RigidTransformARAPEnergy2 energy(node_V, node_Xg, node_s, node_X, node_V1, mesh, 1.0, true);
+    RigidTransformARAPEnergy2 energy(node_V, node_Xg, node_s, node_X, node_V1, mesh, 1.0, true, false);
 
     // Calculate residual
     PyObject * py_list = PyList_New(0);
@@ -295,6 +295,91 @@ PyObject * EvaluateDualNonLinearBasisARAP(PyArrayObject * npy_T,
     // Clean-up
     dealloc_vector(nodes_X);
     dealloc_vector(Xs);
+
+    return py_list;
+}
+
+PyObject * EvaluateSectionedBasisArapEnergy(PyArrayObject * npy_T,
+                                            PyArrayObject * npy_V,
+                                            PyArrayObject * npy_Xg,
+                                            PyArrayObject * npy_s,
+                                            PyArrayObject * npy_Xb,
+                                            PyArrayObject * npy_y,
+                                            PyArrayObject * npy_X,
+                                            PyArrayObject * npy_V1,
+                                            PyArrayObject * npy_K,
+                                            int k,
+                                            PyArrayObject * npy_jacDims,
+                                            bool verbose)
+{
+    PYARRAY_AS_MATRIX(int, npy_T, T);
+    PYARRAY_AS_MATRIX(double, npy_V, V);
+    VertexNode node_V(V);
+
+    Mesh mesh(V.num_rows(), T); 
+
+    if (verbose)
+    {
+        cout << "mesh.GetNumberOfVertices(): " << mesh.GetNumberOfVertices() << endl;
+        cout << "mesh.GetNumberOfHalfEdges(): " << mesh.GetNumberOfHalfEdges() << endl;
+        cout << "mesh.GetHalfEdge(k, 0): " << mesh.GetHalfEdge(k, 0)  << endl;
+        cout << "mesh.GetHalfEdge(k, 1): " << mesh.GetHalfEdge(k, 1)  << endl;
+    }
+
+    PYARRAY_AS_MATRIX(double, npy_Xg, Xg);
+    GlobalRotationNode node_Xg(Xg);
+
+    PYARRAY_AS_MATRIX(double, npy_s, s);
+    ScaleNode node_s(s);
+
+    // Invert `s`
+    // s[0][0] = 1.0 / s[0][0];
+
+    PYARRAY_AS_MATRIX(double, npy_Xb, Xb);
+    RotationNode node_Xb(Xb);
+
+    PYARRAY_AS_MATRIX(double, npy_y, y);
+    CoefficientsNode node_y(y);
+
+    PYARRAY_AS_MATRIX(double, npy_X, X);
+    RotationNode node_X(X);
+
+    PYARRAY_AS_MATRIX(double, npy_V1, V1);
+    VertexNode node_V1(V1);
+
+    PYARRAY_AS_MATRIX(int, npy_K, K);
+
+    // Setup `energy`
+    SectionedBasisArapEnergy energy(node_V, node_Xg, node_s, 
+                                    node_Xb, node_y,
+                                    node_X, node_V1, 
+                                    K, mesh, 1.0, true, false);
+
+    // Calculate residual
+    PyObject * py_list = PyList_New(0);
+
+    npy_intp dim(3);
+    PyArrayObject * npy_e = (PyArrayObject *)PyArray_SimpleNew(1, &dim, NPY_FLOAT64);
+    PYARRAY_AS_VECTOR(double, npy_e, e);
+
+    energy.EvaluateResidual(k, e);
+
+    PyList_Append(py_list, (PyObject *)npy_e);
+
+    // Calculate Jacobians
+    PYARRAY_AS_MATRIX(int, npy_jacDims, jacDims);
+    
+    for (int i = 0; i < jacDims.num_rows(); ++i)
+    {
+        PyArrayObject * npy_J = (PyArrayObject *)PyArray_SimpleNew(2, jacDims[i], NPY_FLOAT64);
+        PYARRAY_AS_MATRIX(double, npy_J, J);
+        energy.EvaluateJacobian(k, i, J);
+
+        PyList_Append(py_list, (PyObject *)npy_J);
+    }
+
+    // Invert `s`
+    // s[0][0] = 1.0 / s[0][0];
 
     return py_list;
 }
