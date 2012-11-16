@@ -124,7 +124,7 @@ def test_vtkInteractorStyleRubberBandPick():
     iren.Start()
 
 # Constants
-COLORMAP = cm.Paired_r(np.linspace(0., 1., 9))
+COLORMAP = cm.Set1_r(np.linspace(0., 1., 9))
 LUT = vtk.vtkLookupTable()
 LUT.SetNumberOfTableValues(COLORMAP.shape[0])
 LUT.Build()
@@ -293,6 +293,16 @@ class MeshView(QVTKWidget):
         self.pipeline['ren'].ResetCamera()
         self.update()
 
+    def camera_actions(self, *args):
+        camera = self.pipeline['ren'].GetActiveCamera()
+
+        for method, method_args in args:
+            method = getattr(camera, method)
+            method(*method_args)
+
+        self.pipeline['ren'].ResetCamera()
+        self.update()
+        
 # main
 def main():
     V, T = box_model(5, 15, 1.0, 1.0) 
@@ -303,6 +313,9 @@ def main():
     view.add_mesh(V, T)
     view.select_only_visible = True
     view.current_label = 1
+    view.camera_actions(('SetViewUp', (0., 0., 1.)), 
+                        ('SetPosition', (-1.0, 0., 0.)),
+                        ('SetFocalPoint', (0., 0., 0.)))
     view.show()
     qapp.exec_()
 
