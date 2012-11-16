@@ -74,6 +74,29 @@ cdef extern from "lm_alt_solvers.h":
         bint fixedScale,
         OptimiserOptions * options)
 
+    int solve_instance_sectioned_arap_c 'solve_instance_sectioned_arap' (np.ndarray npy_T,
+                                                                         np.ndarray npy_V,
+                                                                         np.ndarray npy_Xg,
+                                                                         np.ndarray npy_s,
+                                                                         np.ndarray npy_K,
+                                                                         np.ndarray npy_Xb,
+                                                                         np.ndarray npy_y,
+                                                                         np.ndarray npy_X,
+                                                                         np.ndarray npy_V1,
+                                                                         np.ndarray npy_U,
+                                                                         np.ndarray npy_L,
+                                                                         np.ndarray npy_S,
+                                                                         np.ndarray npy_SN,
+                                                                         np.ndarray npy_Rx,
+                                                                         np.ndarray npy_Ry,
+                                                                         np.ndarray npy_lambdas,
+                                                                         np.ndarray npy_preconditioners,
+                                                                         np.ndarray npy_piecewisePolynomial,
+                                                                         int narrowBand,
+                                                                         bint uniformWeights,
+                                                                         bint fixedScale,
+                                                                         OptimiserOptions * options)
+
 # additional_optimiser_options
 DEFAULT_OPTIMISER_OPTIONS = {
     'maxIterations' : 50,
@@ -260,3 +283,76 @@ def solve_forward_sectioned_arap_proj(np.ndarray[np.int32_t, ndim=2, mode='c'] T
         &options)
 
     return status, STATUS_CODES[status]
+
+def solve_instance_sectioned_arap(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
+                                  np.ndarray[np.float64_t, ndim=2, mode='c'] V, 
+                                  np.ndarray[np.float64_t, ndim=2, mode='c'] Xg, 
+                                  np.ndarray[np.float64_t, ndim=2, mode='c'] s, 
+                                  np.ndarray[np.int32_t, ndim=2, mode='c'] K, 
+                                  np.ndarray[np.float64_t, ndim=2, mode='c'] Xb, 
+                                  np.ndarray[np.float64_t, ndim=2, mode='c'] y, 
+                                  np.ndarray[np.float64_t, ndim=2, mode='c'] X, 
+                                  np.ndarray[np.float64_t, ndim=2, mode='c'] V1, 
+                                  np.ndarray[np.float64_t, ndim=2, mode='c'] U,  
+                                  np.ndarray[np.int32_t, ndim=1] L,
+                                  np.ndarray[np.float64_t, ndim=2, mode='c'] S,  
+                                  np.ndarray[np.float64_t, ndim=2, mode='c'] SN,  
+                                  np.ndarray[np.float64_t, ndim=2, mode='c'] Rx,
+                                  np.ndarray[np.float64_t, ndim=2, mode='c'] Ry,
+                                  np.ndarray[np.float64_t, ndim=1] lambdas,
+                                  np.ndarray[np.float64_t, ndim=1] preconditioners,
+                                  np.ndarray[np.float64_t, ndim=1] piecewisePolynomial,
+                                  int narrowBand,
+                                  bint uniformWeights,
+                                  bint fixedScale,
+                                  **kwargs):
+
+    assert lambdas.shape[0] == 4
+    assert preconditioners.shape[0] == 6
+    assert piecewisePolynomial.shape[0] == 2
+
+    # check K is specified for all V
+    assert K.shape[0] == V.shape[0]
+
+    # check left-entries of K are valid
+    assert np.all(K >= -1)
+
+    # check free rotation indices are available in `X`
+    X_i = K[K[:,0] == -1, 1]
+    assert np.all((X_i >= 0) & (X_i < X.shape[0]))
+
+    # check all rotations in `X` are used
+    assert np.unique(X_i).shape[0] == X.shape[0]
+
+    # check basis rotation indices are available in `Xb`
+    i = K[:, 0] > 0
+    Xb_i = K[i, 1]
+    assert np.all((Xb_i >= 0) & (Xb_i < Xb.shape[0]))
+
+    # check all rotations in `Xb` are used
+    assert np.unique(Xb_i).shape[0] == Xb.shape[0]
+
+    # check basis coefficients are availabe in `y`
+    y_i = K[i, 0] - 1
+    assert np.all((y_i >= 0) & (y_i < y.shape[0]))
+
+    # check all coefficients in `y` are used
+    assert np.unique(y_i).shape[0] == y.shape[0]
+
+    cdef OptimiserOptions options
+    additional_optimiser_options(&options, kwargs)
+
+    cdef int status = solve_instance_sectioned_arap_c(T, V, 
+        Xg, s, 
+        K, Xb, y, X, 
+        V1, 
+        U, L, S, SN, 
+        Rx, Ry, 
+        lambdas, 
+        preconditioners, 
+        piecewisePolynomial, 
+        narrowBand, 
+        uniformWeights,
+        fixedScale,
+        &options)
+
