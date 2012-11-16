@@ -278,7 +278,7 @@ if HAS_VTK:
             for j, i in enumerate(C):
                 proj_lines.InsertNextCell(2)
 
-                proj_points.SetPoint(2*j, *np.r_[P[j], 0])
+                proj_points.SetPoint(2*j, *np.r_[P[j], [0]*(3 - P.shape[1])])
                 proj_points.SetPoint(2*j + 1, *V[i])
 
                 proj_lines.InsertCellPoint(2*j)
