@@ -31,6 +31,16 @@ cdef extern from "lm_solvers.h":
         np.ndarray lambdas,
         OptimiserOptions * opt)
 
+    int solve_single_arap_abs_c "solve_single_arap_abs" (
+        np.ndarray V,
+        np.ndarray T,
+        np.ndarray X,
+        np.ndarray V1,
+        np.ndarray C,
+        np.ndarray P,
+        np.ndarray lambdas,
+        OptimiserOptions * opt)
+
     int solve_single_rigid_arap_proj_c "solve_single_rigid_arap_proj" (
         np.ndarray V,
         np.ndarray T,
@@ -238,6 +248,26 @@ def solve_single_arap_proj(np.ndarray[np.float64_t, ndim=2, mode='c'] V,
         raise ValueError('lambdas.shape[0] != 2')
 
     cdef int status = solve_single_arap_proj_c(V, T, X, V1, C, P, lambdas, &options)
+
+    return status, STATUS_CODES[status]
+
+# solve_single_arap_abs
+def solve_single_arap_abs(np.ndarray[np.float64_t, ndim=2, mode='c'] V,
+                 np.ndarray[np.int32_t, ndim=2, mode='c'] T,
+                 np.ndarray[np.float64_t, ndim=2, mode='c'] X,
+                 np.ndarray[np.float64_t, ndim=2, mode='c'] V1,
+                 np.ndarray[np.int32_t, ndim=1] C,
+                 np.ndarray[np.float64_t, ndim=2, mode='c'] P,
+                 np.ndarray[np.float64_t, ndim=1] lambdas,
+                 **kwargs):
+
+    cdef OptimiserOptions options
+    additional_optimiser_options(&options, kwargs)
+
+    if lambdas.shape[0] != 2:
+        raise ValueError('lambdas.shape[0] != 2')
+
+    cdef int status = solve_single_arap_abs_c(V, T, X, V1, C, P, lambdas, &options)
 
     return status, STATUS_CODES[status]
 
