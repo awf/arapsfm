@@ -46,6 +46,11 @@ if HAS_VTK:
             self.ren_win = ren_win
             self.iren = iren
 
+        def remove_actor(self, actor_name):
+            actor = self.actors.pop(actor_name)
+            self.ren.RemoveActor(actor)
+            del actor
+
         def add_points(self, P, sphere_radius=1.0, color=(1., 0., 0.), 
                        actor_name='points'):
             points = vtk.vtkPoints()
