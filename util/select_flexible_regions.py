@@ -124,7 +124,7 @@ def test_vtkInteractorStyleRubberBandPick():
     iren.Start()
 
 # Constants
-COLORMAP = cm.Set1_r(np.linspace(0., 1., 9))
+COLORMAP = cm.Paired_r(np.linspace(0., 1., 9))
 LUT = vtk.vtkLookupTable()
 LUT.SetNumberOfTableValues(COLORMAP.shape[0])
 LUT.Build()
@@ -135,6 +135,12 @@ for i, c in enumerate(COLORMAP):
 class MeshView(QVTKWidget):
     def __init__(self, parent=None):
         QVTKWidget.__init__(self, parent)
+
+        self._k = np.array([], dtype=np.int32)
+
+        self.select_only_visible = True
+        self.current_label = 0
+
         self._setup_pipeline()
 
     def _setup_pipeline(self):
@@ -150,12 +156,12 @@ class MeshView(QVTKWidget):
             lookup = vtk.vtkFloatArray()
             lookup.SetNumberOfValues(input_.GetNumberOfPoints())
             npy_lookup = vtk_to_numpy(lookup)
-            npy_lookup.flat = self.k.astype(np.float32) / (COLORMAP.shape[0] - 1)
+            npy_lookup.flat = self._k.astype(np.float32) / (COLORMAP.shape[0] - 1)
 
             output.GetPointData().SetScalars(lookup)
         color_points.SetExecuteMethod(callback_color_points)
 
-        source = vtk.vtkSphereSource()
+        source = vtk.vtkCubeSource()
 
         vertices_glyph = vtk.vtkGlyph3D()
         vertices_glyph.SetInputConnection(color_points.GetOutputPort())
@@ -183,7 +189,7 @@ class MeshView(QVTKWidget):
             lookup.SetNumberOfValues(input_.GetNumberOfPolys())
             npy_lookup = vtk_to_numpy(lookup)
 
-            labelled_T = self.k[self.T]
+            labelled_T = self._k[self.T]
             for i in xrange(input_.GetNumberOfPolys()):
                 l = np.argmax(np.bincount(labelled_T[i]))
                 npy_lookup[i] = float(l) / (COLORMAP.shape[0] - 1)
@@ -204,8 +210,49 @@ class MeshView(QVTKWidget):
         render_window.AddRenderer(ren)
         render_window.SetSize(400, 400)
 
+        visible = vtk.vtkSelectVisiblePoints()
+        visible.SetRenderer(ren)
+
+        picker = vtk.vtkAreaPicker()
+        def callback_picker(obj, event):
+            props = obj.GetProp3Ds()
+            if props.GetNumberOfItems() <= 0:
+                return
+
+            extract_geometry = vtk.vtkExtractGeometry()
+            extract_geometry.SetImplicitFunction(picker.GetFrustum())
+            extract_geometry.SetInput(visible.GetInput())
+            extract_geometry.Update()
+
+            unstructured_grid = extract_geometry.GetOutput()
+            if unstructured_grid.GetPoints().GetNumberOfPoints() <= 0:
+                return
+
+            i = vtk_to_numpy(unstructured_grid.GetPointData().GetArray('i'))
+
+            if self.select_only_visible:
+                visible.Update()
+
+                if visible.GetOutput().GetPoints().GetNumberOfPoints() <= 0:
+                    return
+
+                i = np.intersect1d(
+                    i, vtk_to_numpy(visible.GetOutput().GetPointData().GetArray('i')))
+
+                if i.shape[0] <= 0:
+                    return
+
+            self._k[i] = self.current_label            
+
+            # `color_points` and `color_faces` share input (refer `add_mesh`)
+            color_points.GetInput().Modified()
+            self.update()
+
+        picker.AddObserver('EndPickEvent', callback_picker)
+
         iren = self.GetInteractor()
         iren.SetRenderWindow(render_window)
+        iren.SetPicker(picker)
 
         style = vtk.vtkInteractorStyleRubberBandPick()
         style.SetCurrentRenderer(ren)
@@ -219,21 +266,32 @@ class MeshView(QVTKWidget):
     def add_mesh(self, V, T, **kwargs):
         self.V = V
         self.T = T
-        self.k = np.zeros(V.shape[0], dtype=np.int32)
+        self._k = np.zeros(V.shape[0], dtype=np.int32)
+
+        model_poly_data = numpy_to_vtkPolyData(V, faces.faces_to_cell_array(T))
+
+        idFilter = vtk.vtkIdFilter()
+        idFilter.SetInput(model_poly_data)
+        idFilter.SetIdsArrayName('i')
+        idFilter.Update()
+
+        labelled_poly_data = idFilter.GetOutput()
+
+        self.pipeline['color_points'].SetInput(model_poly_data)
+        self.pipeline['color_faces'].SetInput(model_poly_data)
+        self.pipeline['visible'].SetInput(labelled_poly_data)
 
         enorm = lambda V: np.sqrt(np.sum(V*V, axis=-1))
         edge_lengths = np.r_[enorm(V[T[:,0]] - V[T[:,1]]),
                              enorm(V[T[:,1]] - V[T[:,2]]),
                              enorm(V[T[:,2]] - V[T[:,0]])]
 
-        self.pipeline['source'].SetRadius(0.3 * np.amin(edge_lengths))
-
-        model_poly_data = numpy_to_vtkPolyData(V, faces.faces_to_cell_array(T))
-        self.pipeline['color_points'].SetInput(model_poly_data)
-        self.pipeline['color_faces'].SetInput(model_poly_data)
-
+        length = 0.2 * np.amin(edge_lengths)
+        self.pipeline['source'].SetXLength(length)
+        self.pipeline['source'].SetYLength(length)
+        self.pipeline['source'].SetZLength(length)
         self.pipeline['ren'].ResetCamera()
-        self.GetRenderWindow().Render()
+        self.update()
 
 # main
 def main():
@@ -243,8 +301,9 @@ def main():
 
     view = MeshView()
     view.add_mesh(V, T)
+    view.select_only_visible = True
+    view.current_label = 1
     view.show()
-
     qapp.exec_()
 
 if __name__ == '__main__':
