@@ -386,7 +386,7 @@ int solve_instance_sectioned_arap(PyArrayObject * npy_T,
     nodeXg->SetPreconditioner(preconditioners[4]);
     problem.AddNode(nodeXg);
 
-    // Invert scale for RigidTransformARAPEnergy2
+    // Invert scale for SectionedBasisArapEnergy
     s[0][0] = 1.0 / s[0][0];
     auto nodes = new ScaleNode(s);
     nodes->SetPreconditioner(preconditioners[2]);
@@ -396,7 +396,7 @@ int solve_instance_sectioned_arap(PyArrayObject * npy_T,
         problem.AddNode(nodes);
 
     auto nodeXb = new RotationNode(Xb);
-    problem.AddFixedNode(Xb);
+    problem.AddFixedNode(nodeXb);
 
     auto nodey = new CoefficientsNode(y);
     nodey->SetPreconditioner(preconditioners[5]);
@@ -414,7 +414,7 @@ int solve_instance_sectioned_arap(PyArrayObject * npy_T,
     nodeU->SetPreconditioner(preconditioners[3]);
     problem.AddNode(nodeU);
 
-    // RigidTransformARAPEnergy2
+    // SectionedBasisArapEnergy
     problem.AddEnergy(new SectionedBasisArapEnergy(
         *nodeV, *nodeXg, *nodes,
         *nodeXb, *nodey,
@@ -442,7 +442,7 @@ int solve_instance_sectioned_arap(PyArrayObject * npy_T,
     // Minimise
     int ret = problem.Minimise(*options);
 
-    // Invert scale for RigidTransformARAPEnergy2
+    // Invert scale for SectionedBasisArapEnergy
     s[0][0] = 1.0 / s[0][0];
 
     delete residualTransform;
