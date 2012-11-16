@@ -342,6 +342,181 @@ class MeshView(QVTKWidget):
 
         self.pipeline['ren'].ResetCamera()
         self.update()
+
+# MainWindow
+class MainWindow(QtGui.QMainWindow):
+    def __init__(self, parent=None):
+        QtGui.QMainWindow.__init__(self,parent)
+        self._setup_ui()
+
+    def _setup_ui(self):
+        view = MeshView()
+
+        select_label = QtGui.QComboBox()
+        for label in LABELS:
+            select_label.addItem(label)
+
+        def select_label_currentIndexChanged(i):
+            view.current_label = i
+        select_label.currentIndexChanged.connect(
+            select_label_currentIndexChanged)
+
+        reset_all = QtGui.QPushButton('&Reset All')
+        def reset_all_clicked():
+            label = select_label.currentIndex()
+            button = QtGui.QMessageBox.question(
+                reset_all.parent(), 
+                'Continue?', 
+                'Reset all labels to %d?' % label,
+                QtGui.QMessageBox.Yes | QtGui.QMessageBox.No,
+                QtGui.QMessageBox.No)
+
+            if button != QtGui.QMessageBox.Yes:
+                return
+
+            view.set_labels(label)
+        reset_all.clicked.connect(reset_all_clicked)
+
+        load_mesh = QtGui.QPushButton('Load &Mesh')
+        def load_mesh_clicked():
+            filename = QtGui.QFileDialog.getOpenFileName(self, 
+                'Load Mesh',
+                QtCore.QDir.current().absolutePath(),
+                '*.npz *.dat')
+
+            if filename.isEmpty():
+                return
+
+            filename = str(filename)
+            self.setWindowTitle(filename)
+            z = np.load(filename)
+            V = z['points']
+            T = np.asarray(list(iter_vtkCellArray(z['cells'])),
+                           dtype=np.int32)
+
+            view.set_mesh(V, T) 
+        load_mesh.clicked.connect(load_mesh_clicked)
+
+        select_only_visible = QtGui.QCheckBox('Select only visible?')
+        select_only_visible.setCheckState(QtCore.Qt.Checked)
+        def select_only_visible_stateChanged(state):
+            view.select_only_visible = (state == QtCore.Qt.Checked)
+        select_only_visible.stateChanged.connect(
+            select_only_visible_stateChanged)
+
+        view_settings = [('X', ((0., 0., 1.), (1., 0., 0.))),
+                         ('Y', ((0., 0., 1.), (0., 1., 0.))),
+                         ('Z', ((0., 1., 0.), (0., 0., 1.)))]
+
+        set_view = QtGui.QComboBox()
+        for key, settings in view_settings:
+            set_view.addItem(key)
+        def set_view_activated(i):
+            key, settings = view_settings[i]
+            view.camera_actions(('SetViewUp', settings[0]),
+                                ('SetPosition', settings[1]),
+                                ('SetFocalPoint', (0., 0., 0.)))
+        set_view.activated.connect(set_view_activated)
+
+        parallel_projection = QtGui.QCheckBox('Parallel projection?')
+        def parallel_projection_stateChanged(state):
+            view.camera_actions(('SetParallelProjection', 
+                                (state == QtCore.Qt.Checked,)))
+        parallel_projection.stateChanged.connect(
+            parallel_projection_stateChanged)
+
+        save_flexibile = QtGui.QPushButton('&Save Settings')
+        def save_flexibile_clicked():
+            filename = QtGui.QFileDialog.getSaveFileName(self, 'Save Selection',
+                QtCore.QDir.current().absolutePath(),
+                '*.npz')
+
+            if filename.isEmpty():
+                return
+
+            filename = str(filename)
+
+            # K[i, 0] == 0: "Fixed"
+            # K[i, 0] == -1: "Independent"
+            #   > K[i, 1] == m: Index of rotation
+            # K[i, 0] > 0: "Basis"
+            #   > K[i, 1] == n: Index of "Basis" rotation
+            K = np.zeros((view._k.shape[0], 2), dtype=np.int32)
+
+            # Independent instance rotations
+            i = np.argwhere(view._k == 1).ravel()
+            m = i.shape[0]
+
+            K[i, 0] = -1
+            K[i, 1] = xrange(m)
+
+            # Shared instance rotations and shared basis rotations
+            shared_instance = count(m)
+            shared_basis = count(0)
+            coefficients = count(1)
+
+            for k in xrange(2, LABEL_TYPES.shape[0]):
+                i = np.argwhere(view._k == k).ravel()
+                m = i.shape[0]
+                if m <= 0:
+                    continue
+
+                if LABEL_TYPES[k] == -1:
+                    K[i, 0] = -1
+                    K[i, 1] = next(shared_instance)
+                elif LABEL_TYPES[k] == 1:
+                    K[i, 0] = [next(coefficients) for j in xrange(m)]
+                    K[i, 1] = next(shared_basis)
+                else:
+                    raise ValueError('LABEL_TYPES[%d] = %d' % (k, LABEL_TYPES[k]))
+            np.savez_compressed(filename, K=K, k=view._k, LABEL_TYPES=LABEL_TYPES)
+
+        save_flexibile.clicked.connect(save_flexibile_clicked)
+
+        load_flexible = QtGui.QPushButton('&Load Settings')
+        def load_flexible_clicked():
+            filename = QtGui.QFileDialog.getOpenFileName(self, 
+                'Load Settings',
+                QtCore.QDir.current().absolutePath(),
+                '*.npz')
+
+            if filename.isEmpty():
+                return
+
+            filename = str(filename)
+
+            z = np.load(filename)
+            if not np.all(LABEL_TYPES == z['LABEL_TYPES']):
+                QtGui.QMessageBox.warning(self, 
+                    'Incompatible `LABEL_TYPES`',
+                    'Incompatible `LABEL_TYPES`')
+
+                return
+
+            view.set_labels(z['k'])
+
+        load_flexible.clicked.connect(load_flexible_clicked)
+
+        control_layout = QtGui.QVBoxLayout()
+        control_layout.addWidget(set_view)
+        control_layout.addWidget(parallel_projection)
+        control_layout.addWidget(select_label)
+        control_layout.addWidget(reset_all)
+        control_layout.addWidget(select_only_visible)
+        control_layout.addWidget(load_mesh)
+        control_layout.addWidget(load_flexible)
+        control_layout.addWidget(save_flexibile)
+        control_layout.addStretch(1)
+
+        main_layout = QtGui.QHBoxLayout()
+        main_layout.addLayout(control_layout, stretch=0)
+        main_layout.addWidget(view, stretch=1)
+
+        main_widget = QtGui.QWidget()
+        main_widget.setLayout(main_layout)
+        self.setCentralWidget(main_widget)
+
+        self.ui = locals()
         
 # main
 def main():
@@ -349,14 +524,18 @@ def main():
 
     qapp = QtGui.QApplication([])
 
-    view = MeshView()
-    view.add_mesh(V, T)
-    view.select_only_visible = True
-    view.current_label = 1
-    view.camera_actions(('SetViewUp', (0., 0., 1.)), 
-                        ('SetPosition', (-1.0, 0., 0.)),
-                        ('SetFocalPoint', (0., 0., 0.)))
-    view.show()
+    window = MainWindow()
+    window.show()
+
+    # view = MeshView()
+    # view.set_mesh(V, T)
+    # view.select_only_visible = True
+    # view.current_label = 1
+    # view.camera_actions(('SetViewUp', (0., 0., 1.)), 
+    #                     ('SetPosition', (-1.0, 0., 0.)),
+    #                     ('SetFocalPoint', (0., 0., 0.)))
+    # view.show()
+
     qapp.exec_()
 
 if __name__ == '__main__':
