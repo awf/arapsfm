@@ -5,7 +5,7 @@ import vtk
 from PyQt4 import QtCore, QtGui
 from PyQt4_.vtk.QVTKWidget import QVTKWidget
 from vtk.util.numpy_support import numpy_to_vtk, vtk_to_numpy
-from vtk_ import numpy_to_vtkPolyData, iter_vtkCollection
+from vtk_ import numpy_to_vtkPolyData, iter_vtkCellArray
 
 import os
 import numpy as np
@@ -15,6 +15,8 @@ from mesh import faces
 
 from pprint import pprint
 from matplotlib import cm
+
+from itertools import count
 
 # test_vtkInteractorStyleRubberBandPick
 def test_vtkInteractorStyleRubberBandPick():
@@ -124,12 +126,39 @@ def test_vtkInteractorStyleRubberBandPick():
     iren.Start()
 
 # Constants
-COLORMAP = cm.Set1_r(np.linspace(0., 1., 9))
-LUT = vtk.vtkLookupTable()
-LUT.SetNumberOfTableValues(COLORMAP.shape[0])
-LUT.Build()
-for i, c in enumerate(COLORMAP):
-    LUT.SetTableValue(i, *c)
+COLORMAP = cm.Set1_r(np.linspace(0., 1., 20))
+
+def make_LUT():
+    LUT = vtk.vtkLookupTable()
+    LUT.SetNumberOfTableValues(COLORMAP.shape[0])
+    LUT.Build()
+    for i, c in enumerate(COLORMAP):
+        LUT.SetTableValue(i, *c)
+
+    return LUT
+
+LUT = make_LUT()
+
+def make_LABELS():
+    n = COLORMAP.shape[0]
+    LABEL_TYPES = np.zeros(n, dtype=np.int32)
+    LABEL_TYPES[1] = -2
+    LABEL_TYPES[2:n/2] = -1
+    LABEL_TYPES[n/2:n] = 1
+
+    LABELS = map(str, xrange(n))
+    LABELS[0] = LABELS[0] + ' [Fixed]'
+    LABELS[1] = LABELS[1] + ' [Independent]'
+
+    m = (n - 2) / 2
+    for i in xrange(2, 2 + m):
+        LABELS[i] = LABELS[i] + ' [Instance]'
+    for i in xrange(2 + m, n):
+        LABELS[i] = LABELS[i] + ' [Shared]'
+
+    return LABELS, LABEL_TYPES
+
+LABELS, LABEL_TYPES = make_LABELS()
 
 # MeshView
 class MeshView(QVTKWidget):
@@ -177,6 +206,7 @@ class MeshView(QVTKWidget):
         vertices_actor.SetMapper(vertices_mapper)
         vertices_actor.GetProperty().SetColor(*COLORMAP[0, :3])
         vertices_actor.PickableOff()
+        vertices_actor.VisibilityOff()
         ren.AddActor(vertices_actor)
 
         color_faces = vtk.vtkProgrammableFilter()
@@ -204,11 +234,13 @@ class MeshView(QVTKWidget):
         model_actor = vtk.vtkActor()
         model_actor.SetMapper(model_mapper)
         model_actor.GetProperty().SetColor(*COLORMAP[0, :3])
+        model_actor.VisibilityOff()
         ren.AddActor(model_actor)
 
         render_window = vtk.vtkRenderWindow()
         render_window.AddRenderer(ren)
         render_window.SetSize(400, 400)
+        self.SetRenderWindow(render_window)
 
         visible = vtk.vtkSelectVisiblePoints()
         visible.SetRenderer(ren)
@@ -242,11 +274,7 @@ class MeshView(QVTKWidget):
                 if i.shape[0] <= 0:
                     return
 
-            self._k[i] = self.current_label            
-
-            # `color_points` and `color_faces` share input (refer `add_mesh`)
-            color_points.GetInput().Modified()
-            self.update()
+            self.set_labels(self.current_label, i)
 
         picker.AddObserver('EndPickEvent', callback_picker)
 
@@ -263,7 +291,14 @@ class MeshView(QVTKWidget):
         self.setSizePolicy(QtGui.QSizePolicy.Expanding,
                            QtGui.QSizePolicy.Expanding)
 
-    def add_mesh(self, V, T, **kwargs):
+    def set_labels(self, label, i=slice(None)):
+        self._k[i] = label
+
+        # `color_points` and `color_faces` share input (refer `_setup_pipeline`)
+        self.pipeline['color_points'].GetInput().Modified()
+        self.update()
+
+    def set_mesh(self, V, T, **kwargs):
         self.V = V
         self.T = T
         self._k = np.zeros(V.shape[0], dtype=np.int32)
@@ -286,11 +321,16 @@ class MeshView(QVTKWidget):
                              enorm(V[T[:,1]] - V[T[:,2]]),
                              enorm(V[T[:,2]] - V[T[:,0]])]
 
-        length = 0.2 * np.amin(edge_lengths)
+        length = 0.2 * np.mean(edge_lengths)
         self.pipeline['source'].SetXLength(length)
         self.pipeline['source'].SetYLength(length)
         self.pipeline['source'].SetZLength(length)
+
+        self.pipeline['vertices_actor'].VisibilityOn()
+        self.pipeline['model_actor'].VisibilityOn()
+
         self.pipeline['ren'].ResetCamera()
+
         self.update()
 
     def camera_actions(self, *args):
