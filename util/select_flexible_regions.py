@@ -14,6 +14,7 @@ from mesh.box_model import box_model
 from mesh import faces
 
 from pprint import pprint
+from matplotlib import cm
 
 # test_vtkInteractorStyleRubberBandPick
 def test_vtkInteractorStyleRubberBandPick():
@@ -122,5 +123,131 @@ def test_vtkInteractorStyleRubberBandPick():
     iren.Initialize()
     iren.Start()
 
+# Constants
+COLORMAP = cm.Set1_r(np.linspace(0., 1., 9))
+LUT = vtk.vtkLookupTable()
+LUT.SetNumberOfTableValues(COLORMAP.shape[0])
+LUT.Build()
+for i, c in enumerate(COLORMAP):
+    LUT.SetTableValue(i, *c)
+
+# MeshView
+class MeshView(QVTKWidget):
+    def __init__(self, parent=None):
+        QVTKWidget.__init__(self, parent)
+        self._setup_pipeline()
+
+    def _setup_pipeline(self):
+        ren = vtk.vtkRenderer()
+        ren.SetBackground(1.0, 1.0, 1.0)
+
+        color_points = vtk.vtkProgrammableFilter()
+        def callback_color_points():
+            input_ = color_points.GetInput()
+            output = color_points.GetOutput()
+            output.ShallowCopy(input_)
+
+            lookup = vtk.vtkFloatArray()
+            lookup.SetNumberOfValues(input_.GetNumberOfPoints())
+            npy_lookup = vtk_to_numpy(lookup)
+            npy_lookup.flat = self.k.astype(np.float32) / (COLORMAP.shape[0] - 1)
+
+            output.GetPointData().SetScalars(lookup)
+        color_points.SetExecuteMethod(callback_color_points)
+
+        source = vtk.vtkSphereSource()
+
+        vertices_glyph = vtk.vtkGlyph3D()
+        vertices_glyph.SetInputConnection(color_points.GetOutputPort())
+        vertices_glyph.SetSourceConnection(source.GetOutputPort())
+        vertices_glyph.SetScaleModeToDataScalingOff()
+        vertices_glyph.SetColorModeToColorByScalar()
+
+        vertices_mapper = vtk.vtkPolyDataMapper()
+        vertices_mapper.SetInputConnection(vertices_glyph.GetOutputPort())
+        vertices_mapper.SetLookupTable(LUT)
+
+        vertices_actor = vtk.vtkActor()
+        vertices_actor.SetMapper(vertices_mapper)
+        vertices_actor.GetProperty().SetColor(*COLORMAP[0, :3])
+        vertices_actor.PickableOff()
+        ren.AddActor(vertices_actor)
+
+        color_faces = vtk.vtkProgrammableFilter()
+        def callback_color_faces():
+            input_ = color_faces.GetInput()
+            output = color_faces.GetOutput()
+            output.ShallowCopy(input_)
+
+            lookup = vtk.vtkFloatArray()
+            lookup.SetNumberOfValues(input_.GetNumberOfPolys())
+            npy_lookup = vtk_to_numpy(lookup)
+
+            labelled_T = self.k[self.T]
+            for i in xrange(input_.GetNumberOfPolys()):
+                l = np.argmax(np.bincount(labelled_T[i]))
+                npy_lookup[i] = float(l) / (COLORMAP.shape[0] - 1)
+
+            output.GetCellData().SetScalars(lookup)
+        color_faces.SetExecuteMethod(callback_color_faces)
+
+        model_mapper = vtk.vtkPolyDataMapper()
+        model_mapper.SetInputConnection(color_faces.GetOutputPort())
+        model_mapper.SetLookupTable(LUT)
+
+        model_actor = vtk.vtkActor()
+        model_actor.SetMapper(model_mapper)
+        model_actor.GetProperty().SetColor(*COLORMAP[0, :3])
+        ren.AddActor(model_actor)
+
+        render_window = vtk.vtkRenderWindow()
+        render_window.AddRenderer(ren)
+        render_window.SetSize(400, 400)
+
+        iren = self.GetInteractor()
+        iren.SetRenderWindow(render_window)
+
+        style = vtk.vtkInteractorStyleRubberBandPick()
+        style.SetCurrentRenderer(ren)
+        iren.SetInteractorStyle(style)
+
+        self.pipeline = locals()
+
+        self.setSizePolicy(QtGui.QSizePolicy.Expanding,
+                           QtGui.QSizePolicy.Expanding)
+
+    def add_mesh(self, V, T, **kwargs):
+        self.V = V
+        self.T = T
+        self.k = np.zeros(V.shape[0], dtype=np.int32)
+
+        enorm = lambda V: np.sqrt(np.sum(V*V, axis=-1))
+        edge_lengths = np.r_[enorm(V[T[:,0]] - V[T[:,1]]),
+                             enorm(V[T[:,1]] - V[T[:,2]]),
+                             enorm(V[T[:,2]] - V[T[:,0]])]
+
+        self.pipeline['source'].SetRadius(0.3 * np.amin(edge_lengths))
+
+        model_poly_data = numpy_to_vtkPolyData(V, faces.faces_to_cell_array(T))
+        self.pipeline['color_points'].SetInput(model_poly_data)
+        self.pipeline['color_faces'].SetInput(model_poly_data)
+
+        self.pipeline['ren'].ResetCamera()
+        self.GetRenderWindow().Render()
+
+# main
+def main():
+    V, T = box_model(5, 15, 1.0, 1.0) 
+
+    qapp = QtGui.QApplication([])
+
+    view = MeshView()
+    view.add_mesh(V, T)
+    view.show()
+
+    qapp.exec_()
+
 if __name__ == '__main__':
-    test_vtkInteractorStyleRubberBandPick()
+    # test_vtkInteractorStyleRubberBandPick()
+    main()
+
