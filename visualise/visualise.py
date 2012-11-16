@@ -82,13 +82,20 @@ if HAS_VTK:
             self.actors[actor_name] = actor
             self.ren.AddActor(actor)
 
-        def add_mesh(self, V, T, L=None, actor_name='model',
-                     compute_normals=False, feature_angle=90.):
+        def add_mesh(self, V, T, L=None, 
+                     actor_name='model',
+                     compute_normals=False, 
+                     feature_angle=90.,
+                     color=(31, 120, 180), 
+                     special_color=(178, 223, 138),
+                     is_base=True):
+
             cells = faces_to_vtkCellArray(T)
 
             self.keys = {}
-            self.V = V
-            self.T_ = cells
+            if is_base:
+                self.V = V
+                self.T_ = cells
 
             self.objects = []
             model_pd = numpy_to_vtkPolyData(V, cells)
@@ -132,8 +139,8 @@ if HAS_VTK:
             def SetTableValue(i, r, g, b, alpha=1.0):
                 return lut_SetTableValue(i, r, g, b, alpha)
             lut.SetTableValue = SetTableValue
-            lut.SetTableValue(0, *int2dbl(31, 120, 180))
-            lut.SetTableValue(1, *int2dbl(178, 223, 138))
+            lut.SetTableValue(0, *int2dbl(*color))
+            lut.SetTableValue(1, *int2dbl(*special_color))
 
             # setup model mapper, actor, renderer and render window
             model_mapper = vtk.vtkPolyDataMapper()
