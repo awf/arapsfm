@@ -80,7 +80,7 @@ def async_exec(f, iterable, n=None, poll=1., chunksize=1):
         n = mp.cpu_count()
 
     if n == 1:
-        return _async_map_process(iterable)
+        return _async_exec_process(iterable)
 
     active_processes = []
 
