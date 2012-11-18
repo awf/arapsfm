@@ -1916,10 +1916,10 @@ public:
                              const RotationNode & X, const VertexNode & V1, 
                              const Matrix<int> & K, const Mesh & mesh, const double w,
                              bool uniformWeights, 
-                             bool fixedXb, bool fixedV, bool fixedScale)
+                             bool fixedXb, bool fixedV, bool fixedV1, bool fixedScale)
         : _V(V), _Xg(Xg), _s(s), _Xb(Xb), _y(y), _X(X), _V1(V1), _K(K), _mesh(mesh), _w(w), 
           _uniformWeights(uniformWeights), 
-          _fixedXb(fixedXb), _fixedV(fixedV), _fixedScale(fixedScale)
+          _fixedXb(fixedXb), _fixedV(fixedV), _fixedV1(fixedV1), _fixedScale(fixedScale)
     {}
 
     virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
@@ -1955,8 +1955,11 @@ public:
             // free (independent) rotation
             vector<int> * pUsedParamTypes = new vector<int>;
             pUsedParamTypes->push_back(_Xg.GetParamId());
-            pUsedParamTypes->push_back(_V1.GetParamId());
-            pUsedParamTypes->push_back(_V1.GetParamId());
+            if (!_fixedV1)
+            {
+                pUsedParamTypes->push_back(_V1.GetParamId());
+                pUsedParamTypes->push_back(_V1.GetParamId());
+            }
             pUsedParamTypes->push_back(_X.GetParamId());
             if (!_fixedV)
             {
@@ -1974,8 +1977,11 @@ public:
             // fixed rotation
             vector<int> * pUsedParamTypes = new vector<int>;
             pUsedParamTypes->push_back(_Xg.GetParamId());
-            pUsedParamTypes->push_back(_V1.GetParamId());
-            pUsedParamTypes->push_back(_V1.GetParamId());
+            if (!_fixedV1)
+            {
+                pUsedParamTypes->push_back(_V1.GetParamId());
+                pUsedParamTypes->push_back(_V1.GetParamId());
+            }
             if (!_fixedV)
             {
                 pUsedParamTypes->push_back(_V.GetParamId());
@@ -1992,8 +1998,11 @@ public:
             // single-axis (basis) rotation
             vector<int> * pUsedParamTypes = new vector<int>;
             pUsedParamTypes->push_back(_Xg.GetParamId());
-            pUsedParamTypes->push_back(_V1.GetParamId());
-            pUsedParamTypes->push_back(_V1.GetParamId());
+            if (!_fixedV1)
+            {
+                pUsedParamTypes->push_back(_V1.GetParamId());
+                pUsedParamTypes->push_back(_V1.GetParamId());
+            }
             if (!_fixedXb)
                 pUsedParamTypes->push_back(_Xb.GetParamId());
             pUsedParamTypes->push_back(_y.GetParamId());
@@ -2013,19 +2022,14 @@ public:
         int i = _mesh.GetHalfEdge(k, 0), j = _mesh.GetHalfEdge(k, 1);
 
         // parameters common to all three types of cost functions
-        switch (l)
-        {
-        case 0: 
-            return _Xg.GetOffset(); 
-        case 1: 
-            return i + _V1.GetOffset();
-        case 2: 
-            return j + _V1.GetOffset();
-        default: 
-            break;
-        }
+        int m = 0;
 
-        int m = 3;
+        if (l == m++) 
+            return _Xg.GetOffset();
+        else if (!_fixedV1 && (l == m++)) 
+            return i + _V1.GetOffset();
+        else if (!_fixedV1 && (l == m++)) 
+            return j + _V1.GetOffset();
 
         if (_K[i][0] < 0)
         {
@@ -2125,49 +2129,41 @@ public:
         double q[4];
         quatMultiply_Unsafe(qg, qi, q);
 
-        switch (whichParam)
+        int m = 0;
+        
+        if (whichParam == m++)
         {
-        case 0:
             // Xg
-            {
-                // dr/dq
-                double Jq[12];
-                arapJac_Q_Unsafe(_V.GetVertex(i), _V.GetVertex(j), w, q, Jq);
+            // dr/dq
+            double Jq[12];
+            arapJac_Q_Unsafe(_V.GetVertex(i), _V.GetVertex(j), w, q, Jq);
 
-                // dq/dqg
-                double Dqg[16];
-                quatMultiply_dp_Unsafe(qi, Dqg);
+            // dq/dqg
+            double Dqg[16];
+            quatMultiply_dp_Unsafe(qi, Dqg);
 
-                // dqg/xg
-                double Dg[12];
-                quatDx_Unsafe(_Xg.GetRotation(), Dg);
+            // dqg/xg
+            double Dg[12];
+            quatDx_Unsafe(_Xg.GetRotation(), Dg);
 
-                double A[12];
-                multiply_A_B_Static<double, 3, 4, 4>(Jq, Dqg, A);
-                multiply_A_B_Static<double, 3, 4, 3>(A, Dg, J[0]);
+            double A[12];
+            multiply_A_B_Static<double, 3, 4, 4>(Jq, Dqg, A);
+            multiply_A_B_Static<double, 3, 4, 3>(A, Dg, J[0]);
 
-                return;
-            }
-
-        case 1:
-            // V1i
-            {
-                arapJac_V1_Unsafe(true, w * _s.GetScale(), J[0]);
-                return;
-            }
-
-        case 2:
-            // V1j
-            {
-                arapJac_V1_Unsafe(false, w * _s.GetScale(), J[0]);
-                return;
-            }
-
-        default:
-            break;
+            return;
         }
-
-        int m = 3;
+        else if (!_fixedV1 && (whichParam == m++))
+        {
+            // V1i
+            arapJac_V1_Unsafe(true, w * _s.GetScale(), J[0]);
+            return;
+        }
+        else if (!_fixedV1 && (whichParam == m++))
+        {
+            // V1j
+            arapJac_V1_Unsafe(false, w * _s.GetScale(), J[0]);
+            return;
+        }
 
         if (_K[i][0] < 0)
         {
@@ -2294,6 +2290,7 @@ protected:
     bool _uniformWeights;
     bool _fixedXb;
     bool _fixedV;
+    bool _fixedV1;
     bool _fixedScale;
 };
 
