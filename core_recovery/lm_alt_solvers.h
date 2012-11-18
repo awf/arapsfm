@@ -310,7 +310,11 @@ int solve_forward_sectioned_arap_proj(PyArrayObject * npy_T,
         *nodeXb, *nodey,
         *nodeX, *nodeV1,
         K, mesh, sqrt(lambdas[0]), 
-        uniformWeights, fixedScale));
+        uniformWeights, 
+        false,  // fixedXb
+        true,   // fixedV
+        false,  // fixedV1
+        fixedScale));
 
     if (isProjection)
         problem.AddEnergy(new ProjectionEnergy(*nodeV1, C, P, sqrt(lambdas[1])));
@@ -420,7 +424,11 @@ int solve_instance_sectioned_arap(PyArrayObject * npy_T,
         *nodeXb, *nodey,
         *nodeX, *nodeV1,
         K, mesh, sqrt(lambdas[0]), 
-        uniformWeights, fixedScale));
+        uniformWeights, 
+        true,   // fixedXb
+        true,   // fixedV
+        false,  // fixedV1
+        fixedScale));
 
     // SilhouetteProjectionEnergy
     auto residualTransform = new PiecewisePolynomialTransform_C1(
