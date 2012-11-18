@@ -353,7 +353,12 @@ PyObject * EvaluateSectionedBasisArapEnergy(PyArrayObject * npy_T,
     SectionedBasisArapEnergy energy(node_V, node_Xg, node_s, 
                                     node_Xb, node_y,
                                     node_X, node_V1, 
-                                    K, mesh, 1.0, true, false);
+                                    K, mesh, 1.0, 
+                                    true, 
+                                    false,
+                                    true,
+                                    false,
+                                    false);
 
     // Calculate residual
     PyObject * py_list = PyList_New(0);
@@ -371,7 +376,10 @@ PyObject * EvaluateSectionedBasisArapEnergy(PyArrayObject * npy_T,
     
     for (int i = 0; i < jacDims.num_rows(); ++i)
     {
-        PyArrayObject * npy_J = (PyArrayObject *)PyArray_SimpleNew(2, jacDims[i], NPY_FLOAT64);
+        npy_intp long_jacDims[2] = { static_cast<npy_intp>(jacDims[i][0]),
+                                     static_cast<npy_intp>(jacDims[i][1]) };
+                    
+        PyArrayObject * npy_J = (PyArrayObject *)PyArray_SimpleNew(2, long_jacDims, NPY_FLOAT64);
         PYARRAY_AS_MATRIX(double, npy_J, J);
         energy.EvaluateJacobian(k, i, J);
 
