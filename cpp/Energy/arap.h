@@ -1915,9 +1915,11 @@ public:
                              const RotationNode & Xb, const CoefficientsNode & y, 
                              const RotationNode & X, const VertexNode & V1, 
                              const Matrix<int> & K, const Mesh & mesh, const double w,
-                             bool uniformWeights, bool fixedScale)
+                             bool uniformWeights, 
+                             bool fixedXb, bool fixedV, bool fixedScale)
         : _V(V), _Xg(Xg), _s(s), _Xb(Xb), _y(y), _X(X), _V1(V1), _K(K), _mesh(mesh), _w(w), 
-          _uniformWeights(uniformWeights), _fixedScale(fixedScale)
+          _uniformWeights(uniformWeights), 
+          _fixedXb(fixedXb), _fixedV(fixedV), _fixedScale(fixedScale)
     {}
 
     virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
@@ -1956,6 +1958,11 @@ public:
             pUsedParamTypes->push_back(_V1.GetParamId());
             pUsedParamTypes->push_back(_V1.GetParamId());
             pUsedParamTypes->push_back(_X.GetParamId());
+            if (!_fixedV)
+            {
+                pUsedParamTypes->push_back(_V.GetParamId());
+                pUsedParamTypes->push_back(_V.GetParamId());
+            }
             if (!_fixedScale)
                 pUsedParamTypes->push_back(_s.GetParamId());
 
@@ -1969,6 +1976,11 @@ public:
             pUsedParamTypes->push_back(_Xg.GetParamId());
             pUsedParamTypes->push_back(_V1.GetParamId());
             pUsedParamTypes->push_back(_V1.GetParamId());
+            if (!_fixedV)
+            {
+                pUsedParamTypes->push_back(_V.GetParamId());
+                pUsedParamTypes->push_back(_V.GetParamId());
+            }
             if (!_fixedScale)
                 pUsedParamTypes->push_back(_s.GetParamId());
 
@@ -1982,8 +1994,14 @@ public:
             pUsedParamTypes->push_back(_Xg.GetParamId());
             pUsedParamTypes->push_back(_V1.GetParamId());
             pUsedParamTypes->push_back(_V1.GetParamId());
-            pUsedParamTypes->push_back(_Xb.GetParamId());
+            if (!_fixedXb)
+                pUsedParamTypes->push_back(_Xb.GetParamId());
             pUsedParamTypes->push_back(_y.GetParamId());
+            if (!_fixedV)
+            {
+                pUsedParamTypes->push_back(_V.GetParamId());
+                pUsedParamTypes->push_back(_V.GetParamId());
+            }
             if (!_fixedScale)
                 pUsedParamTypes->push_back(_s.GetParamId());
 
@@ -1997,49 +2015,43 @@ public:
         // parameters common to all three types of cost functions
         switch (l)
         {
-        case 0:
+        case 0: 
             return _Xg.GetOffset(); 
-        case 1:
+        case 1: 
             return i + _V1.GetOffset();
-        case 2:
+        case 2: 
             return j + _V1.GetOffset();
-        default:
+        default: 
             break;
         }
+
+        int m = 3;
 
         if (_K[i][0] < 0)
         {
             // free (independent) rotation
-            switch (l)
-            {
-            case 3:
+            if (l == m++) 
                 return _K[i][1] + _X.GetOffset();
-            case 4:
-                return _s.GetOffset();
-            }
         }
         else if (_K[i][0] == 0)
         {
             // fixed rotation
-            switch (l)
-            {
-            case 3:
-                return _s.GetOffset();
-            }
         }
         else
         {
             // single-axis (basis) rotation
-            switch (l)
-            {
-            case 3:
+            if (!_fixedXb && (l == m++)) 
                 return _K[i][1] + _Xb.GetOffset();
-            case 4:
+            else if (l == m++) 
                 return _K[i][0] - 1 + _y.GetOffset();
-            case 5:
-                return _s.GetOffset();
-            }
         }
+
+        if (!_fixedV && (l == m++)) 
+            return i + _V.GetOffset();
+        else if (!_fixedV && (l == m++)) 
+            return j + _V.GetOffset();
+        else if (!_fixedScale && (l == m++)) 
+            return _s.GetOffset();
 
         assert(false);
 
@@ -2140,7 +2152,6 @@ public:
         case 1:
             // V1i
             {
-                
                 arapJac_V1_Unsafe(true, w * _s.GetScale(), J[0]);
                 return;
             }
@@ -2156,121 +2167,112 @@ public:
             break;
         }
 
+        int m = 3;
+
         if (_K[i][0] < 0)
         {
             // free (independent) rotation
-            switch (whichParam)
+            if (whichParam == m++)
+            // X
             {
-            case 3:
-                // X
-                {
-                    // dr/dq
-                    double Jq[12];
-                    arapJac_Q_Unsafe(_V.GetVertex(i), _V.GetVertex(j), w, q, Jq);
+                // dr/dq
+                double Jq[12];
+                arapJac_Q_Unsafe(_V.GetVertex(i), _V.GetVertex(j), w, q, Jq);
 
-                    // dq/dqi
-                    double Dqi[16];
-                    quatMultiply_dq_Unsafe(qg, Dqi);
+                // dq/dqi
+                double Dqi[16];
+                quatMultiply_dq_Unsafe(qg, Dqi);
 
-                    // dqi/xi
-                    double Di[12];
-                    quatDx_Unsafe(_X.GetRotation(_K[i][1]), Di);
+                // dqi/xi
+                double Di[12];
+                quatDx_Unsafe(_X.GetRotation(_K[i][1]), Di);
 
-                    double A[12];
-                    multiply_A_B_Static<double, 3, 4, 4>(Jq, Dqi, A);
-                    multiply_A_B_Static<double, 3, 4, 3>(A, Di, J[0]);
+                double A[12];
+                multiply_A_B_Static<double, 3, 4, 4>(Jq, Dqi, A);
+                multiply_A_B_Static<double, 3, 4, 3>(A, Di, J[0]);
 
-                    return;
-                }
-
-            case 4:
-                // s
-                {
-                    subtractVectors_Static<double, 3>(_V1.GetVertex(i), _V1.GetVertex(j), J[0]);
-                    scaleVectorIP_Static<double, 3>(w, J[0]);
-                    return;
-                }
+                return;
             }
         }
         else if (_K[i][0] == 0)
         {
             // fixed rotation
-            switch (whichParam)
-            {
-            case 3:
-                // s
-                {
-                    subtractVectors_Static<double, 3>(_V1.GetVertex(i), _V1.GetVertex(j), J[0]);
-                    scaleVectorIP_Static<double, 3>(w, J[0]);
-                    return;
-                }
-            }
         }
         else
         {
             // single-axis (basis) rotation
-            switch (whichParam)
+            if (!_fixedXb && (whichParam == m++))
             {
-            case 3:
                 // Xb
-                {
-                    // dr/dq
-                    double Jq[12];
-                    arapJac_Q_Unsafe(_V.GetVertex(i), _V.GetVertex(j), w, q, Jq);
+                // dr/dq
+                double Jq[12];
+                arapJac_Q_Unsafe(_V.GetVertex(i), _V.GetVertex(j), w, q, Jq);
 
-                    // dq/dqi
-                    double Dqi[16];
-                    quatMultiply_dq_Unsafe(qg, Dqi);
+                // dq/dqi
+                double Dqi[16];
+                quatMultiply_dq_Unsafe(qg, Dqi);
 
-                    // dqi/xi
-                    double x[3];
-                    axScale_Unsafe(_y.GetCoefficient(_K[i][0] - 1), _Xb.GetRotation(_K[i][1]), x);
+                // dqi/xi
+                double x[3];
+                axScale_Unsafe(_y.GetCoefficient(_K[i][0] - 1), _Xb.GetRotation(_K[i][1]), x);
 
-                    double Di[12];
-                    quatDx_Unsafe(x, Di);
+                double Di[12];
+                quatDx_Unsafe(x, Di);
 
-                    double A[12];
-                    multiply_A_B_Static<double, 3, 4, 4>(Jq, Dqi, A);
-                    multiply_A_B_Static<double, 3, 4, 3>(A, Di, J[0]);
+                double A[12];
+                multiply_A_B_Static<double, 3, 4, 4>(Jq, Dqi, A);
+                multiply_A_B_Static<double, 3, 4, 3>(A, Di, J[0]);
 
-                    // dxi/dxb
-                    scaleVectorIP_Static<double, 9>(_y.GetCoefficient(_K[i][0] - 1), J[0]);
-                    return;
-                }
-            case 4:
-                // y
-                {
-                    // dr/dq
-                    double Jq[12];
-                    arapJac_Q_Unsafe(_V.GetVertex(i), _V.GetVertex(j), w, q, Jq);
-
-                    // dq/dqi
-                    double Dqi[16];
-                    quatMultiply_dq_Unsafe(qg, Dqi);
-
-                    // dqi/xi
-                    double x[3];
-                    axScale_Unsafe(_y.GetCoefficient(_K[i][0] - 1), _Xb.GetRotation(_K[i][1]), x);
-
-                    double Di[12];
-                    quatDx_Unsafe(x, Di);
-
-                    double A[12], B[9];
-                    multiply_A_B_Static<double, 3, 4, 4>(Jq, Dqi, A);
-                    multiply_A_B_Static<double, 3, 4, 3>(A, Di, B);
-
-                    // dxi/y
-                    multiply_A_v_Static<double, 3, 3>(B, _Xb.GetRotation(_K[i][1]), J[0]);
-                    return;
-                }
-            case 5:
-                // s
-                {
-                    subtractVectors_Static<double, 3>(_V1.GetVertex(i), _V1.GetVertex(j), J[0]);
-                    scaleVectorIP_Static<double, 3>(w, J[0]);
-                    return;
-                }
+                // dxi/dxb
+                scaleVectorIP_Static<double, 9>(_y.GetCoefficient(_K[i][0] - 1), J[0]);
+                return;
             }
+            else if (whichParam == m++)
+            {
+                // y
+                // dr/dq
+                double Jq[12];
+                arapJac_Q_Unsafe(_V.GetVertex(i), _V.GetVertex(j), w, q, Jq);
+
+                // dq/dqi
+                double Dqi[16];
+                quatMultiply_dq_Unsafe(qg, Dqi);
+
+                // dqi/xi
+                double x[3];
+                axScale_Unsafe(_y.GetCoefficient(_K[i][0] - 1), _Xb.GetRotation(_K[i][1]), x);
+
+                double Di[12];
+                quatDx_Unsafe(x, Di);
+
+                double A[12], B[9];
+                multiply_A_B_Static<double, 3, 4, 4>(Jq, Dqi, A);
+                multiply_A_B_Static<double, 3, 4, 3>(A, Di, B);
+
+                // dxi/y
+                multiply_A_v_Static<double, 3, 3>(B, _Xb.GetRotation(_K[i][1]), J[0]);
+                return;
+            }
+        }
+
+        if (!_fixedV && (whichParam == m++)) 
+        {
+            // Vi
+            arapJac_V_Unsafe(true, w, q, 1.0, J[0]);
+            return;
+        }
+        else if (!_fixedV && (whichParam == m++)) 
+        {
+            // Vj
+            arapJac_V_Unsafe(false, w, q, 1.0, J[0]);
+            return;
+        }
+        else if (!_fixedScale && (whichParam == m++)) 
+        {
+            // s
+            subtractVectors_Static<double, 3>(_V1.GetVertex(i), _V1.GetVertex(j), J[0]);
+            scaleVectorIP_Static<double, 3>(w, J[0]);
+            return;
         }
 
         assert(false);
@@ -2290,6 +2292,8 @@ protected:
     const Mesh & _mesh;
     const double _w;
     bool _uniformWeights;
+    bool _fixedXb;
+    bool _fixedV;
     bool _fixedScale;
 };
 
