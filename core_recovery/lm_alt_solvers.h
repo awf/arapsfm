@@ -458,4 +458,129 @@ int solve_instance_sectioned_arap(PyArrayObject * npy_T,
     return ret;
 }
 
+// solve_core_sectioned_arap
+int solve_core_sectioned_arap(PyArrayObject * npy_T,
+                              PyArrayObject * npy_V,
+                              PyObject * list_Xg,
+                              PyObject * list_s,
+                              PyArrayObject * npy_K,
+                              PyArrayObject * npy_Xb,
+                              PyObject * list_y,
+                              PyObject * list_X,
+                              PyObject * list_V1,
+                              // PyObject * list_C,
+                              // PyObject * list_P,
+                              PyArrayObject * npy_lambdas,
+                              PyArrayObject * npy_preconditioners,
+                              int narrowBand,
+                              bool uniformWeights,
+                              const OptimiserOptions * options)
+{
+    PYARRAY_AS_MATRIX(int, npy_T, T);
+    PYARRAY_AS_MATRIX(double, npy_V, V);
+
+    PYARRAY_AS_MATRIX(int, npy_K, K);
+    PYARRAY_AS_MATRIX(double, npy_Xb, Xb);
+
+    auto Xg = PyList_to_vector_of_Matrix<double>(list_Xg);
+    auto s = PyList_to_vector_of_Matrix<double>(list_s);
+    auto y = PyList_to_vector_of_Matrix<double>(list_y);
+    auto X = PyList_to_vector_of_Matrix<double>(list_X);
+    auto V1 = PyList_to_vector_of_Matrix<double>(list_V1);
+
+    PYARRAY_AS_VECTOR(double, npy_lambdas, lambdas);
+    PYARRAY_AS_VECTOR(double, npy_preconditioners, preconditioners);
+
+    Problem problem;
+    Mesh mesh(V.num_rows(), T);
+
+    auto nodeV = new VertexNode(V);
+    nodeV->SetPreconditioner(preconditioners[0]);
+    problem.AddNode(nodeV);
+
+    vector<GlobalRotationNode *> instGlobalRotationNodes;
+    for (auto i = Xg.begin(); i != Xg.end(); ++i)
+    {
+        instGlobalRotationNodes.push_back(new GlobalRotationNode(*(*i)));
+        problem.AddNode(instGlobalRotationNodes.back());
+    }
+    instGlobalRotationNodes.back()->SetPreconditioner(preconditioners[3]);
+
+    vector<ScaleNode *> instScaleNodes;
+    for (int i=0; i < s.size(); ++i)
+    {
+        (*s[i])[0][0] = 1.0 / (*s[i])[0][0];
+        instScaleNodes.push_back(new ScaleNode(*s[i]));
+
+        if (i == 0)
+            problem.AddFixedNode(instScaleNodes.back());
+        else
+            problem.AddNode(instScaleNodes.back());
+    }
+    instScaleNodes.back()->SetPreconditioner(preconditioners[2]);
+
+    auto nodeXb = new RotationNode(Xb);
+    problem.AddNode(nodeXb);
+    nodeXb->SetPreconditioner(preconditioners[1]);
+
+    vector<CoefficientsNode *> instBasisCoefficientNodes;
+    for (auto i = y.begin(); i != y.end(); ++i)
+    {
+        instBasisCoefficientNodes.push_back(new CoefficientsNode(*(*i)));
+        problem.AddNode(instBasisCoefficientNodes.back());
+    }
+    instBasisCoefficientNodes.back()->SetPreconditioner(preconditioners[4]);
+
+    vector<RotationNode *> instRotationNodes;
+    for (auto i = X.begin(); i != X.end(); ++i)
+    {
+        instRotationNodes.push_back(new RotationNode(*(*i)));
+        problem.AddNode(instRotationNodes.back());
+    }
+
+    vector<VertexNode *> instVertexNodes;
+    for (auto i = V1.begin(); i != V1.end(); ++i)
+    {
+        instVertexNodes.push_back(new VertexNode(*(*i)));
+        problem.AddFixedNode(instVertexNodes.back());
+    }
+
+    // SectionedBasisArapEnergy
+    for (int i = 0; i < instVertexNodes.size(); ++i)
+    {
+        problem.AddEnergy(new SectionedBasisArapEnergy(
+            *nodeV, *instGlobalRotationNodes[i], *instScaleNodes[i], 
+            *nodeXb, *instBasisCoefficientNodes[i],
+            *instRotationNodes[i], *instVertexNodes[i], 
+            K, mesh, sqrt(lambdas[0]), 
+            uniformWeights,
+            false,  // fixedXb   
+            false,  // fixedV
+            true,   // fixedV1
+            i == 0  // fixedScale
+            ));
+    }
+
+    // LaplacianEnergy
+    problem.AddEnergy(new LaplacianEnergy(*nodeV, mesh, sqrt(lambdas[1])));
+
+    // Minimise
+    int ret = problem.Minimise(*options);
+
+    // Invert scale for `RigidTransformARAPEnergy2`
+    for (auto i = s.begin(); i != s.end(); ++i)
+    {
+        (*(*i))[0][0] = 1.0 / (*(*i))[0][0];
+    }
+
+    // dealloc 
+    dealloc_vector(Xg);
+    dealloc_vector(s);
+    dealloc_vector(y);
+    dealloc_vector(X);
+    dealloc_vector(V1);
+
+    return ret;
+}
+
 #endif
