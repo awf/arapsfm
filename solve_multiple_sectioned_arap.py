@@ -396,7 +396,7 @@ def main():
     instance_lambdas = np.r_[lambdas[3],    # as-rigid-as-possible
                              lambdas[1:3],  # silhouette
                              lambdas[4],    # spillage
-                                            # projection
+                             lambdas[7],    # projection
                              ]
 
     core_lambdas = np.r_[lambdas[3], lambdas[6]]
@@ -430,7 +430,9 @@ def main():
                     K, Xb,
                     y[i], X[i], 
                     V1[i], U[i], L[i],
-                    S[i], SN[i], Rx[i], Ry[i], 
+                    S[i], SN[i], 
+                    Rx[i], Ry[i], 
+                    C[i], P[i],
                     instance_lambdas, 
                     preconditioners,
                     piecewise_polynomial,
