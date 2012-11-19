@@ -131,7 +131,7 @@ class StandaloneVisualisation(object):
         V1 = np.dot(V1, np.transpose(A))
         V1 += register.displacement(V1, self[self.vertices_key])
 
-        self.vis.add_mesh(V1, T, actor_name='arap')
+        self.vis.add_mesh(V1, T, actor_name='arap', is_base=False)
 
         lut = self.vis.actors['arap'].GetMapper().GetLookupTable()
         lut.SetTableValue(0, 1., 0.667, 0.)
@@ -171,9 +171,54 @@ class StandaloneVisualisation(object):
 
         V1 += register.displacement(V1, self[self.vertices_key])
 
-        self.vis.add_mesh(V1, T, actor_name='arap')
+        self.vis.add_mesh(V1, T, actor_name='arap', is_base=False)
         lut = self.vis.actors['arap'].GetMapper().GetLookupTable()
         lut.SetTableValue(0, 1., 0., 1.)
+
+    @requires('T', 'Xg', 's', 'K', 'Xb', 'X', 'y', attrs=['vertices_key'])
+    def _add_sectioned_arap(self):
+        if self.core_V is None:
+            return
+
+        # calculate `Xi`
+        K = self['K']
+        Xb = self['Xb']
+        X = self['X']
+        y = self['y']
+
+        N = self.core_V.shape[0]
+        Xi = np.zeros((N, 3), dtype=np.float64)
+        for i in xrange(N):
+            if K[i, 0] == 0:
+                pass
+            elif K[i, 0] < 0:
+                Xi[i,:] = X[K[i, 1]]
+            else:
+                Xi[i,:] = axScale(y[K[i, 0] - 1], Xb[K[i, 1]])
+
+        # setup `solve_V`
+        T = self['T'] 
+        core_V = self.core_V.copy()
+        adj, W = weights(core_V, faces_to_cell_array(T), weights_type='uniform')
+
+        solve_V = ARAPVertexSolver(adj, W, core_V)
+
+        # solve for `V1`
+        rotM = lambda x: rotationMatrix(quat(x))
+        V1 = solve_V(map(lambda x: rotM(x), Xi))
+
+        # apply global rotation and scale
+        A = self['s'] * rotM(np.ravel(self['Xg']))
+
+        V1 = np.dot(V1, np.transpose(A))
+
+        # register by translation to the instance vertices
+        V1 += register.displacement(V1, self[self.vertices_key])
+
+        # add as orange actor
+        self.vis.add_mesh(V1, T, actor_name='arap', 
+                          is_base=False, 
+                          color=(255, 170, 0))
 
     @requires('image')
     def _add_image(self):
