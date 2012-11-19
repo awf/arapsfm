@@ -1,6 +1,7 @@
 # inplace_cheetah1B_Cheetah_4B.py
 
 # Imports
+import argparse
 from os import system
 
 # SINGLE_ARAP_CMD
@@ -30,13 +31,17 @@ data/user_constraints/cheetah1B/Cheetah_4B/{frame_index}.npz \
 cheetah1B/Cheetah_4B/Cheetah_4B_{frame_index}_Silhouette_Info.dat \
 > cheetah1B/Cheetah_4B/Cheetah_4B_{frame_index}_Silhouette_Info.log'''
 
+# silhouette_process
+def silhouette_process(i):
+    cmd = SINGLE_SILHOUETTE_CMD.format(frame_index=i)
+    print '-> %s' % cmd
+    system(cmd)
+    
 # main_single_silhouette
 def main_single_silhouette():
-    # for all frame indices
-    for i in xrange(12, 16):
-        cmd = SINGLE_SILHOUETTE_CMD.format(frame_index=i)
-        print '-> %s' % cmd
-        system(cmd)
+    from multiprocessing import Pool, cpu_count
+    p = Pool(cpu_count())
+    p.map(silhouette_process, range(16))
 
 MULTIVIEW_CMD = '''
 '''
