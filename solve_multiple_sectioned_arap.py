@@ -335,7 +335,7 @@ def main():
         # no requirement for `+1` because y-indices are 1-based
         assert Nyi == np.amax(unique_yi)
 
-    y = [mparray.zeros((Nyi, 1), dtype=np.float64) for v in V1]
+    y = [mparray.ones((Nyi, 1), dtype=np.float64) for v in V1]
 
     # free (shared) rotations in each instance (X)
     i = np.argwhere(K[:, 0] < 0).ravel()
