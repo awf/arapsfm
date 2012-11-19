@@ -283,13 +283,18 @@ def main():
     # ------------------------------------------------------------------------ 
     output = args.output
     if output == 'default':
+        output = '_'
+
+    if output.startswith('_'):
+        prefix = output[1:]
         make_str = lambda a: ",".join('%.4g' % a_ for a_ in a)
         mesh_file = os.path.split(args.mesh)[1]
-        output = '%s_%s_%s_%s_%s' % (os.path.splitext(mesh_file)[0],
-                                     make_str(indices),
-                                     make_str(lambdas), 
-                                     make_str(preconditioners),
-                                     make_str(piecewise_polynomial))
+        output = '%s_%s_%s_%s_%s_%s' % (prefix,
+                                        os.path.splitext(mesh_file)[0],
+                                        make_str(indices),
+                                        make_str(lambdas), 
+                                        make_str(preconditioners),
+                                        make_str(piecewise_polynomial))
 
     print 'output:', output
 
