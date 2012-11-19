@@ -340,12 +340,12 @@ int solve_instance_sectioned_arap(PyArrayObject * npy_T,
                                   PyArrayObject * npy_V1,
                                   PyArrayObject * npy_U,
                                   PyArrayObject * npy_L,
-                                  // PyArrayObject * npy_C,
-                                  // PyArrayObject * npy_P,
                                   PyArrayObject * npy_S,
                                   PyArrayObject * npy_SN,
                                   PyArrayObject * npy_Rx,
                                   PyArrayObject * npy_Ry,
+                                  PyArrayObject * npy_C,
+                                  PyArrayObject * npy_P,
                                   PyArrayObject * npy_lambdas,
                                   PyArrayObject * npy_preconditioners,
                                   PyArrayObject * npy_piecewisePolynomial,
@@ -368,12 +368,13 @@ int solve_instance_sectioned_arap(PyArrayObject * npy_T,
     PYARRAY_AS_MATRIX(double, npy_U, U);
     PYARRAY_AS_VECTOR(int, npy_L, L);
 
-    // PYARRAY_AS_VECTOR(int, npy_C, C);
-    // PYARRAY_AS_MATRIX(double, npy_P, P);
     PYARRAY_AS_MATRIX(double, npy_S, S);
     PYARRAY_AS_MATRIX(double, npy_SN, SN);
     PYARRAY_AS_MATRIX(double, npy_Rx, Rx);
     PYARRAY_AS_MATRIX(double, npy_Ry, Ry);
+
+    PYARRAY_AS_VECTOR(int, npy_C, C);
+    PYARRAY_AS_MATRIX(double, npy_P, P);
 
     PYARRAY_AS_VECTOR(double, npy_lambdas, lambdas);
     PYARRAY_AS_VECTOR(double, npy_preconditioners, preconditioners);
@@ -445,7 +446,7 @@ int solve_instance_sectioned_arap(PyArrayObject * npy_T,
     problem.AddEnergy(new SpillageEnergy(*nodeV1, Rx, Ry, sqrt(lambdas[3])));
 
     // Projection
-    // problem.AddEnergy(new ProjectionEnergy(*nodeV1, C, P, sqrt(lambdas[4])));
+    problem.AddEnergy(new ProjectionEnergy(*nodeV1, C, P, sqrt(lambdas[4])));
 
     // Minimise
     int ret = problem.Minimise(*options);

@@ -89,6 +89,8 @@ cdef extern from "lm_alt_solvers.h":
                                                                          np.ndarray npy_SN,
                                                                          np.ndarray npy_Rx,
                                                                          np.ndarray npy_Ry,
+                                                                         np.ndarray npy_C,
+                                                                         np.ndarray npy_P,
                                                                          np.ndarray npy_lambdas,
                                                                          np.ndarray npy_preconditioners,
                                                                          np.ndarray npy_piecewisePolynomial,
@@ -319,6 +321,8 @@ def solve_instance_sectioned_arap(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
                                   np.ndarray[np.float64_t, ndim=2, mode='c'] SN,  
                                   np.ndarray[np.float64_t, ndim=2, mode='c'] Rx,
                                   np.ndarray[np.float64_t, ndim=2, mode='c'] Ry,
+                                  np.ndarray[np.int32_t, ndim=1, mode='c'] C,
+                                  np.ndarray[np.float64_t, ndim=2, mode='c'] P,
                                   np.ndarray[np.float64_t, ndim=1] lambdas,
                                   np.ndarray[np.float64_t, ndim=1] preconditioners,
                                   np.ndarray[np.float64_t, ndim=1] piecewisePolynomial,
@@ -327,7 +331,7 @@ def solve_instance_sectioned_arap(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
                                   bint fixedScale,
                                   **kwargs):
 
-    assert lambdas.shape[0] == 4
+    assert lambdas.shape[0] == 5
     assert preconditioners.shape[0] == 6
     assert piecewisePolynomial.shape[0] == 2
 
@@ -342,6 +346,7 @@ def solve_instance_sectioned_arap(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
         V1, 
         U, L, S, SN, 
         Rx, Ry, 
+        C, P,
         lambdas, 
         preconditioners, 
         piecewisePolynomial, 
