@@ -9,6 +9,7 @@ from PyQt4 import QtGui, QtCore
 from mesh_view import InteractiveMeshView
 
 from matplotlib.pyplot import imread
+from operator import itemgetter
 from itertools import izip
 from pprint import pprint
 
@@ -29,6 +30,7 @@ class MainWindow(QtGui.QMainWindow):
         self.setup_ui()
 
     def setup_state(self):  
+        self.image_full_path = None
         self.last_image_path = None
         self.last_mesh_path = None
         self.last_correspondences_path = None
@@ -36,35 +38,68 @@ class MainWindow(QtGui.QMainWindow):
 
     def setup_ui(self):
         self.load_image_pb = QtGui.QPushButton('Load &Image')
+        self.next_image_pb = QtGui.QPushButton('&Next Image')
+        self.prev_image_pb = QtGui.QPushButton('&Prev Image')
         self.load_mesh_pb = QtGui.QPushButton('Load &Mesh')
         self.load_pb = QtGui.QPushButton('&Load')
         self.save_pb = QtGui.QPushButton('&Save')
         self.add_pb = QtGui.QPushButton('&Add')
         self.remove_pb = QtGui.QPushButton('&Remove')
-        self.reset_pb = QtGui.QPushButton('Rese&t')
-        self.print_info_pb = QtGui.QPushButton('&Print Info')
-        self.apply_arap_pb = QtGui.QPushButton('&Update')
+        self.toggle_pb = QtGui.QPushButton('&Enable/Disable')
+        self.update_pb = QtGui.QPushButton('&Update')
+        self.reset_pb = QtGui.QPushButton('Reset')
+        self.print_info_pb = QtGui.QPushButton('Print Inf&o')
+        self.apply_arap_pb = QtGui.QPushButton('&Deform')
         self.toggle_arap_view_pb = QtGui.QPushButton('To&ggle View')
         self.toggle_arap_view_pb.setCheckable(True)
         self.max_iterations_le = QtGui.QLineEdit('10')
 
         pb_layout = QtGui.QGridLayout()
-        pb_layout.addWidget(self.load_image_pb, 0, 0)
-        pb_layout.addWidget(self.load_mesh_pb, 0, 1)
-        pb_layout.addWidget(self.add_pb, 1, 0)
-        pb_layout.addWidget(self.remove_pb, 1, 1)
-        pb_layout.addWidget(self.save_pb, 2, 0)
-        pb_layout.addWidget(self.load_pb, 2, 1)
-        pb_layout.addWidget(self.reset_pb, 3, 0)
-        pb_layout.addWidget(self.print_info_pb, 3, 1)
-        pb_layout.addWidget(self.apply_arap_pb, 4, 0)
-        pb_layout.addWidget(self.toggle_arap_view_pb, 4, 1)
-        pb_layout.addWidget(self.max_iterations_le, 5, 0)
 
         self.items = QtGui.QListWidget()
+
+        font = QtGui.QFont('Monospace', 10, QtGui.QFont.Normal, False)
+        self.items.setFont(font)
+
         ctrl_layout = QtGui.QVBoxLayout()
+        def ctrl_layout_add_separator():
+            line = QtGui.QFrame()
+            line.setFrameShape(QtGui.QFrame.HLine)
+            line.setFrameShadow(QtGui.QFrame.Sunken)
+            ctrl_layout.addWidget(line)
+
         ctrl_layout.addWidget(self.items)
-        ctrl_layout.addLayout(pb_layout)
+        ctrl_layout_add_separator()
+        
+        item_pbs_layout = QtGui.QGridLayout()
+        item_pbs_layout.addWidget(self.add_pb, 0, 0)
+        item_pbs_layout.addWidget(self.remove_pb, 0, 1)
+        item_pbs_layout.addWidget(self.toggle_pb, 1, 0)
+        item_pbs_layout.addWidget(self.update_pb, 1, 1)
+        ctrl_layout.addLayout(item_pbs_layout)
+        ctrl_layout_add_separator()
+
+        load_pbs_layout = QtGui.QGridLayout()
+        load_pbs_layout.addWidget(self.load_image_pb, 0, 0)
+        load_pbs_layout.addWidget(self.load_mesh_pb, 0, 1)
+        load_pbs_layout.addWidget(self.prev_image_pb, 1, 0)
+        load_pbs_layout.addWidget(self.next_image_pb, 1, 1)
+        ctrl_layout.addLayout(load_pbs_layout)
+        ctrl_layout_add_separator()
+
+        correspondences_pbs_layout = QtGui.QGridLayout()
+        correspondences_pbs_layout.addWidget(self.save_pb, 0, 0)
+        correspondences_pbs_layout.addWidget(self.load_pb, 0, 1)
+        correspondences_pbs_layout.addWidget(self.reset_pb, 1, 0)
+        correspondences_pbs_layout.addWidget(self.print_info_pb, 1, 1)
+        ctrl_layout.addLayout(correspondences_pbs_layout)
+        ctrl_layout_add_separator()
+
+        arap_layout = QtGui.QGridLayout()
+        arap_layout.addWidget(self.max_iterations_le, 0, 0)
+        arap_layout.addWidget(self.apply_arap_pb, 0, 1)
+        arap_layout.addWidget(self.toggle_arap_view_pb, 0, 2)
+        ctrl_layout.addLayout(arap_layout)
 
         self.mesh_view = InteractiveMeshView()
 
@@ -83,9 +118,13 @@ class MainWindow(QtGui.QMainWindow):
                                              QtGui.QSizePolicy.Minimum)
 
         self.load_image_pb.clicked.connect(self.load_image)
+        self.prev_image_pb.clicked.connect(self.prev_image)
+        self.next_image_pb.clicked.connect(self.next_image)
         self.load_mesh_pb.clicked.connect(self.load_mesh)
         self.add_pb.clicked.connect(self.add_correspondence)
         self.remove_pb.clicked.connect(self.remove_correspondence)
+        self.toggle_pb.clicked.connect(self.toggle_correspondence)
+        self.update_pb.clicked.connect(self.update_correspondence)
         self.save_pb.clicked.connect(self.save)
         self.load_pb.clicked.connect(self.load)
         self.print_info_pb.clicked.connect(self.print_info)
@@ -97,7 +136,8 @@ class MainWindow(QtGui.QMainWindow):
 
         self.items.currentRowChanged.connect(self.update_selection)
 
-        self.setWindowTitle('CoreRecovery - User Constraints')
+        self.window_title_stem = 'CoreRecovery: '
+        self.setWindowTitle(self.window_title_stem)
 
     def load_image(self):
         path = self.last_image_path
@@ -112,9 +152,50 @@ class MainWindow(QtGui.QMainWindow):
 
         self._load_image(str(filename))
 
-    def _load_image(self, filename):
-        self.mesh_view.set_image(filename)
-        self.last_image_path = os.path.split(filename)[0]
+    def _load_image(self, full_path):
+        self.mesh_view.set_image(full_path)
+        self.last_image_path = os.path.split(full_path)[0]
+        self.image_full_path = full_path
+        self.setWindowTitle(self.window_title_stem + full_path) 
+
+    def _delta_image_number(self, delta):
+        if self.image_full_path is None:
+            return None
+
+        def number_from_filename(filename):
+            root, ext = os.path.splitext(filename)
+            try:
+                return int(root.split('_')[-1])
+            except ValueError:
+                return None
+
+        dir_, filename = os.path.split(self.image_full_path)
+        n = number_from_filename(filename)
+        if n is None:
+            return None
+
+        n += delta
+
+        files = os.listdir(dir_)
+        numbers = map(number_from_filename, files)
+        for i, m in enumerate(numbers):
+            if m is not None and m == n:
+                return os.path.join(dir_, files[i])
+        
+        return None
+                
+    def delta_image_number(self, delta):
+        image_path = self._delta_image_number(delta)
+        if image_path is None:
+            return
+
+        self._load_image(image_path)
+
+    def prev_image(self):
+        self.delta_image_number(-1)
+
+    def next_image(self):
+        self.delta_image_number(1)
 
     def load_mesh(self):
         path = self.last_mesh_path
@@ -162,16 +243,36 @@ class MainWindow(QtGui.QMainWindow):
         self._add_correspondence(position, i)
         self._set_correspondences()
 
-    def _add_correspondence(self, position, i):
-        item_string = ('(%.3f, %.3f) -> %d : %s, %s, %d' % 
-                      (position[0], position[1], i,
-                       position[0].hex(), position[1].hex(),
-                       i))
+    def _add_correspondence(self, position, i, is_active=True):
+        self.items.addItem(self._make_item_string(position, i, is_active))
 
-        self.items.addItem(item_string)
+    def toggle_correspondence(self):
+        row = self.items.currentRow()
+        if row < 0:
+            return
+
+        is_active, (position, i) = self._get_item(row)
+        self._update_correspondence(row, position, i, is_active ^ True)
+        self._set_correspondences()
+
+    def update_correspondence(self):
+        row = self.items.currentRow()
+        if row < 0:
+            return
+
+        is_active, (position, i) = self._get_item(row)
+        _, position = self.mesh_view.point()
+        self._update_correspondence(row, position, i, is_active)
+        self._set_correspondences()
+
+    def _update_correspondence(self, item_index, position, i, is_active):
+        item = self.items.item(item_index)
+        item.setText(self._make_item_string(position, i, is_active))
 
     def _set_correspondences(self):
-        C = [self._get_item(i) for i in xrange(self.items.count())]
+        all_C = (self._get_item(i) for i in xrange(self.items.count()))
+        active_C = filter(itemgetter(0), all_C)
+        C = map(itemgetter(1), active_C)
         self.mesh_view.set_correspondences(C)
         
     def remove_correspondence(self):
@@ -184,18 +285,24 @@ class MainWindow(QtGui.QMainWindow):
 
     def get_projection_constraints(self):
         n = self.items.count()
-        P = np.empty((n, 2), dtype=np.float64)
-        C = np.empty(n, dtype=np.int32)
+        all_P = np.empty((n, 2), dtype=np.float64)
+        all_C = np.empty((n,), dtype=np.int32)
+        is_active = np.empty((n,), dtype=bool)
 
         for i in xrange(n):
-            position, point_id = self._get_item(i)
-            P[i] = position
-            C[i] = point_id
+            active, (position, point_id) = self._get_item(i)
+            all_P[i] = position
+            all_C[i] = point_id
+            is_active[i] = active
+
+        P = np.require(all_P[is_active], requirements='C')
+        C = np.require(all_C[is_active], requirements='C')
 
         return dict(positions=P, point_ids=C,      # backwards compatible
                     C=C, P=P,
                     T=self.mesh_view.transform(),
-                    V=self.mesh_view.V0)
+                    V=self.mesh_view.V0,
+                    all_P=all_P, all_C=all_C, is_active=is_active)
          
     def save(self):
         path = self.last_correspondences_path
@@ -226,15 +333,22 @@ class MainWindow(QtGui.QMainWindow):
 
     def _load(self, filename):
         z = np.load(filename)
-        positions = z['positions']
-        point_ids = z['point_ids']
-        T = z['T']
 
-        for position, point_id in izip(positions, point_ids):
-            self._add_correspondence(position, point_id)
+        # backwards compatibility
+        if not 'all_P' in z.keys():
+            positions = z['positions']
+            point_ids = z['point_ids']
+            is_active = np.ones(positions.shape[0], dtype=bool)
+        else:
+            positions = z['all_P']
+            point_ids = z['all_C']
+            is_active = z['is_active']
+            
+        for p, i, b in izip(positions, point_ids, is_active):
+            self._add_correspondence(p, i, b)
 
         self._set_correspondences()
-        self.mesh_view.set_transform(T)
+        self.mesh_view.set_transform(z['T'])
 
         self.last_correspondences_path = os.path.split(filename)[0]
 
@@ -280,19 +394,25 @@ class MainWindow(QtGui.QMainWindow):
     def _get_item(self, i):
         line = str(self.items.item(i).text())
         valid = line.split(':')[-1].lstrip()
-        row, col, point_id = valid.split(',')
+        is_active, x, y, point_id = valid.split(',')
 
-        row = float.fromhex(row)
-        col = float.fromhex(col)
+        is_active = (is_active == '1')
+        x = float.fromhex(x)
+        y = float.fromhex(y)
         point_id = int(point_id)
 
-        return (row, col), point_id
+        return is_active, ((x, y), point_id)
+
+    def _make_item_string(self, position, i, is_active):
+        return ('[%s] %6.1f, %6.1f -> %4d : %s, %s, %s, %d' % 
+                ('X' if is_active else ' ', position[0], position[1], i,
+                 '1' if is_active else '0', position[0].hex(), position[1].hex(), i))
 
     def update_selection(self, row):
         if row < 0:
             return
 
-        position, point_id = self._get_item(row)
+        active, (position, point_id) = self._get_item(row)
         self.mesh_view._set_point(point_id)
         self.mesh_view._set_image_point(*position)
 
@@ -303,12 +423,10 @@ def main():
     main_window = MainWindow()
     main_window.show()
 
-    # XXX
     # test
-    # main_window._load_image('data/frames/cheetah0/0.png')
-    # main_window._load_mesh('data/models/quad_prototype_tail.npz')
-    # main_window._load('data/projection_constraints/quad_prototype_tail/0f.npz')
-    # XXX
+    # main_window._load_image('data/frames/dog0/dog-2741327_055.png')
+    # main_window._load_mesh('data/models/Boxer_0B.npz')
+    # main_window._load('data/user_constraints/dog0/Boxer_0B/55B.npz')
 
     qapp.exec_()
 
