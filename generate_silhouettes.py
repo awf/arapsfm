@@ -1,89 +1,74 @@
 # generate_silhouettes.py
 
 # Imports
-import os
+import argparse, os
 import numpy as np
 import matplotlib.pyplot as plt
 from core_recovery.silhouette_generation import generate_silhouette
 
-# Change `DATA_SOURCE` and `BACKGROUND_COLOR` for different sources
-
-# Constants
-DATA_ROOT = 'data'
-
-# DATA_SOURCE = 'cheetah0'
-# BACKGROUND_COLOUR = np.array([255, 242, 0, 255], dtype=np.uint8)
-
-# DATA_SOURCE = 'circle'
-# BACKGROUND_COLOUR = np.array([255, 242, 0], dtype=np.uint8)
-
-# DATA_SOURCE = 'cheetah1'
-# BACKGROUND_COLOUR = np.array([255, 255, 0], dtype=np.uint8)
-
-DATA_SOURCE = 'cheetah1B'
-BACKGROUND_COLOUR = np.array([255, 255, 0], dtype=np.uint8)
-
-INPUT_DIR = os.path.join(DATA_ROOT, 'segmentations', DATA_SOURCE)
-OUTPUT_DIR = os.path.join(DATA_ROOT, 'silhouettes', DATA_SOURCE)
-
-# Options
-# SUBSAMPLE = 20
-SUBSAMPLE = 10
-FLIP_NORMALS = True
-SHOW_SILHOUETTES = True
-
-# Segmentation to silhouette
-
-# load_inverse_segmentation
-def load_inverse_segmentation(index):
-    path = os.path.join(INPUT_DIR, '%d-INV_S.png' % index)
-    print '<- %s' % path
-
-    color_mask = (plt.imread(path)*255.).astype(np.uint8)
-    return np.any(color_mask[..., :3] != BACKGROUND_COLOUR, axis=-1)
-
-# save_silhouette
-def save_silhouette(index, S, SN):
-    path = os.path.join(OUTPUT_DIR, '%d_S.npz' % index)
-    print '-> %s' % path
-    np.savez_compressed(path, S=S, SN=SN)
-
 # main
 def main():
-    try:
-        os.makedirs(OUTPUT_DIR)
-    except os.error:
-        # directory already exists
-        pass
+    parser = argparse.ArgumentParser()
+    parser.add_argument('input_dir', type=str)
+    parser.add_argument('output_dir', type=str)
+    parser.add_argument('background_colour', type=str)
+    parser.add_argument('--subsample', type=int, default=10)
+    parser.add_argument('--indices', type=str, default='None')
+    parser.add_argument('--show_silhouettes', default=False, 
+                        action='store_true')
+    parser.add_argument('--flip_normals', default=False, action='store_true')
 
-    all_files = os.listdir(INPUT_DIR)
+    args = parser.parse_args()
+    for key in ['background_colour', 'indices']:
+        setattr(args, key, eval(getattr(args, key)))
 
-    inv_seg_files = filter(lambda f: '-INV_S.png' in f, all_files)
-    indices = map(lambda f: int(f.split('-INV_S')[0]), inv_seg_files)
-    print 'indices:', indices
+    if not os.path.exists(args.output_dir):
+        os.makedirs(args.output_dir)
 
-    for index in indices:
-        mask = load_inverse_segmentation(index)
-        S, SN = generate_silhouette(mask,
-                                    SUBSAMPLE,
-                                    FLIP_NORMALS)
-        save_silhouette(index, S, SN)
-    
-        if SHOW_SILHOUETTES:
+    files = filter(lambda f: f.endswith('.png'), os.listdir(args.input_dir))
+    file_roots = map(lambda f: os.path.splitext(f)[0], files)
+    indices = map(lambda f: int(f.split('_')[-1]), file_roots)
+
+    if args.indices is not None:
+        def index_iterator():
+            for i in args.indices:
+                yield indices.index(i)
+    else:
+        def index_iterator():
+            for i in np.argsort(indices):
+                yield i
+
+    for index in index_iterator():
+        full_path = os.path.join(args.input_dir, files[index])
+        print '<- %s' % full_path
+
+        im = (plt.imread(full_path) * 255.).astype(np.uint8)
+        mask = np.all(im != args.background_colour, axis=2)
+
+        S, SN = generate_silhouette(mask, args.subsample, args.flip_normals)
+
+        if args.show_silhouettes:
             f = plt.figure()
             ax = f.add_axes((0., 0., 1., 1.), frameon=False)
+            ax.imshow(mask)
             ax.set_xticks([])
             ax.set_yticks([])
-            ax.imshow(mask)
+
+            l = 0.025 * max(im.shape[0], im.shape[1])
 
             for i in xrange(S.shape[0]):
-                X = np.vstack([S[i], S[i] + 15*SN[i]])
-                x_, y = np.transpose(X.astype(int))
+                X = np.r_['0,2', S[i], S[i] + l*SN[i]]
+                x, y = np.transpose(X.astype(np.int32))
+                ax.plot(x, mask.shape[0] - y, 'r-')
 
-                ax.plot(x_, mask.shape[0] - y, 'r-')
+            ax.set_title(full_path)
 
-            ax.set_title('Index: %d' % index)
             plt.show()
+
+        output_path = os.path.join(args.output_dir, 
+                                   file_roots[index] + '.npz')
+        print '-> %s' % output_path
+        np.savez_compressed(output_path, S=S, SN=SN)
 
 if __name__ == '__main__':
     main()
