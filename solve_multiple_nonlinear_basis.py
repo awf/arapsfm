@@ -170,12 +170,6 @@ def main():
         verbosenessLevel=1)
     print 'solver_options:', solver_options
 
-    # setup output directory
-    # ------------------------------------------------------------------------ 
-    if not os.path.exists(args.output):
-        print 'Creating directory:', args.output
-        os.makedirs(args.output)
-
     # initialise all auxilarity variables
     # ------------------------------------------------------------------------ 
 
@@ -320,6 +314,12 @@ def main():
         vis.execute()
 
         return
+
+    # setup output directory
+    # ------------------------------------------------------------------------ 
+    if not os.path.exists(args.output):
+        print 'Creating directory:', args.output
+        os.makedirs(args.output)
 
     # construct output
     # ------------------------------------------------------------------------ 
