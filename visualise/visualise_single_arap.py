@@ -8,7 +8,7 @@ from mesh.faces import faces_to_cell_array
 from itertools import groupby
 from operator import itemgetter
 
-from geometry import quaternion as quat
+from geometry import quaternion as quat, register
 from solvers.arap import ARAPVertexSolver
 
 # main
@@ -36,18 +36,22 @@ def main():
 
     rotM = lambda x: quat.rotationMatrix(quat.quat(x))
     V0_X = solveV0_X(map(rotM, z['X']))
+    V0_X += register.displacement(V0_X, z['V'])
 
     vis.add_mesh(V0_X, z['T'], actor_name='V0_X')
     lut = vis.actors['V0_X'].GetMapper().GetLookupTable()
     lut.SetTableValue(0, *int2dbl(0, 255, 0))
 
     # V0 w/ Xg (yellow)
-    qg = quat.quat(z['Xg'][0])
-    Q = [quat.quatMultiply(quat.quat(x), qg) for x in z['X']]
-    V0_Xg = solveV0_X([quat.rotationMatrix(q) for q in Q])
-    vis.add_mesh(V0_Xg, z['T'], actor_name='V0_Xg')
-    lut = vis.actors['V0_Xg'].GetMapper().GetLookupTable()
-    lut.SetTableValue(0, *int2dbl(255, 255, 0))
+    if 'Xg' in z.keys():
+        Xg = z['Xg'][0]
+        qg = quat.quat(Xg)
+        Q = [quat.quatMultiply(quat.quat(x), qg) for x in z['X']]
+        V0_Xg = solveV0_X([quat.rotationMatrix(q) for q in Q])
+        V0_Xg += register.displacement(V0_Xg, z['V'])
+        vis.add_mesh(V0_Xg, z['T'], actor_name='V0_Xg')
+        lut = vis.actors['V0_Xg'].GetMapper().GetLookupTable()
+        lut.SetTableValue(0, *int2dbl(255, 255, 0))
 
     # V (blue)
     vis.add_mesh(z['V'], z['T'], actor_name='V')
