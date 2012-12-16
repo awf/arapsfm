@@ -113,6 +113,7 @@ def main():
         vis.add_projection(C, P)
 
         # augment output dictionary
+        output_d['X'] = X
         output_d['C'] = C
         output_d['P'] = P
         output_d['V'] = V1
