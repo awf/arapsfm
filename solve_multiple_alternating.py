@@ -184,6 +184,7 @@ def main():
 
     # general
     parser.add_argument('lambdas', type=str)
+    parser.add_argument('arap_lambdas', type=str)
     parser.add_argument('preconditioners', type=str)
     parser.add_argument('piecewise_polynomial', type=str)
 
@@ -248,9 +249,11 @@ def main():
 
     # parse the lambdas and preconditioners
     lambdas = parse_float_string(args.lambdas)
+    arap_lambdas = parse_float_string(args.arap_lambdas)
     preconditioners = parse_float_string(args.preconditioners)
     piecewise_polynomial = parse_float_string(args.piecewise_polynomial)
     print 'lambdas:', lambdas
+    print 'arap_lambdas:', arap_lambdas
     print 'preconditioners:', preconditioners
     print 'piecewise_polynomial:', piecewise_polynomial
 
@@ -275,11 +278,12 @@ def main():
     if output == 'default':
         make_str = lambda a: ",".join('%.4g' % a_ for a_ in a)
         mesh_file = os.path.split(args.mesh)[1]
-        output = '%s_%s_%s_%s_%s' % (os.path.splitext(mesh_file)[0],
-                                     make_str(indices),
-                                     make_str(lambdas), 
-                                     make_str(preconditioners),
-                                     make_str(piecewise_polynomial))
+        output = '%s_%s_%s_%s_%s_%s' % (os.path.splitext(mesh_file)[0],
+                                        make_str(indices),
+                                        make_str(lambdas), 
+                                        make_str(arap_lambdas),
+                                        make_str(preconditioners),
+                                        make_str(piecewise_polynomial))
 
     print 'output:', output
 
@@ -319,25 +323,6 @@ def main():
     U = [mparray.empty((s.shape[0], 2), np.float64) for s in S]
     L = [mparray.empty(s.shape[0], np.int32) for s in S]
 
-    def solve_silhouette_info(i):
-        s = silhouette_info[i]
-        u, l = shortest_path_solve(V1[i], T, S[i], SN[i],
-                                   s['SilCandDistances'],
-                                   s['SilEdgeCands'],
-                                   s['SilEdgeCandParam'],
-                                   s['SilCandAssignedFaces'],
-                                   s['SilCandU'],
-                                   global_silhoutte_lambdas,
-                                   isCircular=args.find_circular_path)
-
-        U[i].flat = u.flat
-        L[i].flat = l.flat
-
-    async_exec(solve_silhouette_info,
-               ((i,) for i in xrange(num_instances)),
-               n=num_processes,
-               chunksize=max(1, num_instances / num_processes))
-
     # optional frames
     if args.frames is not None:
         frames = [args.frames % d for d in indices]
@@ -351,13 +336,13 @@ def main():
     # ------------------------------------------------------------------------ 
 
     # multiple frame minimise
-    instance_lambdas = np.r_[lambdas[3],    # as-rigid-as-possible
-                             lambdas[1:3],  # silhouette
-                             lambdas[4],    # spillage
-                                            # projection
+    instance_lambdas = np.r_[arap_lambdas[0],   # as-rigid-as-possible
+                             lambdas[1:3],      # silhouette
+                             lambdas[3],        # spillage
+                                                # projection
                              ]
 
-    core_lambdas = np.r_[lambdas[3], lambdas[6]]
+    core_lambdas = np.r_[arap_lambdas[0], lambdas[4]]
     core_preconditioners = np.r_[preconditioners[:3],
                                  preconditioners[4]]
 
@@ -374,10 +359,30 @@ def main():
 
     t1 = time()
     for l in xrange(args.outer_loops):
-        if l == 0:
-            instance_lambdas[0] = lambdas[5]
-        else:
-            instance_lambdas[0] = lambdas[3]
+        # re-initialise U and L
+        def solve_silhouette_info(i):
+            s = silhouette_info[i]
+            u, l = shortest_path_solve(V1[i], T, S[i], SN[i],
+                                       s['SilCandDistances'],
+                                       s['SilEdgeCands'],
+                                       s['SilEdgeCandParam'],
+                                       s['SilCandAssignedFaces'],
+                                       s['SilCandU'],
+                                       global_silhoutte_lambdas,
+                                       isCircular=args.find_circular_path)
+
+            U[i].flat = u.flat
+            L[i].flat = l.flat
+
+        async_exec(solve_silhouette_info,
+                   ((i,) for i in xrange(num_instances)),
+                   n=num_processes,
+                   chunksize=max(1, num_instances / num_processes))
+
+        # set instance_lambdas ARAP lambda
+        m = l if l < arap_lambdas.shape[0] else -1
+        instance_lambdas[0] = arap_lambdas[m]
+        core_lambdas[0] = arap_lambdas[m]
 
         statuses = mparray.empty(num_instances + 1, dtype=np.int32)
 
@@ -405,6 +410,7 @@ def main():
 
             statuses[i] = status[0]
 
+        # solve instances separately
         async_exec(solve_instance, 
                    ((i,) for i in xrange(num_instances)), 
                    n=num_processes, 
@@ -412,6 +418,7 @@ def main():
 
         print instScales
 
+        # solve for the core geometry
         for j in xrange(args.max_restarts):
             core_opts = solver_options.copy()
             # core_opts['verbosenessLevel'] = 2
