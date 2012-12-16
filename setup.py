@@ -153,7 +153,11 @@ setup(
                    'cpp/Solve/node.cpp'],
                   include_dirs=include_dirs + [SSLM_ROOT],
                   extra_compile_args=['-std=c++11', '-Wfatal-errors'],
-                  language='c++')
+                  language='c++'),
+
+        Extension('matop.nd_blocks',
+                  ['matop/nd_blocks.pyx'],
+                  include_dirs=include_dirs)
         ],
 
     cmdclass = {'build_ext' : build_ext},
