@@ -278,8 +278,15 @@ def main():
     if output == 'default':
         make_str = lambda a: ",".join('%.4g' % a_ for a_ in a)
         mesh_file = os.path.split(args.mesh)[1]
+
+        if len(indices) > 20:
+            indices_str = (make_str(indices[:10]) + '---' +
+                           make_str(indices[-10:]))
+        else:
+            indices_str = make_str(indices)
+            
         output = '%s_%s_%s_%s_%s_%s' % (os.path.splitext(mesh_file)[0],
-                                        make_str(indices),
+                                        indices_str,
                                         make_str(lambdas), 
                                         make_str(arap_lambdas),
                                         make_str(preconditioners),
