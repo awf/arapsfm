@@ -1,76 +1,62 @@
 # generate_distance_maps.py
 
 # Imports
-import os
+import argparse, os
 import numpy as np
 import matplotlib.pyplot as plt
 from core_recovery.distance_map_generation import generate_distance_residuals
 
-# Change `DATA_SOURCE` and `BACKGROUND_COLOR` for different sources
-
-# Constants
-DATA_ROOT = 'data'
-
-# DATA_SOURCE = 'cheetah0'
-# BACKGROUND_COLOUR = np.array([255, 242, 0, 255], dtype=np.uint8)
-
-# DATA_SOURCE = 'circle'
-# BACKGROUND_COLOUR = np.array([255, 242, 0], dtype=np.uint8)
-
-# DATA_SOURCE = 'cheetah1'
-# BACKGROUND_COLOUR = np.array([255, 255, 0], dtype=np.uint8)
-
-DATA_SOURCE = 'cheetah1B'
-BACKGROUND_COLOUR = np.array([255, 255, 0], dtype=np.uint8)
-
-INPUT_DIR = os.path.join(DATA_ROOT, 'segmentations', DATA_SOURCE)
-OUTPUT_DIR = os.path.join(DATA_ROOT, 'distance_maps', DATA_SOURCE)
-
-# Options
-# SHOW_RESIDUAL_MAPS = True
-SHOW_RESIDUAL_MAPS = False
-
-# load_inverse_segmentation
-def load_inverse_segmentation(index):
-    path = os.path.join(INPUT_DIR, '%d-INV_S.png' % index)
-    print '<- %s' % path
-
-    color_mask = (plt.imread(path)*255.).astype(np.uint8)
-    return np.any(color_mask[..., :3] != BACKGROUND_COLOUR, axis=-1)
-
-# save_distance_residuals
-def save_distance_residuals(index, R):
-    path = os.path.join(OUTPUT_DIR, '%d_D.npz' % index)
-    print '-> %s' % path
-    np.savez_compressed(path, R=R)
-
 # main
 def main():
-    try:
-        os.makedirs(OUTPUT_DIR)
-    except os.error:
-        # directory already exists
-        pass
+    parser = argparse.ArgumentParser()
+    parser.add_argument('input_dir', type=str)
+    parser.add_argument('output_dir', type=str)
+    parser.add_argument('background_colour', type=str)
+    parser.add_argument('--indices', type=str, default='None')
+    parser.add_argument('--show_residual_maps', default=False, 
+                        action='store_true')
 
-    all_files = os.listdir(INPUT_DIR)
+    args = parser.parse_args()
+    for key in ['background_colour', 'indices']:
+        setattr(args, key, eval(getattr(args, key)))
 
-    inv_seg_files = filter(lambda f: '-INV_S.png' in f, all_files)
-    indices = map(lambda f: int(f.split('-INV_S')[0]), inv_seg_files)
-    print 'indices:', indices
+    if not os.path.exists(args.output_dir):
+        os.makedirs(args.output_dir)
 
-    for index in indices:
-        mask = load_inverse_segmentation(index)
+    files = filter(lambda f: f.endswith('.png'), os.listdir(args.input_dir))
+    file_roots = map(lambda f: os.path.splitext(f)[0], files)
+    indices = map(lambda f: int(f.split('_')[-1]), file_roots)
+
+    if args.indices is not None:
+        def index_iterator():
+            for i in args.indices:
+                yield indices.index(i)
+    else:
+        def index_iterator():
+            for i in np.argsort(indices):
+                yield i
+
+    for index in index_iterator():
+        full_path = os.path.join(args.input_dir, files[index])
+        print '<- %s' % full_path
+
+        im = (plt.imread(full_path) * 255.).astype(np.uint8)
+        mask = np.all(im != args.background_colour, axis=2)
+
         R = generate_distance_residuals(mask)
 
-        save_distance_residuals(index, R)
-
-        if SHOW_RESIDUAL_MAPS:
+        if args.show_residual_maps:
             f, axs = plt.subplots(2,2)
             axs[0][0].imshow(mask)
             axs[0][1].imshow(np.sqrt(R[0]*R[0] + R[1]*R[1]))
             axs[1][0].imshow(R[0])
             axs[1][1].imshow(R[1])
             plt.show()
+
+        output_path = os.path.join(args.output_dir, 
+                                   file_roots[index] + '.npz')
+        print '-> %s' % output_path
+        np.savez_compressed(output_path, R=R)
 
 if __name__ == '__main__':
     main()
