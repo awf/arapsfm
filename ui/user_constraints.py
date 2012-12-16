@@ -343,6 +343,9 @@ class MainWindow(QtGui.QMainWindow):
             positions = z['all_P']
             point_ids = z['all_C']
             is_active = z['is_active']
+
+        # clear correspondences
+        self.items.clear()
             
         for p, i, b in izip(positions, point_ids, is_active):
             self._add_correspondence(p, i, b)
