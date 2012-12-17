@@ -17,6 +17,7 @@ def main():
     parser.add_argument('--show_silhouettes', default=False, 
                         action='store_true')
     parser.add_argument('--flip_normals', default=False, action='store_true')
+    parser.add_argument('--output_silhouettes_dir', type=str, default=None)
 
     args = parser.parse_args()
     for key in ['background_colour', 'indices']:
@@ -63,7 +64,17 @@ def main():
 
             ax.set_title(full_path)
 
-            plt.show()
+            if args.output_silhouettes_dir is None:
+                plt.show()
+            else:
+                if not os.path.exists(args.output_silhouettes_dir):
+                    os.makedirs(args.output_silhouettes_dir)
+
+                full_path = os.path.join(args.output_silhouettes_dir, '%d.png' % indices[index])
+                print ' (->) %s' % full_path
+
+                f.savefig(full_path)
+                plt.close(f)    
 
         output_path = os.path.join(args.output_dir, 
                                    file_roots[index] + '.npz')
