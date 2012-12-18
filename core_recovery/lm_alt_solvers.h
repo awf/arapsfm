@@ -269,8 +269,6 @@ int solve_forward_sectioned_arap_proj(PyArrayObject * npy_T,
     nodeXg->SetPreconditioner(preconditioners[2]);
     problem.AddNode(nodeXg);
 
-    s[0][0] = 1.0 / s[0][0];
-
     auto nodes = new ScaleNode(s);
     nodes->SetPreconditioner(preconditioners[4]);
 
@@ -310,8 +308,6 @@ int solve_forward_sectioned_arap_proj(PyArrayObject * npy_T,
         problem.AddEnergy(new AbsolutePositionEnergy(*nodeV1, C, P, sqrt(lambdas[1])));
 
     int status = problem.Minimise(*options);
-
-    s[0][0] = 1.0 / s[0][0];
 
     return status;
 }
@@ -380,7 +376,6 @@ int solve_instance_sectioned_arap(PyArrayObject * npy_T,
     problem.AddNode(nodeXg);
 
     // Invert scale for SectionedBasisArapEnergy
-    s[0][0] = 1.0 / s[0][0];
     auto nodes = new ScaleNode(s);
     nodes->SetPreconditioner(preconditioners[2]);
     if (fixedScale)
@@ -439,9 +434,6 @@ int solve_instance_sectioned_arap(PyArrayObject * npy_T,
     // Minimise
     int ret = problem.Minimise(*options);
 
-    // Invert scale for SectionedBasisArapEnergy
-    s[0][0] = 1.0 / s[0][0];
-
     delete residualTransform;
 
     return ret;
@@ -498,7 +490,6 @@ int solve_core_sectioned_arap(PyArrayObject * npy_T,
     vector<ScaleNode *> instScaleNodes;
     for (int i=0; i < s.size(); ++i)
     {
-        (*s[i])[0][0] = 1.0 / (*s[i])[0][0];
         instScaleNodes.push_back(new ScaleNode(*s[i]));
 
         if (i == 0)
@@ -555,12 +546,6 @@ int solve_core_sectioned_arap(PyArrayObject * npy_T,
 
     // Minimise
     int ret = problem.Minimise(*options);
-
-    // Invert scale for `RigidTransformARAPEnergy2`
-    for (auto i = s.begin(); i != s.end(); ++i)
-    {
-        (*(*i))[0][0] = 1.0 / (*(*i))[0][0];
-    }
 
     // dealloc 
     dealloc_vector(Xg);
