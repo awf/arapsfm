@@ -282,19 +282,25 @@ def main():
     # setup output directory
     # ------------------------------------------------------------------------ 
     output = args.output
-    if output == 'default':
-        output = '_'
 
-    if output.startswith('_'):
-        prefix = output[1:]
+    if '{default}' in output:
         make_str = lambda a: ",".join('%.4g' % a_ for a_ in a)
         mesh_file = os.path.split(args.mesh)[1]
-        output = '%s_%s_%s_%s_%s_%s' % (prefix,
-                                        os.path.splitext(mesh_file)[0],
-                                        make_str(indices),
-                                        make_str(lambdas), 
-                                        make_str(preconditioners),
-                                        make_str(piecewise_polynomial))
+
+        if len(indices) > 20:
+            indices_str = (make_str(indices[:10]) + '---' +
+                           make_str(indices[-10:]))
+        else:
+            indices_str = make_str(indices)
+
+        default_directory = '%s_%s_%s_%s_%s' % (
+            os.path.splitext(mesh_file)[0],
+            indices_str,
+            make_str(lambdas), 
+            make_str(preconditioners),
+            make_str(piecewise_polynomial))
+
+        output = output.format(default=default_directory)
 
     print 'output:', output
 
@@ -361,25 +367,6 @@ def main():
     U = [mparray.empty((s.shape[0], 2), np.float64) for s in S]
     L = [mparray.empty(s.shape[0], np.int32) for s in S]
 
-    def solve_silhouette_info(i):
-        s = silhouette_info[i]
-        u, l = shortest_path_solve(V1[i], T, S[i], SN[i],
-                                   s['SilCandDistances'],
-                                   s['SilEdgeCands'],
-                                   s['SilEdgeCandParam'],
-                                   s['SilCandAssignedFaces'],
-                                   s['SilCandU'],
-                                   global_silhoutte_lambdas,
-                                   isCircular=args.find_circular_path)
-
-        U[i].flat = u.flat
-        L[i].flat = l.flat
-
-    async_exec(solve_silhouette_info,
-               ((i,) for i in xrange(num_instances)),
-               n=num_processes,
-               chunksize=max(1, num_instances / num_processes))
-
     # optional frames
     if args.frames is not None:
         frames = [args.frames % d for d in indices]
@@ -396,7 +383,7 @@ def main():
     instance_lambdas = np.r_[lambdas[3],    # as-rigid-as-possible
                              lambdas[1:3],  # silhouette
                              lambdas[4],    # spillage
-                             lambdas[7],    # projection
+                             lambdas[5],    # projection
                              ]
 
     core_lambdas = np.r_[lambdas[3], lambdas[6]]
@@ -415,13 +402,29 @@ def main():
 
     t1 = time()
     for l in xrange(args.outer_loops):
-        if l == 0:
-            instance_lambdas[0] = lambdas[5]
-        else:
-            instance_lambdas[0] = lambdas[3]
+        # re-initialise U and L
+        def solve_silhouette_info(i):
+            s = silhouette_info[i]
+            u, l = shortest_path_solve(V1[i], T, S[i], SN[i],
+                                       s['SilCandDistances'],
+                                       s['SilEdgeCands'],
+                                       s['SilEdgeCandParam'],
+                                       s['SilCandAssignedFaces'],
+                                       s['SilCandU'],
+                                       global_silhoutte_lambdas,
+                                       isCircular=args.find_circular_path)
+
+            U[i].flat = u.flat
+            L[i].flat = l.flat
+
+        async_exec(solve_silhouette_info,
+                   ((i,) for i in xrange(num_instances)),
+                   n=num_processes,
+                   chunksize=max(1, num_instances / num_processes))
 
         statuses = mparray.empty(num_instances + 1, dtype=np.int32)
 
+        # solve instances separately
         def solve_instance(i):
             for j in xrange(args.max_restarts):
                 print '# solve_instance:', i
@@ -456,8 +459,9 @@ def main():
                    n=num_processes, 
                    chunksize=max(1, num_instances / num_processes))
 
-        print instScales
+        print 'instScales:', instScales
 
+        # solve for the core geometry
         for j in xrange(args.max_restarts):
             core_opts = solver_options.copy()
             # core_opts['verbosenessLevel'] = 2
@@ -475,12 +479,17 @@ def main():
             if status[0] not in (0, 4):
                 break
 
-        print instScales
-
+        print 'instScales:', instScales
         statuses[-1] = status[0]
 
-        # if not np.any((statuses == 0) | (statuses == 4)):
-        #     break
+        # save the intermediate results
+        intermediate_output = os.path.join(output, str(l))
+        if not os.path.exists(intermediate_output):
+            os.makedirs(intermediate_output)
+
+        scope = args.__dict__.copy()
+        scope.update(locals())
+        save_state(intermediate_output, **scope)
 
     t2 = time()
     print 'time taken: %.3f' % (t2 - t1)
