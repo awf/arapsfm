@@ -75,8 +75,6 @@ int solve_instance(PyArrayObject * npy_T,
     nodeXg->SetPreconditioner(preconditioners[4]);
     problem.AddNode(nodeXg);
 
-    // Invert scale for RigidTransformARAPEnergy2
-    s[0][0] = 1.0 / s[0][0];
     auto nodes = new ScaleNode(s);
     nodes->SetPreconditioner(preconditioners[2]);
     if (fixedScale)
@@ -97,7 +95,7 @@ int solve_instance(PyArrayObject * npy_T,
     problem.AddNode(nodeU);
 
     // RigidTransformARAPEnergy2
-    problem.AddEnergy(new RigidTransformARAPEnergy2(
+    problem.AddEnergy(new RigidTransformARAPEnergy3(
         *nodeV, *nodeXg, *nodes, *nodeX, *nodeV1, 
         mesh, sqrt(lambdas[0]), uniformWeights, fixedScale));
 
@@ -120,9 +118,6 @@ int solve_instance(PyArrayObject * npy_T,
 
     // Minimise
     int ret = problem.Minimise(*options);
-
-    // Invert scale for RigidTransformARAPEnergy2
-    s[0][0] = 1.0 / s[0][0];
 
     delete residualTransform;
 
