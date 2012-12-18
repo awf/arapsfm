@@ -2100,9 +2100,9 @@ public:
         double q[4];
         quatMultiply_Unsafe(qg, qi, q);
 
-        arapResiduals_ScaleV_Unsafe(_V.GetVertex(i), _V.GetVertex(j),
-                                    _V1.GetVertex(i), _V1.GetVertex(j),
-                                    w, q, _s.GetScale(), &e[0]);
+        arapResiduals_Unsafe(_V.GetVertex(i), _V.GetVertex(j),
+                             _V1.GetVertex(i), _V1.GetVertex(j),
+                             w, q, _s.GetScale(), &e[0]);
     }
 
     virtual void EvaluateJacobian(const int k, const int whichParam, Matrix<double> & J) const
@@ -2136,7 +2136,7 @@ public:
             // Xg
             // dr/dq
             double Jq[12];
-            arapJac_Q_Unsafe(_V.GetVertex(i), _V.GetVertex(j), w, q, Jq);
+            arapJac_Q_Unsafe(_V.GetVertex(i), _V.GetVertex(j), w * _s.GetScale(), q, Jq);
 
             // dq/dqg
             double Dqg[16];
@@ -2155,13 +2155,13 @@ public:
         else if (!_fixedV1 && (whichParam == m++))
         {
             // V1i
-            arapJac_V1_Unsafe(true, w * _s.GetScale(), J[0]);
+            arapJac_V1_Unsafe(true, w, J[0]);
             return;
         }
         else if (!_fixedV1 && (whichParam == m++))
         {
             // V1j
-            arapJac_V1_Unsafe(false, w * _s.GetScale(), J[0]);
+            arapJac_V1_Unsafe(false, w, J[0]);
             return;
         }
 
@@ -2173,7 +2173,7 @@ public:
             {
                 // dr/dq
                 double Jq[12];
-                arapJac_Q_Unsafe(_V.GetVertex(i), _V.GetVertex(j), w, q, Jq);
+                arapJac_Q_Unsafe(_V.GetVertex(i), _V.GetVertex(j), w * _s.GetScale(), q, Jq);
 
                 // dq/dqi
                 double Dqi[16];
@@ -2202,7 +2202,7 @@ public:
                 // Xb
                 // dr/dq
                 double Jq[12];
-                arapJac_Q_Unsafe(_V.GetVertex(i), _V.GetVertex(j), w, q, Jq);
+                arapJac_Q_Unsafe(_V.GetVertex(i), _V.GetVertex(j), w * _s.GetScale(), q, Jq);
 
                 // dq/dqi
                 double Dqi[16];
@@ -2228,7 +2228,7 @@ public:
                 // y
                 // dr/dq
                 double Jq[12];
-                arapJac_Q_Unsafe(_V.GetVertex(i), _V.GetVertex(j), w, q, Jq);
+                arapJac_Q_Unsafe(_V.GetVertex(i), _V.GetVertex(j), w * _s.GetScale(), q, Jq);
 
                 // dq/dqi
                 double Dqi[16];
@@ -2254,20 +2254,19 @@ public:
         if (!_fixedV && (whichParam == m++)) 
         {
             // Vi
-            arapJac_V_Unsafe(true, w, q, 1.0, J[0]);
+            arapJac_V_Unsafe(true, w * _s.GetScale(), q, 1.0, J[0]);
             return;
         }
         else if (!_fixedV && (whichParam == m++)) 
         {
             // Vj
-            arapJac_V_Unsafe(false, w, q, 1.0, J[0]);
+            arapJac_V_Unsafe(false, w * _s.GetScale(), q, 1.0, J[0]);
             return;
         }
         else if (!_fixedScale && (whichParam == m++)) 
         {
             // s
-            subtractVectors_Static<double, 3>(_V1.GetVertex(i), _V1.GetVertex(j), J[0]);
-            scaleVectorIP_Static<double, 3>(w, J[0]);
+            arapJac_s_Unsafe(w, q, _V.GetVertex(i), _V.GetVertex(j), J[0]);
             return;
         }
 
