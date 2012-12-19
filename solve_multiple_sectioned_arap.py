@@ -5,7 +5,7 @@ from util.cmdline import *
 from itertools import count, izip
 
 from core_recovery.lm_alt_solvers import \
-    solve_instance_sectioned_arap as lm_solve_instance, \
+    solve_instance_sectioned_arap_temporal as lm_solve_instance, \
     solve_core_sectioned_arap as lm_solve_core
 
 from core_recovery.silhouette_global_solver import \
@@ -18,6 +18,8 @@ from misc.bunch import Bunch
 import multiprocessing as mp
 from itertools import izip_longest
 from misc.numpy_ import mparray
+
+from operator import add
     
 # Utilities
 
@@ -193,6 +195,7 @@ def main():
     parser.add_argument('spillage', type=str)
 
     # general
+    parser.add_argument('temporal_config', type=str)
     parser.add_argument('lambdas', type=str)
     parser.add_argument('preconditioners', type=str)
     parser.add_argument('piecewise_polynomial', type=str)
@@ -264,6 +267,9 @@ def main():
     print 'preconditioners:', preconditioners
     print 'piecewise_polynomial:', piecewise_polynomial
 
+    # temporal configuration (e.g. [(1, 1.0)])
+    temporal_config = eval(args.temporal_config)
+
     # solver arguments
     solver_options = parse_solver_options(args.solver_options,
         maxIterations=20, 
@@ -293,9 +299,10 @@ def main():
         else:
             indices_str = make_str(indices)
 
-        default_directory = '%s_%s_%s_%s_%s' % (
+        default_directory = '%s_%s_%s_%s_%s_%s' % (
             os.path.splitext(mesh_file)[0],
             indices_str,
+            make_str(reduce(add, temporal_config)),
             make_str(lambdas), 
             make_str(preconditioners),
             make_str(piecewise_polynomial))
@@ -407,9 +414,24 @@ def main():
     t1 = time()
     for l in xrange(args.outer_loops):
         # re-initialise U and L
-        def solve_silhouette_info(i):
+        # def solve_silhouette_info(i):
+
+        # async_exec(solve_silhouette_info,
+        #            ((i,) for i in xrange(num_instances)),
+        #            n=num_processes,
+        #            chunksize=max(1, num_instances / num_processes))
+
+        # statuses = mparray.empty(num_instances + 1, dtype=np.int32)
+
+        # solve instances separately
+        def solve_instance(i):
+            # use previous vertices to initialise
+            if l == 0 and i > 0:
+                V1[i].flat = V1[i-1].flat
+
+            # get the silhouette information
             s = silhouette_info[i]
-            u, l = shortest_path_solve(V1[i], T, S[i], SN[i],
+            U[i], L[i] = shortest_path_solve(V1[i], T, S[i], SN[i],
                                        s['SilCandDistances'],
                                        s['SilEdgeCands'],
                                        s['SilEdgeCandParam'],
@@ -418,18 +440,24 @@ def main():
                                        global_silhoutte_lambdas,
                                        isCircular=args.find_circular_path)
 
-            U[i].flat = u.flat
-            L[i].flat = l.flat
+                
+            # setup any temporal priors
+            Vn = []
+            omegas = []
 
-        async_exec(solve_silhouette_info,
-                   ((i,) for i in xrange(num_instances)),
-                   n=num_processes,
-                   chunksize=max(1, num_instances / num_processes))
+            for offset, omega in temporal_config:
+                j = i + offset
+                if j < 0 or j >= len(V1):
+                    continue
 
-        statuses = mparray.empty(num_instances + 1, dtype=np.int32)
+                if l == 0 and offset > 0:
+                    continue
 
-        # solve instances separately
-        def solve_instance(i):
+                Vn.append(V1[j])
+                omegas.append(omega)
+
+            omegas = np.asarray(omegas, dtype=np.float64)
+
             for j in xrange(args.max_restarts):
                 print '# solve_instance:', i
                 status = lm_solve_instance(T, V, 
@@ -440,6 +468,7 @@ def main():
                     S[i], SN[i], 
                     Rx[i], Ry[i], 
                     C[i], P[i],
+                    Vn, omegas,
                     instance_lambdas, 
                     preconditioners,
                     piecewise_polynomial,
@@ -456,12 +485,13 @@ def main():
                 if status[0] not in (0, 4):
                     break
 
-            statuses[i] = status[0]
+            # statuses[i] = status[0]
 
-        async_exec(solve_instance, 
-                   ((i,) for i in xrange(num_instances)), 
-                   n=num_processes, 
-                   chunksize=max(1, num_instances / num_processes))
+        # async_exec(solve_instance, 
+        #            ((i,) for i in xrange(num_instances)), 
+        #            n=num_processes, 
+        #            chunksize=max(1, num_instances / num_processes))
+        map(solve_instance, xrange(num_instances))
 
         print 'instScales:', instScales
 
@@ -484,7 +514,7 @@ def main():
                 break
 
         print 'instScales:', instScales
-        statuses[-1] = status[0]
+        # statuses[-1] = status[0]
 
         # save the intermediate results
         intermediate_output = os.path.join(output, str(l))
