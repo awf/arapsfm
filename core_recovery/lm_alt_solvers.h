@@ -375,7 +375,6 @@ int solve_instance_sectioned_arap(PyArrayObject * npy_T,
     nodeXg->SetPreconditioner(preconditioners[4]);
     problem.AddNode(nodeXg);
 
-    // Invert scale for SectionedBasisArapEnergy
     auto nodes = new ScaleNode(s);
     nodes->SetPreconditioner(preconditioners[2]);
     if (fixedScale)
@@ -553,6 +552,147 @@ int solve_core_sectioned_arap(PyArrayObject * npy_T,
     dealloc_vector(y);
     dealloc_vector(X);
     dealloc_vector(V1);
+
+    return ret;
+}
+
+// solve_instance_sectioned_arap_temporal
+int solve_instance_sectioned_arap_temporal(PyArrayObject * npy_T,
+                                           PyArrayObject * npy_V,
+                                           PyArrayObject * npy_Xg,
+                                           PyArrayObject * npy_s,
+                                           PyArrayObject * npy_K,
+                                           PyArrayObject * npy_Xb,
+                                           PyArrayObject * npy_y,
+                                           PyArrayObject * npy_X,
+                                           PyArrayObject * npy_V1,
+                                           PyArrayObject * npy_U,
+                                           PyArrayObject * npy_L,
+                                           PyArrayObject * npy_S,
+                                           PyArrayObject * npy_SN,
+                                           PyArrayObject * npy_Rx,
+                                           PyArrayObject * npy_Ry,
+                                           PyArrayObject * npy_C,
+                                           PyArrayObject * npy_P,
+                                           PyObject * list_Vn,
+                                           PyArrayObject * npy_omegas,
+                                           PyArrayObject * npy_lambdas,
+                                           PyArrayObject * npy_preconditioners,
+                                           PyArrayObject * npy_piecewisePolynomial,
+                                           int narrowBand,
+                                           bool uniformWeights,
+                                           bool fixedScale,
+                                           const OptimiserOptions * options)
+{
+    PYARRAY_AS_MATRIX(int, npy_T, T);
+    PYARRAY_AS_MATRIX(double, npy_V, V);
+    PYARRAY_AS_MATRIX(double, npy_Xg, Xg);
+    PYARRAY_AS_MATRIX(double, npy_s, s);
+
+    PYARRAY_AS_MATRIX(int, npy_K, K);
+    PYARRAY_AS_MATRIX(double, npy_Xb, Xb);
+    PYARRAY_AS_MATRIX(double, npy_y, y);
+    PYARRAY_AS_MATRIX(double, npy_X, X);
+    PYARRAY_AS_MATRIX(double, npy_V1, V1);
+
+    PYARRAY_AS_MATRIX(double, npy_U, U);
+    PYARRAY_AS_VECTOR(int, npy_L, L);
+
+    PYARRAY_AS_MATRIX(double, npy_S, S);
+    PYARRAY_AS_MATRIX(double, npy_SN, SN);
+    PYARRAY_AS_MATRIX(double, npy_Rx, Rx);
+    PYARRAY_AS_MATRIX(double, npy_Ry, Ry);
+
+    PYARRAY_AS_VECTOR(int, npy_C, C);
+    PYARRAY_AS_MATRIX(double, npy_P, P);
+
+    auto Vn = PyList_to_vector_of_Matrix<double>(list_Vn);
+    PYARRAY_AS_VECTOR(double, npy_omegas, omegas);
+
+    PYARRAY_AS_VECTOR(double, npy_lambdas, lambdas);
+    PYARRAY_AS_VECTOR(double, npy_preconditioners, preconditioners);
+    PYARRAY_AS_VECTOR(double, npy_piecewisePolynomial, piecewisePolynomial);
+
+    Problem problem;
+    Mesh mesh(V.num_rows(), T);
+
+    auto nodeV = new VertexNode(V);
+    nodeV->SetPreconditioner(preconditioners[0]);
+    problem.AddFixedNode(nodeV);
+
+    auto nodeXg = new GlobalRotationNode(Xg);
+    nodeXg->SetPreconditioner(preconditioners[4]);
+    problem.AddNode(nodeXg);
+
+    auto nodes = new ScaleNode(s);
+    nodes->SetPreconditioner(preconditioners[2]);
+    if (fixedScale)
+        problem.AddFixedNode(nodes);
+    else
+        problem.AddNode(nodes);
+
+    auto nodeXb = new RotationNode(Xb);
+    problem.AddFixedNode(nodeXb);
+
+    auto nodey = new CoefficientsNode(y);
+    nodey->SetPreconditioner(preconditioners[5]);
+    problem.AddNode(nodey);
+
+    auto nodeX = new RotationNode(X);
+    nodeX->SetPreconditioner(preconditioners[1]);
+    problem.AddNode(nodeX);
+
+    auto nodeV1 = new VertexNode(V1);
+    problem.AddNode(nodeV1);
+
+    MeshWalker meshWalker(mesh, V1);
+    auto nodeU = new BarycentricNode(U, L, meshWalker);
+    nodeU->SetPreconditioner(preconditioners[3]);
+    problem.AddNode(nodeU);
+
+    // SectionedBasisArapEnergy
+    problem.AddEnergy(new SectionedBasisArapEnergy(
+        *nodeV, *nodeXg, *nodes,
+        *nodeXb, *nodey,
+        *nodeX, *nodeV1,
+        K, mesh, sqrt(lambdas[0]), 
+        uniformWeights, 
+        true,   // fixedXb
+        true,   // fixedV
+        false,  // fixedV1
+        fixedScale));
+
+    // SilhouetteProjectionEnergy
+    auto residualTransform = new PiecewisePolynomialTransform_C1(
+        piecewisePolynomial[0], piecewisePolynomial[1]);
+
+    problem.AddEnergy(new SilhouetteProjectionEnergy(
+        *nodeV1, *nodeU, S, mesh, sqrt(lambdas[1]), narrowBand, residualTransform));
+
+    // SilhouetteNormalEnergy
+    problem.AddEnergy(new SilhouetteNormalEnergy(
+        *nodeV1, *nodeU, SN, mesh, sqrt(lambdas[2]), narrowBand));
+
+    // Spillage
+    problem.AddEnergy(new SpillageEnergy(*nodeV1, Rx, Ry, sqrt(lambdas[3])));
+
+    // Projection
+    problem.AddEnergy(new ProjectionEnergy(*nodeV1, C, P, sqrt(lambdas[4])));
+
+    // Temporal using `AbsolutePositionEnergy`
+    Vector<int> completeC(V.num_rows());
+    for (int i=0; i < V.num_rows(); ++i)
+        completeC[i] = i;
+
+    for (int i=0; i < Vn.size(); ++i)
+        problem.AddEnergy(new AbsolutePositionEnergy(*nodeV1, completeC, *Vn[i], sqrt(omegas[i])));
+
+    // Minimise
+    int ret = problem.Minimise(*options);
+
+    delete residualTransform;
+
+    dealloc_vector(Vn);
 
     return ret;
 }
