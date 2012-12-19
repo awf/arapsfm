@@ -273,7 +273,7 @@ def main():
     parser = argparse.ArgumentParser(
         description='Visualise deformation results')
     parser.add_argument('input', type=str, help='input deformations file')
-    parser.add_argument('-o', dest='output_directory', type=str, default=None,
+    parser.add_argument('-o', '--output', dest='output_directory', type=str, default=None,
                         help='output directory')
     parser.add_argument('-c', dest='camera_actions', type=str, default=[],
                         action='append', help='camera actions')
