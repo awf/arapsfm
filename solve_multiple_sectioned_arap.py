@@ -387,7 +387,11 @@ def main():
                              ]
 
     core_lambdas = np.r_[lambdas[3], lambdas[6]]
-    core_preconditioners = preconditioners[:5]
+    core_preconditioners = np.r_[preconditioners[0], # V
+                                 preconditioners[1], # X
+                                 preconditioners[2], # s
+                                 preconditioners[4], # Xg
+                                 preconditioners[5]] # y
 
     print 'instance_lambdas:', instance_lambdas
     print 'core_lambdas:', core_lambdas
