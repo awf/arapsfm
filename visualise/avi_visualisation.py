@@ -68,7 +68,7 @@ def avi_visualisation(vis_script, input_dir, output_dir, fps, N=0, **kwargs):
 
 # make_figures
 def make_figures(vis_script, input_path, output_dir, vis_args=[],
-                 post_args=None):
+                 tiling=None, post_args=None):
 
     # create initial visualistaions by calling `vis_script`
     safe_cmd(*(['python', vis_script, input_path, '--output', output_dir] +
@@ -91,10 +91,13 @@ def make_figures(vis_script, input_path, output_dir, vis_args=[],
     # join the images
     joined_path = os.path.join(output_dir, 'JOINED.png')
 
+    if tiling is None:
+        tiling = '%dx' % len(full_paths)
+
     safe_cmd(*(['montage', 
                 '-depth', '8',
                 '-mode', 'concatenate', 
-                '-tile', '%dx' % len(full_paths)] +
+                '-tile', tiling] +
                full_paths + [joined_path]))
 
     return [joined_path]
@@ -107,6 +110,7 @@ def main():
     parser.add_argument('vis_script', type=str)
     parser.add_argument('--vis_args', type=str, default='')
     parser.add_argument('--post_args', type=str, default='None')
+    parser.add_argument('--tiling', type=str, default=None)
     parser.add_argument('--fps', type=int, default=[], action='append')
     parser.add_argument('--N', type=int, default=0)
 
@@ -121,6 +125,7 @@ def main():
                       args.fps,
                       args.N,
                       vis_args=args.vis_args.split(),
+                      tiling=args.tiling,
                       post_args=eval(args.post_args))
 
 if __name__ == '__main__':
