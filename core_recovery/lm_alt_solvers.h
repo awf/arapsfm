@@ -702,4 +702,49 @@ int solve_instance_sectioned_arap_temporal(PyArrayObject * npy_T,
     return ret;
 }
 
+// solve_two_source_arap_proj
+int solve_two_source_arap_proj(PyArrayObject * npy_T,
+                               PyArrayObject * npy_V,
+                               PyArrayObject * npy_X,
+                               PyArrayObject * npy_Vp,
+                               PyArrayObject * npy_Xp,
+                               PyArrayObject * npy_V1,
+                               PyArrayObject * npy_C,
+                               PyArrayObject * npy_P,
+                               PyArrayObject * npy_lambdas,
+                               const OptimiserOptions * options)
+{
+    PYARRAY_AS_MATRIX(int, npy_T, T);
+    PYARRAY_AS_MATRIX(double, npy_V, V);
+    PYARRAY_AS_MATRIX(double, npy_X, X);
+    PYARRAY_AS_MATRIX(double, npy_Vp, Vp);
+    PYARRAY_AS_MATRIX(double, npy_Xp, Xp);
+    PYARRAY_AS_MATRIX(double, npy_V1, V1);
+    PYARRAY_AS_VECTOR(int, npy_C, C);
+    PYARRAY_AS_MATRIX(double, npy_P, P);
+    PYARRAY_AS_VECTOR(double, npy_lambdas, lambdas);
+
+    Mesh mesh(V.num_rows(), T);
+
+    VertexNode * nodeV = new VertexNode(V);
+    RotationNode * nodeX = new RotationNode(X);
+    VertexNode * nodeVp = new VertexNode(Vp);
+    RotationNode * nodeXp = new RotationNode(Xp);
+    VertexNode * nodeV1 = new VertexNode(V1);
+
+    Problem problem;
+    problem.AddFixedNode(nodeV);
+    problem.AddFixedNode(nodeVp);
+    problem.AddNode(nodeV1);
+    problem.AddNode(nodeX);
+    problem.AddNode(nodeXp);
+
+    problem.AddEnergy(new ProjectionEnergy(*nodeV1, C, P, sqrt(lambdas[0])));
+    problem.AddEnergy(new ARAPEnergy(*nodeV, *nodeX, *nodeV1, mesh, sqrt(lambdas[1])));
+    problem.AddEnergy(new ARAPEnergy(*nodeVp, *nodeXp, *nodeV1, mesh, sqrt(lambdas[2])));
+    problem.AddEnergy(new RotationRegulariseEnergy(*nodeXp, sqrt(lambdas[3])));
+
+    return problem.Minimise(*options);
+}
+
 #endif
