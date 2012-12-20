@@ -2293,5 +2293,49 @@ protected:
     bool _fixedScale;
 };
 
+// RotationRegulariseEnergy
+class RotationRegulariseEnergy : public Energy
+{
+public:
+    RotationRegulariseEnergy(const RotationNode & X, const double w)
+        : _X(X), _w(w)
+    {}
+
+    virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
+    {
+        vector<int> * pUsedParamTypes = new vector<int>(1, _X.GetParamId());
+        costFunctions.push_back(new Energy_CostFunction(*this, pUsedParamTypes, 3));
+    }
+
+    virtual int GetCorrespondingParam(const int k, const int i) const
+    {
+        return k + _X.GetOffset();
+    }
+
+    virtual int GetNumberOfMeasurements() const
+    {
+        return _X.GetCount();
+    }
+
+    virtual void EvaluateResidual(const int k, Vector<double> & e) const
+    {
+        const double * X = _X.GetRotation(k);
+
+        for (int i=0; i < e.size(); ++i)
+            e[i] = _w * X[i];
+    }
+
+    virtual void EvaluateJacobian(const int k, const int whichParam, Matrix<double> & J) const
+    {
+        fillMatrix(J, 0.);
+        for (int i=0; i < J.num_rows(); ++i)
+            J[i][i] = _w;
+    }
+
+protected:
+    const RotationNode & _X;
+    const double _w;
+};
+
 #endif
 

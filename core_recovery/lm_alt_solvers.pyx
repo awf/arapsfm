@@ -116,6 +116,46 @@ cdef extern from "lm_alt_solvers.h":
                                                                  bint uniformWeights,
                                                                  OptimiserOptions * options)
 
+    int solve_instance_sectioned_arap_temporal_c 'solve_instance_sectioned_arap_temporal' (
+        np.ndarray npy_T,
+        np.ndarray npy_V,
+        np.ndarray npy_Xg,
+        np.ndarray npy_s,
+        np.ndarray npy_K,
+        np.ndarray npy_Xb,
+        np.ndarray npy_y,
+        np.ndarray npy_X,
+        np.ndarray npy_V1,
+        np.ndarray npy_U,
+        np.ndarray npy_L,
+        np.ndarray npy_S,
+        np.ndarray npy_SN,
+        np.ndarray npy_Rx,
+        np.ndarray npy_Ry,
+        np.ndarray npy_C,
+        np.ndarray npy_P,
+        np.ndarray npy_Vp,
+        np.ndarray npy_Xp,
+        np.ndarray npy_lambdas,
+        np.ndarray npy_preconditioners,
+        np.ndarray npy_piecewisePolynomial,
+        int narrowBand,
+        bint uniformWeights,
+        bint fixedScale,
+        OptimiserOptions * options)
+
+    int solve_two_source_arap_proj_c 'solve_two_source_arap_proj' (
+        np.ndarray npy_T,
+        np.ndarray npy_V,
+        np.ndarray npy_X,
+        np.ndarray npy_Vp,
+        np.ndarray npy_Xp,
+        np.ndarray npy_V1,
+        np.ndarray npy_C,
+        np.ndarray npy_P,
+        np.ndarray npy_lambdas,
+        OptimiserOptions * options)
+
 # additional_optimiser_options
 DEFAULT_OPTIMISER_OPTIONS = {
     'maxIterations' : 50,
@@ -395,3 +435,79 @@ def solve_core_sectioned_arap(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
 
     return status, STATUS_CODES[status]
 
+def solve_instance_sectioned_arap_temporal(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
+                                           np.ndarray[np.float64_t, ndim=2, mode='c'] V, 
+                                           np.ndarray[np.float64_t, ndim=2, mode='c'] Xg, 
+                                           np.ndarray[np.float64_t, ndim=2, mode='c'] s, 
+                                           np.ndarray[np.int32_t, ndim=2, mode='c'] K, 
+                                           np.ndarray[np.float64_t, ndim=2, mode='c'] Xb, 
+                                           np.ndarray[np.float64_t, ndim=2, mode='c'] y, 
+                                           np.ndarray[np.float64_t, ndim=2, mode='c'] X, 
+                                           np.ndarray[np.float64_t, ndim=2, mode='c'] V1, 
+                                           np.ndarray[np.float64_t, ndim=2, mode='c'] U,  
+                                           np.ndarray[np.int32_t, ndim=1] L,
+                                           np.ndarray[np.float64_t, ndim=2, mode='c'] S,  
+                                           np.ndarray[np.float64_t, ndim=2, mode='c'] SN,  
+                                           np.ndarray[np.float64_t, ndim=2, mode='c'] Rx,
+                                           np.ndarray[np.float64_t, ndim=2, mode='c'] Ry,
+                                           np.ndarray[np.int32_t, ndim=1, mode='c'] C,
+                                           np.ndarray[np.float64_t, ndim=2, mode='c'] P,
+                                           np.ndarray[np.float64_t, ndim=2, mode='c'] Vp,
+                                           np.ndarray[np.float64_t, ndim=2, mode='c'] Xp,
+                                           np.ndarray[np.float64_t, ndim=1] lambdas,
+                                           np.ndarray[np.float64_t, ndim=1] preconditioners,
+                                           np.ndarray[np.float64_t, ndim=1] piecewisePolynomial,
+                                           int narrowBand,
+                                           bint uniformWeights,
+                                           bint fixedScale,
+                                           **kwargs):
+
+    assert lambdas.shape[0] == 7
+    assert preconditioners.shape[0] == 6
+    assert piecewisePolynomial.shape[0] == 2
+
+    check_K(K, V, X, Xb, y)
+
+    cdef OptimiserOptions options
+    additional_optimiser_options(&options, kwargs)
+
+    cdef int status = solve_instance_sectioned_arap_temporal_c(T, V, 
+        Xg, s, 
+        K, Xb, y, X, 
+        V1, 
+        U, L, S, SN, 
+        Rx, Ry, 
+        C, P,
+        Vp, Xp,
+        lambdas, 
+        preconditioners, 
+        piecewisePolynomial, 
+        narrowBand, 
+        uniformWeights,
+        fixedScale,
+        &options)
+
+    return status, STATUS_CODES[status]
+
+def solve_two_source_arap_proj(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
+                               np.ndarray[np.float64_t, ndim=2, mode='c'] V, 
+                               np.ndarray[np.float64_t, ndim=2, mode='c'] X, 
+                               np.ndarray[np.float64_t, ndim=2, mode='c'] Vp, 
+                               np.ndarray[np.float64_t, ndim=2, mode='c'] Xp, 
+                               np.ndarray[np.float64_t, ndim=2, mode='c'] V1, 
+                               np.ndarray[np.int32_t, ndim=1, mode='c'] C,
+                               np.ndarray[np.float64_t, ndim=2, mode='c'] P,
+                               np.ndarray[np.float64_t, ndim=1] lambdas,
+                               **kwargs):
+
+    assert lambdas.shape[0] == 4
+
+    cdef OptimiserOptions options
+    additional_optimiser_options(&options, kwargs)
+
+    cdef int status = solve_two_source_arap_proj_c(
+        T, V, X, Vp, Xp, V1, C, P,
+        lambdas,
+        &options)
+
+    return status, STATUS_CODES[status]
