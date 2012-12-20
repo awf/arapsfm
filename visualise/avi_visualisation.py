@@ -54,16 +54,17 @@ def avi_visualisation(vis_script, input_dir, output_dir, fps, N=0, **kwargs):
 
     h, w = imread(output_paths[0]).shape[:2]
 
-    vbitrate= (50 * 25 * w * h) / 256
+    vbitrate = 15000
 
-    safe_cmd('mencoder', 
-             'mf://@%s' % listing_path,
-             '-mf', 
-             'w=%d:h=%d:fps=%s:type=png' % (w, h, fps),
-             '-ovc', 
-             'lavc', '-lavcopts', 'vcodec=mpeg4:vbitrate=%d:mbd=2' % (vbitrate,),
-             '-oac', 'copy',
-             '-o', os.path.join(output_dir, 'OUTPUT.avi'))
+    for f in fps:
+        safe_cmd('mencoder', 
+                 'mf://@%s' % listing_path,
+                 '-mf', 
+                 'w=%d:h=%d:fps=%s:type=png' % (w, h, f),
+                 '-ovc', 
+                 'lavc', '-lavcopts', 'vcodec=mpeg4:vbitrate=%d:mbd=2' % (vbitrate,),
+                 '-oac', 'copy',
+                 '-o', os.path.join(output_dir, 'OUTPUT_%d.avi' % f))
 
 # make_figures
 def make_figures(vis_script, input_path, output_dir, vis_args=[],
@@ -106,10 +107,13 @@ def main():
     parser.add_argument('vis_script', type=str)
     parser.add_argument('--vis_args', type=str, default='')
     parser.add_argument('--post_args', type=str, default='None')
-    parser.add_argument('--fps', type=int, default=25)
+    parser.add_argument('--fps', type=int, default=[], action='append')
     parser.add_argument('--N', type=int, default=0)
 
     args = parser.parse_args()
+
+    if not args.fps:
+        args.fps.append(25)
 
     avi_visualisation(args.vis_script, 
                       args.input, 
