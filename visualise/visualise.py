@@ -19,6 +19,7 @@ if HAS_VTK:
         def __init__(self):
             self.objects = []
             self.actors = {}
+            self.reset_enabled = True
             self._init_renderer()
 
         def _init_renderer(self):
@@ -326,9 +327,14 @@ if HAS_VTK:
             camera = self.ren.GetActiveCamera()
 
             for key, value in actions:
+                if key == 'SetResetCamera':
+                    self.reset_enabled = value == (True,)
+                    continue
+                    
                 getattr(camera, key)(*value)
 
-            self.ren.ResetCamera()
+            if self.reset_enabled:
+                self.ren.ResetCamera()
 
         def execute(self, magnification=1):
             self.ren_win.Render()
