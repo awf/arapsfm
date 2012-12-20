@@ -43,11 +43,9 @@ def requires(*keys, **kwargs):
 # StandaloneVisualisation
 class StandaloneVisualisation(object):
     def __init__(self, filename, **kwargs):
-        restrict_setup = kwargs.pop('restrict_setup', None)
+        with_core = kwargs.pop('with_core', None)
         self.subdivide = kwargs.pop('subdivide', 0)
         self.compute_normals = kwargs.pop('compute_normals', 0)
-
-        with_core = kwargs.pop('with_core', None)
 
         self.z = np.load(filename)
 
@@ -62,20 +60,13 @@ class StandaloneVisualisation(object):
         self.__dict__.update(kwargs)
 
         self.setup_processed = set()
-        self.setup(restrict_setup)
+        self.setup()
 
-    def setup(self, restrict_setup=None):
+    def setup(self):
         add_methods = ifilter(lambda t: t[0].startswith('_add_'),
                               inspect.getmembers(self))
 
         for method_name, bound_method in add_methods:
-            if (restrict_setup is not None and 
-                method_name not in restrict_setup):
-                continue
-
-            if method_name in self.setup_processed:
-                continue
-
             bound_method()
             self.setup_processed.add(method_name)
 
@@ -277,15 +268,11 @@ def main():
                         help='output directory')
     parser.add_argument('-c', dest='camera_actions', type=str, default=[],
                         action='append', help='camera actions')
-    parser.add_argument('-a', dest='actor_properties', type=str, default=[],
-                        action='append', help='actor properties')
     parser.add_argument('--magnification', type=int, default=1,
                         help='magnification')
     parser.add_argument('--vertices-key', type=str, default='V',
                         help='key to retrieve vertices')
-    parser.add_argument('--output_image_first', 
-                        action='store_true',
-                        default=False)
+    parser.add_argument('--ren_win_size', type=str, default=None)
     parser.add_argument('--with_core', type=str, default=None)
     parser.add_argument('--subdivide', type=int, default=0)
     parser.add_argument('--compute_normals', action='store_true', default=False)
@@ -299,14 +286,14 @@ def main():
     print 'Source file: %s' % args.input
     print 'Available keys:', np.load(args.input).keys()
 
-    restrict_setup = ('_add_image,') if args.output_image_first else None
-
     vis = StandaloneVisualisation(args.input,
                                   vertices_key=args.vertices_key,
-                                  restrict_setup=restrict_setup,
                                   with_core=args.with_core,
                                   subdivide=args.subdivide,
                                   compute_normals=args.compute_normals)
+
+    if args.ren_win_size is not None:
+        vis.ren_win.SetSize(*tuple_from_string(args.ren_win_size))
 
     # is visualisation interface or to file?
     interactive_session = args.output_directory is None
@@ -319,27 +306,17 @@ def main():
     # peform camera actions and save outputs as required
     n = count(0)
 
-    # if output image first then save now
-    if args.output_image_first:
-        if vis.actors:
-            full_path = os.path.join(args.output_directory, '%d.png' % next(n))
-            print 'Output: ', full_path
-            vis.write(full_path, magnification=args.magnification)
-
-        vis.setup()
-
-    # process actor properties
-    for action in args.actor_properties:
-        actor_name, method, tup = parse_actor_properties(action)
-        vis.actor_properties(actor_name, (method, tup))
-
     for action in args.camera_actions:
         # parse the action
         method, tup, save_after = parse_camera_action(action)
         print '%s(*%s), save_after=%s' % (method, tup, save_after)
 
-        # execute the camera action
-        vis.camera_actions((method, tup))
+        if ':' in method:
+            name, method = method.split(':')
+            vis.actor_properties(name, (method, tup))
+        else:
+            # execute the camera action
+            vis.camera_actions((method, tup))
 
         # save if required
         if not interactive_session and save_after:
@@ -350,6 +327,10 @@ def main():
     # show if interactive
     if interactive_session:
         print 'Interactive'
+        print 'Camera:'
+        print vis.ren.GetActiveCamera()
+
+        vis.ren_win.Render()
         vis.execute(magnification=args.magnification)
 
 # test_tuple_from_string
