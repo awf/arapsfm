@@ -574,8 +574,8 @@ int solve_instance_sectioned_arap_temporal(PyArrayObject * npy_T,
                                            PyArrayObject * npy_Ry,
                                            PyArrayObject * npy_C,
                                            PyArrayObject * npy_P,
-                                           PyObject * list_Vn,
-                                           PyArrayObject * npy_omegas,
+                                           PyArrayObject * npy_Vp,
+                                           PyArrayObject * npy_Xp,
                                            PyArrayObject * npy_lambdas,
                                            PyArrayObject * npy_preconditioners,
                                            PyArrayObject * npy_piecewisePolynomial,
@@ -605,9 +605,9 @@ int solve_instance_sectioned_arap_temporal(PyArrayObject * npy_T,
 
     PYARRAY_AS_VECTOR(int, npy_C, C);
     PYARRAY_AS_MATRIX(double, npy_P, P);
-
-    auto Vn = PyList_to_vector_of_Matrix<double>(list_Vn);
-    PYARRAY_AS_VECTOR(double, npy_omegas, omegas);
+    
+    PYARRAY_AS_MATRIX(double, npy_Vp, Vp);
+    PYARRAY_AS_MATRIX(double, npy_Xp, Xp);
 
     PYARRAY_AS_VECTOR(double, npy_lambdas, lambdas);
     PYARRAY_AS_VECTOR(double, npy_preconditioners, preconditioners);
@@ -650,6 +650,12 @@ int solve_instance_sectioned_arap_temporal(PyArrayObject * npy_T,
     nodeU->SetPreconditioner(preconditioners[3]);
     problem.AddNode(nodeU);
 
+    auto nodeVp = new VertexNode(Vp);
+    problem.AddFixedNode(nodeVp);
+
+    auto nodeXp = new RotationNode(Xp);
+    problem.AddNode(nodeXp);
+
     // SectionedBasisArapEnergy
     problem.AddEnergy(new SectionedBasisArapEnergy(
         *nodeV, *nodeXg, *nodes,
@@ -679,20 +685,19 @@ int solve_instance_sectioned_arap_temporal(PyArrayObject * npy_T,
     // Projection
     problem.AddEnergy(new ProjectionEnergy(*nodeV1, C, P, sqrt(lambdas[4])));
 
-    // Temporal using `AbsolutePositionEnergy`
-    Vector<int> completeC(V.num_rows());
-    for (int i=0; i < V.num_rows(); ++i)
-        completeC[i] = i;
+    if (Xp.num_rows() > 0)
+    {
+        // Temporal using another `ARAPEnergy`
+        problem.AddEnergy(new ARAPEnergy(*nodeVp, *nodeXp, *nodeV1, mesh, sqrt(lambdas[5])));
 
-    for (int i=0; i < Vn.size(); ++i)
-        problem.AddEnergy(new AbsolutePositionEnergy(*nodeV1, completeC, *Vn[i], sqrt(omegas[i])));
+        // Regulariser on `nodeXp`
+        problem.AddEnergy(new RotationRegulariseEnergy(*nodeXp, sqrt(lambdas[6])));
+    }
 
     // Minimise
     int ret = problem.Minimise(*options);
 
     delete residualTransform;
-
-    dealloc_vector(Vn);
 
     return ret;
 }
