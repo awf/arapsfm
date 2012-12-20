@@ -28,14 +28,6 @@ def valid_file(f, extension='.npz'):
 
     return False
 
-# trim_image
-def trim_image(full_path):
-    args = ['convert', full_path, '-trim', 
-            '-bordercolor', 'White', '-border', '5x5', '+repage', full_path]
-
-    print 'Calling:', ' '.join(args)
-    subprocess.check_call(args)
-
 # avi_visualisation
 def avi_visualisation(vis_script, input_dir, output_dir, fps, N=0, **kwargs):
     if not os.path.exists(output_dir):
@@ -90,9 +82,10 @@ def make_figures(vis_script, input_path, output_dir, vis_args=[],
     # apply post-processing to the resulting images if required (e.g. cropping)
     if post_args is not None:
         for i, args_i in enumerate(post_args):
-            safe_cmd(*(['convert', full_paths[i]] + 
-                       args_i.split() + 
-                       [full_paths[i]]))
+            if args_i is not None:
+                safe_cmd(*(['convert', full_paths[i]] + 
+                           args_i.split() + 
+                           [full_paths[i]]))
 
     # join the images
     joined_path = os.path.join(output_dir, 'JOINED.png')
