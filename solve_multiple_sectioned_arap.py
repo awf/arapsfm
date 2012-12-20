@@ -6,7 +6,8 @@ from itertools import count, izip
 
 from core_recovery.lm_alt_solvers import \
     solve_instance_sectioned_arap_temporal as lm_solve_instance, \
-    solve_core_sectioned_arap as lm_solve_core
+    solve_core_sectioned_arap as lm_solve_core, \
+    solve_two_source_arap_proj
 
 from core_recovery.silhouette_global_solver import \
     shortest_path_solve
@@ -18,8 +19,6 @@ from misc.bunch import Bunch
 import multiprocessing as mp
 from itertools import izip_longest
 from misc.numpy_ import mparray
-
-from operator import add
     
 # Utilities
 
@@ -195,7 +194,6 @@ def main():
     parser.add_argument('spillage', type=str)
 
     # general
-    parser.add_argument('temporal_config', type=str)
     parser.add_argument('lambdas', type=str)
     parser.add_argument('preconditioners', type=str)
     parser.add_argument('piecewise_polynomial', type=str)
@@ -267,9 +265,6 @@ def main():
     print 'preconditioners:', preconditioners
     print 'piecewise_polynomial:', piecewise_polynomial
 
-    # temporal configuration (e.g. [(1, 1.0)])
-    temporal_config = eval(args.temporal_config)
-
     # solver arguments
     solver_options = parse_solver_options(args.solver_options,
         maxIterations=20, 
@@ -299,10 +294,9 @@ def main():
         else:
             indices_str = make_str(indices)
 
-        default_directory = '%s_%s_%s_%s_%s_%s' % (
+        default_directory = '%s_%s_%s_%s_%s' % (
             os.path.splitext(mesh_file)[0],
             indices_str,
-            make_str(reduce(add, temporal_config)),
             make_str(lambdas), 
             make_str(preconditioners),
             make_str(piecewise_polynomial))
@@ -364,6 +358,10 @@ def main():
 
     X = [mparray.zeros((NX, 3), dtype=np.float64) for v in V1]
 
+    # temporal rotations
+    Xp = [mparray.zeros((V.shape[0], 3), dtype=np.float64)  
+          for i in xrange(num_instances - 1)]
+
     # initialise silhouette (U, L)
     print 'initialising silhouette information:'
 
@@ -391,6 +389,8 @@ def main():
                              lambdas[1:3],  # silhouette
                              lambdas[4],    # spillage
                              lambdas[5],    # projection
+                             lambdas[7],    # temporal ARAP
+                             lambdas[8],    # temporal ARAP regulariser
                              ]
 
     core_lambdas = np.r_[lambdas[3], lambdas[6]]
@@ -411,27 +411,33 @@ def main():
     print 'max_restarts:', args.max_restarts
     print 'outer_loops:', args.outer_loops
 
+    # initialise to user constraints first
+    initialisation_lambdas = np.r_[lambdas[5],    # projection
+                                   lambdas[3],    # ARAP
+                                   lambdas[7],    # temporal ARAP
+                                   lambdas[8]]    # temporal ARAP regulariser
+
+    def solve_initialisation(i):
+        _X = np.zeros_like(V)
+
+        status = solve_two_source_arap_proj(
+            T, V, _X, V1[i-1], Xp[i-1], V1[i], C[i], P[i], 
+            initialisation_lambdas,
+            updateThreshold=1e-6,
+            improvementThreshold=1e-6,
+            gradientThreshold=1e-6,
+            maxIterations=1000,
+            verbosenessLevel=1)
+
+    map(solve_initialisation, xrange(1, num_instances))
+
+    # perform alternation
     t1 = time()
     for l in xrange(args.outer_loops):
-        # re-initialise U and L
-        # def solve_silhouette_info(i):
-
-        # async_exec(solve_silhouette_info,
-        #            ((i,) for i in xrange(num_instances)),
-        #            n=num_processes,
-        #            chunksize=max(1, num_instances / num_processes))
-
-        # statuses = mparray.empty(num_instances + 1, dtype=np.int32)
-
         # solve instances separately
         def solve_instance(i):
-            # use previous vertices to initialise
-            if l == 0 and i > 0:
-                V1[i].flat = V1[i-1].flat
-
-            # get the silhouette information
             s = silhouette_info[i]
-            U[i], L[i] = shortest_path_solve(V1[i], T, S[i], SN[i],
+            u, l = shortest_path_solve(V1[i], T, S[i], SN[i],
                                        s['SilCandDistances'],
                                        s['SilEdgeCands'],
                                        s['SilEdgeCandParam'],
@@ -439,24 +445,14 @@ def main():
                                        s['SilCandU'],
                                        global_silhoutte_lambdas,
                                        isCircular=args.find_circular_path)
+            U[i].flat = u.flat
+            L[i].flat = l.flat
 
-                
-            # setup any temporal priors
-            Vn = []
-            omegas = []
-
-            for offset, omega in temporal_config:
-                j = i + offset
-                if j < 0 or j >= len(V1):
-                    continue
-
-                if l == 0 and offset > 0:
-                    continue
-
-                Vn.append(V1[j])
-                omegas.append(omega)
-
-            omegas = np.asarray(omegas, dtype=np.float64)
+            if i == 0:
+                _Xp = np.array([], dtype=np.float64)[np.newaxis, :]
+                _Vp = np.array([], dtype=np.float64)[np.newaxis, :]
+            else:
+                _Xp, _Vp = Xp[i-1], V1[i-1]
 
             for j in xrange(args.max_restarts):
                 print '# solve_instance:', i
@@ -468,7 +464,7 @@ def main():
                     S[i], SN[i], 
                     Rx[i], Ry[i], 
                     C[i], P[i],
-                    Vn, omegas,
+                    _Vp, _Xp,
                     instance_lambdas, 
                     preconditioners,
                     piecewise_polynomial,
@@ -485,14 +481,12 @@ def main():
                 if status[0] not in (0, 4):
                     break
 
-            # statuses[i] = status[0]
-
         # async_exec(solve_instance, 
         #            ((i,) for i in xrange(num_instances)), 
         #            n=num_processes, 
         #            chunksize=max(1, num_instances / num_processes))
-        map(solve_instance, xrange(num_instances))
 
+        map(solve_instance, xrange(num_instances))
         print 'instScales:', instScales
 
         # solve for the core geometry
@@ -514,7 +508,6 @@ def main():
                 break
 
         print 'instScales:', instScales
-        # statuses[-1] = status[0]
 
         # save the intermediate results
         intermediate_output = os.path.join(output, str(l))
