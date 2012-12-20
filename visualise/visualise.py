@@ -307,13 +307,20 @@ if HAS_VTK:
             self.ren.AddActor(proj_actor)
 
         def actor_properties(self, actor_name, *actions):
-            actor = self.actors[actor_name]
-            prop = actor.GetProperty()
-            for key, value in actions:
-                if hasattr(prop, key):
-                    getattr(prop, key)(*value)
-                else:
-                    getattr(actor, key)(*value)
+            if actor_name.startswith('~'):
+                actor_names = filter(lambda k: k != actor_name[1:], 
+                                     self.actors.keys())
+            else:
+                actor_names = [actor_name]
+
+            for actor_name in actor_names:
+                actor = self.actors[actor_name]
+                prop = actor.GetProperty()
+                for key, value in actions:
+                    if hasattr(prop, key):
+                        getattr(prop, key)(*value)
+                    else:
+                        getattr(actor, key)(*value)
             
         def camera_actions(self, *actions):
             camera = self.ren.GetActiveCamera()
