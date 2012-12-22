@@ -5,7 +5,7 @@ from util.cmdline import *
 from itertools import count, izip
 
 from core_recovery.lm_alt_solvers import \
-    solve_instance_sectioned_arap as lm_solve_instance, \
+    solve_instance_sectioned_arap_temporal as lm_solve_instance, \
     solve_core_sectioned_arap as lm_solve_core, \
     solve_two_source_arap_proj
 
@@ -387,9 +387,11 @@ def main():
                              lambdas[1:3],  # silhouette
                              lambdas[4],    # spillage
                              lambdas[5],    # projection
+                             lambdas[7],    # temporal rotation penalty
                              ]
 
     core_lambdas = np.r_[lambdas[3],    # as-rigid-as-possible
+                         lambdas[7],    # temporal rotation penalty
                          lambdas[6],    # laplacian
                         ]
 
@@ -470,10 +472,30 @@ def main():
 
     map(solve_initialisation, xrange(1, num_instances))
 
-    # TODO
-    # Update lm_solve_instance, and lm_solve_core
+    # iterate by updating the core and then the instances
     t1 = time()
     for l in xrange(args.outer_loops):
+        # save optimisation statuses
+        statuses = mparray.empty(num_instances + 1, dtype=np.int32)
+
+        # solve for the core geometry
+        for j in xrange(args.max_restarts):
+            print '# solve_core:'
+            status = lm_solve_core(T, V, Xg, instScales, K, Xb, y, X, V1, 
+                                   core_lambdas,
+                                   core_preconditioners,
+                                   args.narrowband,
+                                   args.uniform_weights,
+                                   **solver_options)
+
+            print 'LM Status (%d): ' % status[0], status[1]
+
+            if status[0] not in (0, 4):
+                break
+
+        print 'instScales:', instScales
+        statuses[0] = status[0]
+
         # re-initialise U and L
         def solve_silhouette_info(i):
             s = silhouette_info[i]
@@ -494,10 +516,23 @@ def main():
                    n=num_processes,
                    chunksize=max(1, num_instances / num_processes))
 
-        statuses = mparray.empty(num_instances + 1, dtype=np.int32)
+        # duplicate `Xg`, `y`, and `X` so each frame can be solved separately
+        # without change to reference pose information
+        Xg0 = map(np.copy, Xg)
+        y0 = map(np.copy, y)
+        X0 = map(np.copy, X)
 
         # solve instances separately
         def solve_instance(i):
+            if i > 0:
+                Xg0_ = Xg0[i-1]
+                y0_ = y0[i-1]
+                X0_ = X0[i-1]
+            else:
+                Xg0_ = np.array(tuple(), dtype=np.float64).reshape(0, 3)
+                y0_ = y0[i] # UNUSED
+                X0_ = X0[i] # UNUSED
+
             for j in xrange(args.max_restarts):
                 print '# solve_instance:', i
                 status = lm_solve_instance(T, V, 
@@ -508,6 +543,7 @@ def main():
                     S[i], SN[i], 
                     Rx[i], Ry[i], 
                     C[i], P[i],
+                    Xg0_, y0_, X0_, 
                     instance_lambdas, 
                     preconditioners,
                     piecewise_polynomial,
@@ -524,7 +560,7 @@ def main():
                 if status[0] not in (0, 4):
                     break
 
-            statuses[i] = status[0]
+            statuses[i + 1] = status[0]
 
         async_exec(solve_instance, 
                    ((i,) for i in xrange(num_instances)), 
@@ -532,27 +568,6 @@ def main():
                    chunksize=max(1, num_instances / num_processes))
 
         print 'instScales:', instScales
-
-        # solve for the core geometry
-        for j in xrange(args.max_restarts):
-            core_opts = solver_options.copy()
-            # core_opts['verbosenessLevel'] = 2
-
-            print '# solve_core:'
-            status = lm_solve_core(T, V, Xg, instScales, K, Xb, y, X, V1, 
-                                   core_lambdas,
-                                   core_preconditioners,
-                                   args.narrowband,
-                                   args.uniform_weights,
-                                   **core_opts)
-
-            print 'LM Status (%d): ' % status[0], status[1]
-
-            if status[0] not in (0, 4):
-                break
-
-        print 'instScales:', instScales
-        statuses[-1] = status[0]
 
         # save the intermediate results
         intermediate_output = os.path.join(output, str(l))
