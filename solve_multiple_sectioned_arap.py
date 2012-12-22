@@ -387,7 +387,9 @@ def main():
                              lambdas[1:3],  # silhouette
                              lambdas[4],    # spillage
                              lambdas[5],    # projection
-                             lambdas[7],    # temporal rotation penalty
+                             lambdas[7],    # temporal rotation penalty (difference in rotations to core)
+                             lambdas[8],    # temporal rotaiton penalty (difference in rotaitons directly)
+                             lambdas[9],    # temporal ARAP penalty 
                              ]
 
     core_lambdas = np.r_[lambdas[3],    # as-rigid-as-possible
@@ -516,11 +518,11 @@ def main():
                    n=num_processes,
                    chunksize=max(1, num_instances / num_processes))
 
-        # duplicate `Xg`, `y`, and `X` so each frame can be solved separately
-        # without change to reference pose information
-        Xg0 = map(np.copy, Xg)
-        y0 = map(np.copy, y)
-        X0 = map(np.copy, X)
+        # duplicate `Xg`, `y`, and `X`
+        Xg0 = map(to_shared, Xg)
+        y0 = map(to_shared, y)
+        X0 = map(to_shared, X)
+        V10 = map(to_shared, V1)
 
         # solve instances separately
         def solve_instance(i):
@@ -528,10 +530,14 @@ def main():
                 Xg0_ = Xg0[i-1]
                 y0_ = y0[i-1]
                 X0_ = X0[i-1]
+                Vp = V10[i-1]
+                Xp = np.zeros_like(Vp)
             else:
                 Xg0_ = np.array(tuple(), dtype=np.float64).reshape(0, 3)
                 y0_ = y0[i] # UNUSED
                 X0_ = X0[i] # UNUSED
+                Vp = V10[i-1]
+                Xp = np.array(tuple(), dtype=np.float64).reshape(0, 3)
 
             for j in xrange(args.max_restarts):
                 print '# solve_instance:', i
@@ -543,6 +549,7 @@ def main():
                     S[i], SN[i], 
                     Rx[i], Ry[i], 
                     C[i], P[i],
+                    Vp, Xp,
                     Xg0_, y0_, X0_, 
                     instance_lambdas, 
                     preconditioners,

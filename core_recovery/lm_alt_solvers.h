@@ -586,6 +586,8 @@ int solve_instance_sectioned_arap_temporal(PyArrayObject * npy_T,
                                            PyArrayObject * npy_Ry,
                                            PyArrayObject * npy_C,
                                            PyArrayObject * npy_P,
+                                           PyArrayObject * npy_Vp,
+                                           PyArrayObject * npy_Xp,
                                            PyArrayObject * npy_Xg0,
                                            PyArrayObject * npy_y0,
                                            PyArrayObject * npy_X0,
@@ -619,6 +621,9 @@ int solve_instance_sectioned_arap_temporal(PyArrayObject * npy_T,
     PYARRAY_AS_VECTOR(int, npy_C, C);
     PYARRAY_AS_MATRIX(double, npy_P, P);
     
+    PYARRAY_AS_MATRIX(double, npy_Vp, Vp);
+    PYARRAY_AS_MATRIX(double, npy_Xp, Xp);
+
     PYARRAY_AS_MATRIX(double, npy_Xg0, Xg0);
     PYARRAY_AS_MATRIX(double, npy_y0, y0);
     PYARRAY_AS_MATRIX(double, npy_X0, X0);
@@ -664,6 +669,12 @@ int solve_instance_sectioned_arap_temporal(PyArrayObject * npy_T,
     nodeU->SetPreconditioner(preconditioners[3]);
     problem.AddNode(nodeU);
 
+    auto nodeVp = new VertexNode(Vp);
+    problem.AddFixedNode(nodeVp);
+
+    auto nodeXp = new RotationNode(Xp);
+    problem.AddNode(nodeXp);
+
     auto nodeXg0 = new GlobalRotationNode(Xg0);
     problem.AddFixedNode(nodeXg0);
 
@@ -701,6 +712,12 @@ int solve_instance_sectioned_arap_temporal(PyArrayObject * npy_T,
 
     // Projection
     problem.AddEnergy(new ProjectionEnergy(*nodeV1, C, P, sqrt(lambdas[4])));
+
+    if (Xp.num_rows() > 0)
+    {
+        problem.AddEnergy(new ARAPEnergy(*nodeVp, *nodeXp, *nodeV1, mesh, sqrt(lambdas[7])));
+        problem.AddEnergy(new RotationRegulariseEnergy(*nodeXp, sqrt(lambdas[6])));
+    }
 
     if (Xg0.num_rows() > 0)
     {
