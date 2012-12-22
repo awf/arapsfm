@@ -540,8 +540,20 @@ int solve_core_sectioned_arap(PyArrayObject * npy_T,
             ));
     }
 
+    // SectionedRotationsVelocityEnergy
+    for (int i = 1; i < instVertexNodes.size(); ++i)
+    {
+        problem.AddEnergy(new SectionedRotationsVelocityEnergy(
+            *instGlobalRotationNodes[i-1], *instBasisCoefficientNodes[i-1], *instRotationNodes[i-1],
+            *instGlobalRotationNodes[i], *instBasisCoefficientNodes[i], *instRotationNodes[i],
+            *nodeXb, K, sqrt(lambdas[1]),
+            false,  // fixed0
+            false   // fixedXb
+            ));
+    }
+
     // LaplacianEnergy
-    problem.AddEnergy(new LaplacianEnergy(*nodeV, mesh, sqrt(lambdas[1])));
+    problem.AddEnergy(new LaplacianEnergy(*nodeV, mesh, sqrt(lambdas[2])));
 
     // Minimise
     int ret = problem.Minimise(*options);
