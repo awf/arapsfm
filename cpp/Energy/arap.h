@@ -2017,6 +2017,7 @@ public:
             costFunctions.push_back(new Energy_CostFunction(*this, pUsedParamTypes, 3, basisRotResidualMap));
         }
     }
+
     virtual int GetCorrespondingParam(const int k, const int l) const
     {
         int i = _mesh.GetHalfEdge(k, 0), j = _mesh.GetHalfEdge(k, 1);
@@ -2335,6 +2336,320 @@ public:
 protected:
     const RotationNode & _X;
     const double _w;
+};
+
+// SectionedRotationsVelocityEnergy
+class SectionedRotationsVelocityEnergy : public Energy
+{
+public:
+    SectionedRotationsVelocityEnergy(const GlobalRotationNode & Xg0, const CoefficientsNode & y0, const RotationNode & X0,
+                                     const GlobalRotationNode & Xg, const CoefficientsNode & y, const RotationNode & X,
+                                     const RotationNode & Xb, const Matrix<int> & K, const double w,
+                                     bool fixed0, bool fixedXb)
+        : _Xg0(Xg0), _y0(y0), _X0(X0), _Xg(Xg), _y(y), _X(X), _Xb(Xb), _K(K), _w(w), _fixed0(fixed0), _fixedXb(fixedXb),
+          _numMeasurements(0)
+    {
+        for (int k=0; k < _K.num_rows(); ++k)
+        {
+            if (_K[k][0] != 0)
+                _numMeasurements++;
+        }
+    }
+
+    virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
+    {
+        vector<int> * basisRotResidualMap = new vector<int>;
+        vector<int> * freeRotResidualMap = new vector<int>;
+
+        for (int k=0; k < _K.num_rows(); ++k)
+        {
+            if (_K[k][0] < 0)
+            {
+                // free (independent) rotation
+                freeRotResidualMap->push_back(k);
+            }
+            else if (_K[k] > 0)
+            {
+                // single-axis (basis) rotation
+                basisRotResidualMap->push_back(k);
+            }
+        }
+
+        // construct cost functions
+        if (freeRotResidualMap->size() > 0)
+        {
+            // free (independent) rotation
+            vector<int> * pUsedParamTypes = new vector<int>;
+            pUsedParamTypes->push_back(_Xg.GetParamId());
+            pUsedParamTypes->push_back(_X.GetParamId());
+            if (!_fixed0)
+            {
+                pUsedParamTypes->push_back(_Xg0.GetParamId());
+                pUsedParamTypes->push_back(_X0.GetParamId());
+            }
+
+            costFunctions.push_back(new Energy_CostFunction(*this, pUsedParamTypes, 3, freeRotResidualMap));
+        }
+
+        if (basisRotResidualMap->size() > 0)
+        {
+            // single-axis (basis) rotation
+            vector<int> * pUsedParamTypes = new vector<int>;
+            pUsedParamTypes->push_back(_Xg.GetParamId());
+            if (!_fixedXb)
+                pUsedParamTypes->push_back(_Xb.GetParamId());
+
+            pUsedParamTypes->push_back(_y.GetParamId());
+
+            if (!_fixed0)
+            {
+                pUsedParamTypes->push_back(_Xg0.GetParamId());
+                pUsedParamTypes->push_back(_y0.GetParamId());
+            }
+
+            costFunctions.push_back(new Energy_CostFunction(*this, pUsedParamTypes, 3, basisRotResidualMap));
+        }
+    }
+                                     
+    virtual int GetCorrespondingParam(const int k, const int l) const
+    {
+        int m = 0;
+        if (l == m++)
+            return _Xg.GetOffset();
+
+        if (_K[k][0] < 0)
+        {
+            // free (independent) rotation
+            if (l == m++)
+                return _K[k][1] + _X.GetOffset();
+        }
+        else
+        {
+            // single-axis (basis) rotation
+            if (!_fixedXb && (l == m++))
+                return _K[k][1] + _Xb.GetOffset();
+            else if (l == m++)
+                return _K[k][0] - 1 + _y.GetOffset();
+        }
+
+        if (!_fixed0)
+        {
+            if (l == m++)
+                return _Xg0.GetOffset();
+
+            if (_K[k][0] < 0)
+            {
+                // free (independent) rotation
+                if (l == m++)
+                    return _K[k][1] + _X0.GetOffset();
+            }
+            else
+            {
+                // single-axis (basis) rotation
+                if (l == m++)
+                    return _K[k][0] - 1 + _y0.GetOffset();
+            }
+        }
+
+        assert(false);
+
+        return -1;
+    }
+
+    virtual int GetNumberOfMeasurements() const
+    {
+        return _numMeasurements;
+    }
+
+    virtual void EvaluateResidual(const int k, Vector<double> & e) const
+    {
+        double x0i[3], xi[3];
+
+        if (_K[k][0] < 0)
+        {
+            const double * x0i_ = _X0.GetRotation(_K[k][1]);
+            copy(x0i_, x0i_ + 3, x0i);
+
+            const double * xi_ = _X.GetRotation(_K[k][1]);
+            copy(xi_, xi_ + 3, xi);
+        }
+        else if (_K[k][0] == 0)
+        {
+            assert(false);
+        }
+        else
+        {
+            // _K[k][0] > 0
+            axScale_Unsafe(_y0.GetCoefficient(_K[k][0] - 1), _Xb.GetRotation(_K[k][1]), x0i);
+            axScale_Unsafe(_y.GetCoefficient(_K[k][0] - 1), _Xb.GetRotation(_K[k][1]), xi);
+        }
+
+        double x0[3];
+        axAdd_Unsafe(_Xg0.GetRotation(), x0i, x0);
+
+        double x[3];
+        axAdd_Unsafe(_Xg.GetRotation(), xi, x);
+
+        double inv_x0[3];
+        axScale_Unsafe(-1.0, x0, inv_x0);
+
+        axAdd_Unsafe(inv_x0, x, e.begin());
+        scaleVectorIP_Static<double, 3>(_w, e.begin());
+    }
+
+    virtual void EvaluateJacobian(const int k, const int whichParam, Matrix<double> & J) const
+    {
+        double x0i[3], xi[3];
+
+        if (_K[k][0] < 0)
+        {
+            const double * x0i_ = _X0.GetRotation(_K[k][1]);
+            copy(x0i_, x0i_ + 3, x0i);
+
+            const double * xi_ = _X.GetRotation(_K[k][1]);
+            copy(xi_, xi_ + 3, xi);
+        }
+        else if (_K[k][0] == 0)
+        {
+            assert(false);
+        }
+        else
+        {
+            // _K[k][0] > 0
+            axScale_Unsafe(_y0.GetCoefficient(_K[k][0] - 1), _Xb.GetRotation(_K[k][1]), x0i);
+            axScale_Unsafe(_y.GetCoefficient(_K[k][0] - 1), _Xb.GetRotation(_K[k][1]), xi);
+        }
+
+        double x0[3];
+        axAdd_Unsafe(_Xg0.GetRotation(), x0i, x0);
+
+        double x[3];
+        axAdd_Unsafe(_Xg.GetRotation(), xi, x);
+
+        double inv_x0[3];
+        axScale_Unsafe(-1.0, x0, inv_x0);
+
+        // Jx
+        double Jx[9];
+        axAdd_db_Unsafe(inv_x0, x, Jx);
+        scaleVectorIP_Static<double, 9>(_w, Jx);
+
+        // Jninv
+        double Jninv[9];
+        axAdd_da_Unsafe(inv_x0, x, Jninv);
+        scaleVectorIP_Static<double, 9>(-_w, Jninv);
+
+        int m = 0;
+        if (whichParam == m++)
+        {
+            // Xg
+            // Jxg
+            double Jxg[9];
+            axAdd_da_Unsafe(_Xg.GetRotation(), xi, Jxg);
+
+            multiply_A_B_Static<double, 3, 3, 3>(Jx, Jxg, J[0]);
+            return;
+        }
+
+        // Xi
+        double Jxi[9];
+        axAdd_db_Unsafe(_Xg.GetRotation(), xi, Jxi);
+
+        // X0i
+        double Jx0i[9];
+        axAdd_db_Unsafe(_Xg0.GetRotation(), x0i, Jx0i);
+
+        if (_K[k][0] < 0)
+        {
+            // free (independent) rotation
+            if (whichParam == m++)
+            {
+                // X
+                multiply_A_B_Static<double, 3, 3, 3>(Jx, Jxi, J[0]);
+                return;
+            }
+        }
+        else
+        {
+            // single-axis (basis) rotation
+            if (!_fixedXb && (whichParam == m++))
+            {
+                // Xb
+                double Jl[9], Jr[9];
+
+                scaleVectorIP_Static<double, 9>(_y0.GetCoefficient(_K[k][0] - 1), Jx0i);
+                multiply_A_B_Static<double, 3, 3, 3>(Jninv, Jx0i, Jl);
+
+                scaleVectorIP_Static<double, 9>(_y.GetCoefficient(_K[k][0] - 1), Jxi);
+                multiply_A_B_Static<double, 3, 3, 3>(Jx, Jxi, Jr);
+
+                fillVector_Static<double, 9>(0., J[0]);
+                addVectors_Static<double, 9>(Jl, Jr, J[0]);
+                return;
+            }
+            else if (whichParam == m++)
+            {
+                // y
+                double JXby[9];
+                multiply_A_B_Static<double, 3, 3, 3>(Jx, Jxi, JXby);
+                multiply_A_v_Static<double, 3, 3>(JXby, _Xb.GetRotation(_K[k][1]), J[0]);
+                return;
+            }
+        }
+
+        if (!_fixed0)
+        {
+            if (whichParam == m++)
+            {
+                // Xg0
+                double Jxg0[9];
+                axAdd_da_Unsafe(_Xg0.GetRotation(), x0i, Jxg0);
+
+                multiply_A_B_Static<double, 3, 3, 3>(Jninv, Jxg0, J[0]);
+                return;
+            }
+
+            if (_K[k][0] < 0)
+            {
+                // free (independent) rotation
+                if (whichParam == m++)
+                {
+                    // X0
+                    multiply_A_B_Static<double, 3, 3, 3>(Jninv, Jx0i, J[0]);
+                    return;
+                }
+            }
+            else
+            {
+                if (whichParam == m++)
+                {
+                    // y0
+                    double JXby0[9];
+                    multiply_A_B_Static<double, 3, 3, 3>(Jninv, Jx0i, JXby0);
+                    multiply_A_v_Static<double, 3, 3>(JXby0, _Xb.GetRotation(_K[k][1]), J[0]);
+                    return;
+                }
+            }
+        }
+
+        assert(false);
+        return;
+    }
+
+protected:
+    const GlobalRotationNode & _Xg0;
+    const CoefficientsNode & _y0;
+    const RotationNode & _X0;
+    const GlobalRotationNode & _Xg;
+    const CoefficientsNode & _y;
+    const RotationNode & _X;
+    const RotationNode & _Xb;
+    const Matrix<int> & _K;
+    const double _w;
+    bool _fixed0;
+    bool _fixedXb;
+
+    int _numMeasurements;
 };
 
 #endif
