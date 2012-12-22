@@ -545,10 +545,87 @@ def main_EvaluateSectionedBasisArapEnergy():
     print_comparison(approx_V1i=approx_JV1[:, 12:15], JV1i=JV1i)
     print_comparison(approx_V1j=approx_JV1[:, 9:12], JV1j=JV1j)
 
+# main_EvaluateSectionedRotationsVelocityEnergy 
+def main_EvaluateSectionedRotationsVelocityEnergy():
+    K = np.r_[-1, 0,
+               1, 0].reshape(-1, 2).astype(np.int32)
+
+    Xb = np.r_[0., 1., 0.].reshape(-1, 3)
+
+    Xg0 = np.r_[0., 0., 0.].reshape(-1, 3)
+    y0 = np.r_[2.].reshape(-1, 1)
+    X0 = np.r_[0., 0., 0.].reshape(-1, 3)
+
+    Xg = np.r_[0., 0., 0.].reshape(-1, 3)
+    y = np.r_[1.].reshape(-1, 1)
+    X = np.r_[0., 0., 0.].reshape(-1, 3)
+
+    randomise = lambda arr: np.random.randn(arr.size).reshape(arr.shape)
+
+    Xg0 = randomise(Xg0)
+    X0 = randomise(X0)
+    y0 = randomise(y0)
+    Xg = randomise(Xg)
+    X = randomise(X)
+    y = randomise(y)
+    Xb = randomise(Xb)
+    
+    empty_jacDims = np.array(tuple(), dtype=np.int32).reshape(0, 0)
+    jacDims = np.r_[3, 3,
+                    3, 3,
+                    3, 3,
+                    3, 3].reshape(-1, 2).astype(np.int32)
+
+    # independent rotations
+    k = 0
+
+    r, JXg, JX, JXg0, JX0 = EvaluateSectionedRotationsVelocityEnergy(
+        Xg0, y0, X0, Xg, y, X, Xb, K, k, jacDims)
+
+    print 'r:', np.around(r, decimals=3)
+
+    approx_JXg, approx_JX, approx_JXg0, approx_JX0 = approx_jacs(
+        lambda *args, **kwargs: EvaluateSectionedRotationsVelocityEnergy(*args, **kwargs)[0],
+        [3, 5, 0, 2],
+        1e-6,
+        Xg0, y0, X0, Xg, y, X, Xb, K, k, empty_jacDims)
+
+    print_comparison(approx_JXg=approx_JXg, JXg=JXg)
+    print_comparison(approx_JX=approx_JX, JX=JX)
+    print_comparison(approx_JXg0=approx_JXg0, JXg0=JXg0)
+    print_comparison(approx_JX0=approx_JX0, JX0=JX0)
+
+    # basis rotaitons
+    k = 1
+
+    jacDims = np.r_[3, 3,
+                    3, 3,
+                    3, 1,
+                    3, 3,
+                    3, 1].reshape(-1, 2).astype(np.int32)
+
+    r, JXg, JXb, Jy, JXg0, Jy0 = EvaluateSectionedRotationsVelocityEnergy(
+        Xg0, y0, X0, Xg, y, X, Xb, K, k, jacDims)
+
+    print 'r:', np.around(r, decimals=3)
+
+    approx_JXg, approx_JXb, approx_Jy, approx_JXg0, approx_Jy0 = approx_jacs(
+        lambda *args, **kwargs: EvaluateSectionedRotationsVelocityEnergy(*args, **kwargs)[0],
+        [3, 6, 4, 0, 1],
+        1e-6,
+        Xg0, y0, X0, Xg, y, X, Xb, K, k, empty_jacDims)
+
+    print_comparison(approx_JXg=approx_JXg, JXg=JXg)
+    print_comparison(approx_JXb=approx_JXb, JXb=JXb)
+    print_comparison(approx_Jy=approx_Jy, Jy=Jy)
+    print_comparison(approx_JXg0=approx_JXg0, JXg0=JXg0)
+    print_comparison(approx_Jy0=approx_Jy0, Jy0=Jy0)
+    
 if __name__ == '__main__':
     # main_EvaluateSingleARAP()
     # main_EvaluateSingleARAP2()
     # main_EvaluateDualARAP()
     # main_EvaluateDualNonLinearBasisARAP()
-    main_EvaluateSectionedBasisArapEnergy()
+    # main_EvaluateSectionedBasisArapEnergy()
+    main_EvaluateSectionedRotationsVelocityEnergy()
 
