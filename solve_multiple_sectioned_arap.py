@@ -5,9 +5,11 @@ from util.cmdline import *
 from itertools import count, izip
 
 from core_recovery.lm_alt_solvers import \
-    solve_instance_sectioned_arap_temporal as lm_solve_instance, \
+    solve_instance_sectioned_arap as lm_solve_instance, \
     solve_core_sectioned_arap as lm_solve_core, \
     solve_two_source_arap_proj
+
+from core_recovery.lm_solvers import solve_single_arap_proj
 
 from core_recovery.silhouette_global_solver import \
     shortest_path_solve
@@ -358,10 +360,6 @@ def main():
 
     X = [mparray.zeros((NX, 3), dtype=np.float64) for v in V1]
 
-    # temporal rotations
-    Xp = [mparray.zeros((V.shape[0], 3), dtype=np.float64)  
-          for i in xrange(num_instances - 1)]
-
     # initialise silhouette (U, L)
     print 'initialising silhouette information:'
 
@@ -389,11 +387,12 @@ def main():
                              lambdas[1:3],  # silhouette
                              lambdas[4],    # spillage
                              lambdas[5],    # projection
-                             lambdas[7],    # temporal ARAP
-                             lambdas[8],    # temporal ARAP regulariser
                              ]
 
-    core_lambdas = np.r_[lambdas[3], lambdas[6]]
+    core_lambdas = np.r_[lambdas[3],    # as-rigid-as-possible
+                         lambdas[6],    # laplacian
+                        ]
+
     core_preconditioners = np.r_[preconditioners[0], # V
                                  preconditioners[1], # X
                                  preconditioners[2], # s
@@ -411,31 +410,72 @@ def main():
     print 'max_restarts:', args.max_restarts
     print 'outer_loops:', args.outer_loops
 
+    # solve for initialisations without the basis rotations
+    initialisation_lambdas = np.r_[lambdas[5],  # projection
+                                   lambdas[3],  # as-rigid-as-possible
+                                   lambdas[7]]  # temporal rotation penalty 
+
+    first_lambdas = np.r_[lambdas[3],   # as-rigid-as-possible
+                          lambdas[5]]   # projection
+
+    initialisation_preconditioners = np.r_[preconditioners[0],
+                                          preconditioners[1],
+                                          preconditioners[5],
+                                          preconditioners[4],
+                                          preconditioners[2]]
+                         
+    # initalise `_K` with independent rotations (no shared basis functions for
+    # initialisation)
+    _K = np.empty_like(K)
+    _K[:,0] = -1
+    _K[:,1] = np.arange(_K.shape[0])
+
+    _y0 = np.array(tuple(), dtype=np.float64).reshape(0, 1)
+    _y = np.array(tuple(), dtype=np.float64).reshape(0, 1)
+    _Xb = np.array(tuple(), dtype=np.float64).reshape(0, 3)
+
+    # initialise `iX` intermediate rotations
+    iX = [np.zeros((_K.shape[0], 3), dtype=np.float64) for v in V1]
+
+    for j in xrange(args.max_restarts):
+        status = solve_single_arap_proj(V, T, iX[0], V1[0], C[0], P[0],
+                                        first_lambdas, **solver_options)
+
+        if status[0] not in (0, 4):
+            break
+
     # initialise to user constraints first
-    initialisation_lambdas = np.r_[lambdas[5],    # projection
-                                   lambdas[3],    # ARAP
-                                   lambdas[7],    # temporal ARAP
-                                   lambdas[8]]    # temporal ARAP regulariser
-
     def solve_initialisation(i):
-        _X = np.zeros_like(V)
+        V1[i].flat = V.flat
 
-        status = solve_two_source_arap_proj(
-            T, V, _X, V1[i-1], Xp[i-1], V1[i], C[i], P[i], 
-            initialisation_lambdas,
-            updateThreshold=1e-6,
-            improvementThreshold=1e-6,
-            gradientThreshold=1e-6,
-            maxIterations=1000,
-            verbosenessLevel=1)
+        for j in xrange(args.max_restarts):
+            status = solve_two_source_arap_proj(T, V, V1[i],
+                                                Xg[i-1], 
+                                                _y0,
+                                                iX[i-1],    
+                                                Xg[i], 
+                                                instScales[i], 
+                                                _y,
+                                                iX[i],      
+                                                _Xb,
+                                                _K, 
+                                                C[i], P[i],
+                                                initialisation_lambdas,
+                                                initialisation_preconditioners,
+                                                args.uniform_weights,
+                                                **solver_options)
+
+            if status[0] not in (0, 4):
+                break
 
     map(solve_initialisation, xrange(1, num_instances))
 
-    # perform alternation
+    # TODO
+    # Update lm_solve_instance, and lm_solve_core
     t1 = time()
     for l in xrange(args.outer_loops):
-        # solve instances separately
-        def solve_instance(i):
+        # re-initialise U and L
+        def solve_silhouette_info(i):
             s = silhouette_info[i]
             u, l = shortest_path_solve(V1[i], T, S[i], SN[i],
                                        s['SilCandDistances'],
@@ -445,15 +485,19 @@ def main():
                                        s['SilCandU'],
                                        global_silhoutte_lambdas,
                                        isCircular=args.find_circular_path)
+
             U[i].flat = u.flat
             L[i].flat = l.flat
 
-            if i == 0:
-                _Xp = np.array([], dtype=np.float64)[np.newaxis, :]
-                _Vp = np.array([], dtype=np.float64)[np.newaxis, :]
-            else:
-                _Xp, _Vp = Xp[i-1], V1[i-1]
+        async_exec(solve_silhouette_info,
+                   ((i,) for i in xrange(num_instances)),
+                   n=num_processes,
+                   chunksize=max(1, num_instances / num_processes))
 
+        statuses = mparray.empty(num_instances + 1, dtype=np.int32)
+
+        # solve instances separately
+        def solve_instance(i):
             for j in xrange(args.max_restarts):
                 print '# solve_instance:', i
                 status = lm_solve_instance(T, V, 
@@ -464,7 +508,6 @@ def main():
                     S[i], SN[i], 
                     Rx[i], Ry[i], 
                     C[i], P[i],
-                    _Vp, _Xp,
                     instance_lambdas, 
                     preconditioners,
                     piecewise_polynomial,
@@ -481,12 +524,13 @@ def main():
                 if status[0] not in (0, 4):
                     break
 
-        # async_exec(solve_instance, 
-        #            ((i,) for i in xrange(num_instances)), 
-        #            n=num_processes, 
-        #            chunksize=max(1, num_instances / num_processes))
+            statuses[i] = status[0]
 
-        map(solve_instance, xrange(num_instances))
+        async_exec(solve_instance, 
+                   ((i,) for i in xrange(num_instances)), 
+                   n=num_processes, 
+                   chunksize=max(1, num_instances / num_processes))
+
         print 'instScales:', instScales
 
         # solve for the core geometry
@@ -508,6 +552,7 @@ def main():
                 break
 
         print 'instScales:', instScales
+        statuses[-1] = status[0]
 
         # save the intermediate results
         intermediate_output = os.path.join(output, str(l))
