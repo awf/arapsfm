@@ -148,6 +148,8 @@ cdef extern from "lm_alt_solvers.h":
     int solve_two_source_arap_proj_c 'solve_two_source_arap_proj' (
         np.ndarray npy_T,
         np.ndarray npy_V,
+        np.ndarray npy_Xg,
+        np.ndarray npy_s,
         np.ndarray npy_X,
         np.ndarray npy_Vp,
         np.ndarray npy_Xp,
@@ -155,6 +157,7 @@ cdef extern from "lm_alt_solvers.h":
         np.ndarray npy_C,
         np.ndarray npy_P,
         np.ndarray npy_lambdas,
+        bint uniformWeights,
         OptimiserOptions * options)
 
 # additional_optimiser_options
@@ -494,6 +497,8 @@ def solve_instance_sectioned_arap_temporal(np.ndarray[np.int32_t, ndim=2, mode='
 
 def solve_two_source_arap_proj(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
                                np.ndarray[np.float64_t, ndim=2, mode='c'] V, 
+                               np.ndarray[np.float64_t, ndim=2, mode='c'] Xg, 
+                               np.ndarray[np.float64_t, ndim=2, mode='c'] s, 
                                np.ndarray[np.float64_t, ndim=2, mode='c'] X, 
                                np.ndarray[np.float64_t, ndim=2, mode='c'] Vp, 
                                np.ndarray[np.float64_t, ndim=2, mode='c'] Xp, 
@@ -501,6 +506,7 @@ def solve_two_source_arap_proj(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
                                np.ndarray[np.int32_t, ndim=1, mode='c'] C,
                                np.ndarray[np.float64_t, ndim=2, mode='c'] P,
                                np.ndarray[np.float64_t, ndim=1] lambdas,
+                               bint uniformWeights,
                                **kwargs):
 
     assert lambdas.shape[0] == 4
@@ -509,8 +515,8 @@ def solve_two_source_arap_proj(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
     additional_optimiser_options(&options, kwargs)
 
     cdef int status = solve_two_source_arap_proj_c(
-        T, V, X, Vp, Xp, V1, C, P,
-        lambdas,
+        T, V, Xg, s, X, Vp, Xp, V1, C, P,
+        lambdas, uniformWeights,
         &options)
 
     return status, STATUS_CODES[status]
