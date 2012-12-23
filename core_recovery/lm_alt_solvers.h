@@ -540,15 +540,14 @@ int solve_core_sectioned_arap(PyArrayObject * npy_T,
             ));
     }
 
-    // SectionedRotationsVelocityEnergy
+    // GlobalRotationsDifferenceEnergy
     for (int i = 1; i < instVertexNodes.size(); ++i)
     {
-        problem.AddEnergy(new SectionedRotationsVelocityEnergy(
-            *instGlobalRotationNodes[i-1], *instBasisCoefficientNodes[i-1], *instRotationNodes[i-1],
-            *instGlobalRotationNodes[i], *instBasisCoefficientNodes[i], *instRotationNodes[i],
-            *nodeXb, K, sqrt(lambdas[1]),
-            false,  // fixed0
-            false   // fixedXb
+        problem.AddEnergy(new GlobalRotationsDifferenceEnergy(
+            *instGlobalRotationNodes[i], 
+            *instGlobalRotationNodes[i-1],
+            sqrt(lambdas[1]),
+            false // fixed0
             ));
     }
 
