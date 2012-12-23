@@ -2652,5 +2652,79 @@ protected:
     int _numMeasurements;
 };
 
+// GlobalRotationsDifferenceEnergy
+class GlobalRotationsDifferenceEnergy : public Energy
+{
+public:
+    GlobalRotationsDifferenceEnergy(const GlobalRotationNode & Xg, const GlobalRotationNode & Xg0, 
+                                    const double w, bool fixed0)
+        : _Xg(Xg), _Xg0(Xg0), _w(w), _fixed0(fixed0)
+    {}
+
+    virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
+    {
+        auto pUsedParamTypes = new vector<int>;
+        pUsedParamTypes->push_back(_Xg.GetParamId());
+
+        if (!_fixed0)
+            pUsedParamTypes->push_back(_Xg.GetParamId());
+        costFunctions.push_back(new Energy_CostFunction(*this, pUsedParamTypes, 3));
+    }
+
+    virtual int GetCorrespondingParam(const int k, const int l) const
+    {
+        switch (l)
+        {
+        case 0:
+            return _Xg.GetOffset();
+        case 1:
+            return _Xg0.GetOffset();
+        }
+
+        assert(false);
+
+        return -1;
+    }
+
+    virtual int GetNumberOfMeasurements() const 
+    {
+        return 1;
+    }
+
+    virtual void EvaluateResidual(const int k, Vector<double> & e) const
+    {
+        double inv_x0[3];
+        axScale_Unsafe(-1.0, _Xg0.GetRotation(), inv_x0);
+
+        axAdd_Unsafe(inv_x0, _Xg.GetRotation(), e.begin());
+        scaleVectorIP_Static<double, 3>(_w, e.begin());
+    }
+
+    virtual void EvaluateJacobian(const int k, const int whichParam, Matrix<double> & J) const
+    {
+        double inv_x0[3];
+        axScale_Unsafe(-1.0, _Xg0.GetRotation(), inv_x0);
+
+        if (whichParam == 0)
+        {
+            axAdd_db_Unsafe(inv_x0, _Xg.GetRotation(), J[0]);
+            scaleVectorIP_Static<double, 9>(_w, J[0]);
+            return;
+        }
+        else
+        {
+            axAdd_da_Unsafe(inv_x0, _Xg.GetRotation(), J[0]);
+            scaleVectorIP_Static<double, 9>(-_w, J[0]);
+            return;
+        }
+    }
+
+protected:
+    const GlobalRotationNode & _Xg;
+    const GlobalRotationNode & _Xg0;
+    const double _w;
+    bool _fixed0;
+};
+
 #endif
 
