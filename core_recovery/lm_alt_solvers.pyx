@@ -137,8 +137,6 @@ cdef extern from "lm_alt_solvers.h":
         np.ndarray npy_Vp,
         np.ndarray npy_Xp,
         np.ndarray npy_Xg0,
-        np.ndarray npy_y0,
-        np.ndarray npy_X0,
         np.ndarray npy_lambdas,
         np.ndarray npy_preconditioners,
         np.ndarray npy_piecewisePolynomial,
@@ -466,8 +464,6 @@ def solve_instance_sectioned_arap_temporal(np.ndarray[np.int32_t, ndim=2, mode='
                                            np.ndarray[np.float64_t, ndim=2, mode='c'] Vp,
                                            np.ndarray[np.float64_t, ndim=2, mode='c'] Xp,
                                            np.ndarray[np.float64_t, ndim=2, mode='c'] Xg0,
-                                           np.ndarray[np.float64_t, ndim=2, mode='c'] y0,
-                                           np.ndarray[np.float64_t, ndim=2, mode='c'] X0,
                                            np.ndarray[np.float64_t, ndim=1] lambdas,
                                            np.ndarray[np.float64_t, ndim=1] preconditioners,
                                            np.ndarray[np.float64_t, ndim=1] piecewisePolynomial,
@@ -476,7 +472,7 @@ def solve_instance_sectioned_arap_temporal(np.ndarray[np.int32_t, ndim=2, mode='
                                            bint fixedScale,
                                            **kwargs):
 
-    assert lambdas.shape[0] == 8
+    assert lambdas.shape[0] == 7
     assert preconditioners.shape[0] == 6
     assert piecewisePolynomial.shape[0] == 2
 
@@ -493,7 +489,7 @@ def solve_instance_sectioned_arap_temporal(np.ndarray[np.int32_t, ndim=2, mode='
         Rx, Ry, 
         C, P,
         Vp, Xp,
-        Xg0, y0, X0,
+        Xg0,
         lambdas, 
         preconditioners, 
         piecewisePolynomial, 

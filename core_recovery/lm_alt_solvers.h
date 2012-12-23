@@ -588,8 +588,6 @@ int solve_instance_sectioned_arap_temporal(PyArrayObject * npy_T,
                                            PyArrayObject * npy_Vp,
                                            PyArrayObject * npy_Xp,
                                            PyArrayObject * npy_Xg0,
-                                           PyArrayObject * npy_y0,
-                                           PyArrayObject * npy_X0,
                                            PyArrayObject * npy_lambdas,
                                            PyArrayObject * npy_preconditioners,
                                            PyArrayObject * npy_piecewisePolynomial,
@@ -624,8 +622,6 @@ int solve_instance_sectioned_arap_temporal(PyArrayObject * npy_T,
     PYARRAY_AS_MATRIX(double, npy_Xp, Xp);
 
     PYARRAY_AS_MATRIX(double, npy_Xg0, Xg0);
-    PYARRAY_AS_MATRIX(double, npy_y0, y0);
-    PYARRAY_AS_MATRIX(double, npy_X0, X0);
 
     PYARRAY_AS_VECTOR(double, npy_lambdas, lambdas);
     PYARRAY_AS_VECTOR(double, npy_preconditioners, preconditioners);
@@ -677,12 +673,6 @@ int solve_instance_sectioned_arap_temporal(PyArrayObject * npy_T,
     auto nodeXg0 = new GlobalRotationNode(Xg0);
     problem.AddFixedNode(nodeXg0);
 
-    auto nodey0 = new CoefficientsNode(y0);
-    problem.AddFixedNode(nodey0);
-    
-    auto nodeX0 = new RotationNode(X0);
-    problem.AddFixedNode(nodeX0);
-
     // SectionedBasisArapEnergy
     problem.AddEnergy(new SectionedBasisArapEnergy(
         *nodeV, *nodeXg, *nodes,
@@ -712,21 +702,18 @@ int solve_instance_sectioned_arap_temporal(PyArrayObject * npy_T,
     // Projection
     problem.AddEnergy(new ProjectionEnergy(*nodeV1, C, P, sqrt(lambdas[4])));
 
+    // ARAPEnergy (pairwise smoothness of the vertices)
     if (Xp.num_rows() > 0)
     {
-        problem.AddEnergy(new ARAPEnergy(*nodeVp, *nodeXp, *nodeV1, mesh, sqrt(lambdas[7])));
-        problem.AddEnergy(new RotationRegulariseEnergy(*nodeXp, sqrt(lambdas[6])));
+        problem.AddEnergy(new ARAPEnergy(*nodeVp, *nodeXp, *nodeV1, mesh, sqrt(lambdas[5])));
     }
 
+    // GlobalRotationsDifferenceEnergy
     if (Xg0.num_rows() > 0)
     {
-        problem.AddEnergy(new SectionedRotationsVelocityEnergy(
-            *nodeXg0, *nodey0, *nodeX0,
-            *nodeXg, *nodey, *nodeX,
-            *nodeXb, K, sqrt(lambdas[5]),
-            true,   // fixed0
-            true    // fixedXb
-            ));
+        problem.AddEnergy(new GlobalRotationsDifferenceEnergy(*nodeXg, *nodeXg0, sqrt(lambdas[6]), 
+                                                              true  // fixed0
+                                                              ));
     }
 
     // Minimise
