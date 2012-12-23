@@ -727,93 +727,44 @@ int solve_instance_sectioned_arap_temporal(PyArrayObject * npy_T,
 // solve_two_source_arap_proj
 int solve_two_source_arap_proj(PyArrayObject * npy_T,
                                PyArrayObject * npy_V,
-                               PyArrayObject * npy_V1,
-                               PyArrayObject * npy_Xg0,
-                               PyArrayObject * npy_y0,
-                               PyArrayObject * npy_X0,
-                               PyArrayObject * npy_Xg,
-                               PyArrayObject * npy_s,
-                               PyArrayObject * npy_y,
                                PyArrayObject * npy_X,
-                               PyArrayObject * npy_Xb,
-                               PyArrayObject * npy_K,
+                               PyArrayObject * npy_Vp,
+                               PyArrayObject * npy_Xp,
+                               PyArrayObject * npy_V1,
                                PyArrayObject * npy_C,
                                PyArrayObject * npy_P,
                                PyArrayObject * npy_lambdas,
-                               PyArrayObject * npy_preconditioners,
-                               bool uniformWeights,
                                const OptimiserOptions * options)
 {
     PYARRAY_AS_MATRIX(int, npy_T, T);
     PYARRAY_AS_MATRIX(double, npy_V, V);
-    PYARRAY_AS_MATRIX(double, npy_V1, V1);
-    PYARRAY_AS_MATRIX(double, npy_Xg0, Xg0);
-    PYARRAY_AS_MATRIX(double, npy_y0, y0);
-    PYARRAY_AS_MATRIX(double, npy_X0, X0);
-    PYARRAY_AS_MATRIX(double, npy_Xg, Xg);
-    PYARRAY_AS_MATRIX(double, npy_s, s);
-    PYARRAY_AS_MATRIX(double, npy_y, y);
     PYARRAY_AS_MATRIX(double, npy_X, X);
-    PYARRAY_AS_MATRIX(double, npy_Xb, Xb);
-    PYARRAY_AS_MATRIX(int, npy_K, K);
+    PYARRAY_AS_MATRIX(double, npy_Vp, Vp);
+    PYARRAY_AS_MATRIX(double, npy_Xp, Xp);
+    PYARRAY_AS_MATRIX(double, npy_V1, V1);
     PYARRAY_AS_VECTOR(int, npy_C, C);
     PYARRAY_AS_MATRIX(double, npy_P, P);
     PYARRAY_AS_VECTOR(double, npy_lambdas, lambdas);
-    PYARRAY_AS_VECTOR(double, npy_preconditioners, preconditioners);
 
     Mesh mesh(V.num_rows(), T);
 
-    auto nodeV = new VertexNode(V);
-    nodeV->SetPreconditioner(preconditioners[0]);
-    auto nodeV1 = new VertexNode(V1);
-
-    auto nodeXg0 = new GlobalRotationNode(Xg0);
-    nodeXg0->SetPreconditioner(preconditioners[3]);
-
-    auto nodey0 = new CoefficientsNode(y0);
-    nodey0->SetPreconditioner(preconditioners[2]);
-
-    auto nodeX0 = new RotationNode(X0);
-    nodeX0->SetPreconditioner(preconditioners[1]);
-
-    auto nodeXg = new GlobalRotationNode(Xg);
-
-    auto nodes = new ScaleNode(s);
-    nodes->SetPreconditioner(preconditioners[4]);
-
-    auto nodey = new CoefficientsNode(y);
-    auto nodeX = new RotationNode(X);
-
-    auto nodeXb = new RotationNode(Xb);
+    VertexNode * nodeV = new VertexNode(V);
+    RotationNode * nodeX = new RotationNode(X);
+    VertexNode * nodeVp = new VertexNode(Vp);
+    RotationNode * nodeXp = new RotationNode(Xp);
+    VertexNode * nodeV1 = new VertexNode(V1);
 
     Problem problem;
     problem.AddFixedNode(nodeV);
+    problem.AddFixedNode(nodeVp);
     problem.AddNode(nodeV1);
-
-    problem.AddFixedNode(nodeXg0);
-    problem.AddFixedNode(nodey0);
-    problem.AddFixedNode(nodeX0);
-
-    problem.AddNode(nodeXg);
-    problem.AddNode(nodes);
-    problem.AddNode(nodey);
     problem.AddNode(nodeX);
-
-    problem.AddFixedNode(nodeXb);
+    problem.AddNode(nodeXp);
 
     problem.AddEnergy(new ProjectionEnergy(*nodeV1, C, P, sqrt(lambdas[0])));
-    problem.AddEnergy(new SectionedBasisArapEnergy(*nodeV, *nodeXg, *nodes, *nodeXb, *nodey, *nodeX, *nodeV1,
-                                                   K, mesh, sqrt(lambdas[1]),
-                                                   uniformWeights,
-                                                   true,
-                                                   true,
-                                                   false,
-                                                   false));
-
-    problem.AddEnergy(new SectionedRotationsVelocityEnergy(*nodeXg0, *nodey0, *nodeX0,
-                                                           *nodeXg, *nodey, *nodeX, 
-                                                           *nodeXb, K, sqrt(lambdas[2]),
-                                                           true, true));
+    problem.AddEnergy(new ARAPEnergy(*nodeV, *nodeX, *nodeV1, mesh, sqrt(lambdas[1])));
+    problem.AddEnergy(new ARAPEnergy(*nodeVp, *nodeXp, *nodeV1, mesh, sqrt(lambdas[2])));
+    problem.AddEnergy(new RotationRegulariseEnergy(*nodeXp, sqrt(lambdas[3])));
 
     return problem.Minimise(*options);
 }
