@@ -431,27 +431,44 @@ def main():
                          
     # initialise `iX` intermediate rotations
     iX = [np.zeros_like(v) for v in V1]
+    dummyX = np.array(tuple(), dtype=np.float64).reshape(0, 3)
 
     # solve for V1[0]
     for j in xrange(args.max_restarts):
-        status = solve_single_arap_proj(V, T, iX[0], V1[0], C[0], P[0],
-                                        first_lambdas, **solver_options)
+        status = solve_two_source_arap_proj(T, V,
+                                            Xg[0], instScales[0],
+                                            iX[0],
+                                            dummyX, # Unused
+                                            dummyX, # Unused
+                                            V1[0],
+                                            C[0], P[0],
+                                            initialisation_lambdas,
+                                            args.uniform_weights,
+                                            **solver_options)
 
         if status[0] not in (0, 4):
             break
 
-    # Solve for V1[i] for i > 0 using __only__ user constraints and aiming
+    # solve for V1[i] for i > 0 using __only__ user constraints and aiming
     # for rotational consistency
     def solve_initialisation(i):
-        V1[i].flat = V.flat
+        # initialise to previous frame
+        V1[i].flat = V1[i-1].flat
+        Xg[i].flat = Xg[i-1].flat
+        instScales[i].flat = instScales[i-1].flat
+
+        Vp = V1[i-1]
+        Xp = np.zeros_like(Vp)
 
         for j in xrange(args.max_restarts):
             status = solve_two_source_arap_proj(T, V, 
-                                                iX[i], 
-                                                V1[i-1], iX[i-1],
-                                                V1[i],
+                                                Xg[i], instScales[i],
+                                                iX[i],
+                                                Vp, Xp,
+                                                V1[i], 
                                                 C[i], P[i],
                                                 initialisation_lambdas,
+                                                args.uniform_weights,
                                                 **solver_options)
 
             if status[0] not in (0, 4):
