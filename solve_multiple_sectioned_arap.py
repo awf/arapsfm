@@ -387,13 +387,12 @@ def main():
                              lambdas[1:3],  # silhouette
                              lambdas[4],    # spillage
                              lambdas[5],    # projection
-                             lambdas[7],    # temporal rotation penalty (difference in rotations to core)
-                             lambdas[8],    # temporal rotaiton penalty (difference in rotaitons directly)
-                             lambdas[9],    # temporal ARAP penalty 
+                             lambdas[7],    # temporal ARAP penalty
+                             lambdas[8],    # global rotations penalty
                              ]
 
     core_lambdas = np.r_[lambdas[3],    # as-rigid-as-possible
-                         lambdas[7],    # temporal rotation penalty
+                         lambdas[8],    # global rotations penalty
                          lambdas[6],    # laplacian
                         ]
 
@@ -417,30 +416,23 @@ def main():
     # solve for initialisations without the basis rotations
     initialisation_lambdas = np.r_[lambdas[5],  # projection
                                    lambdas[3],  # as-rigid-as-possible
-                                   lambdas[7]]  # temporal rotation penalty 
+                                   lambdas[7],  # temporal ARAP penalty
+                                   lambdas[9]]  # complete rotations penalty
+                                                # (for initialisation only)
 
     first_lambdas = np.r_[lambdas[3],   # as-rigid-as-possible
                           lambdas[5]]   # projection
 
     initialisation_preconditioners = np.r_[preconditioners[0],
-                                          preconditioners[1],
-                                          preconditioners[5],
-                                          preconditioners[4],
-                                          preconditioners[2]]
+                                           preconditioners[1],
+                                           preconditioners[5],
+                                           preconditioners[4],
+                                           preconditioners[2]]
                          
-    # initalise `_K` with independent rotations (no shared basis functions for
-    # initialisation)
-    _K = np.empty_like(K)
-    _K[:,0] = -1
-    _K[:,1] = np.arange(_K.shape[0])
-
-    _y0 = np.array(tuple(), dtype=np.float64).reshape(0, 1)
-    _y = np.array(tuple(), dtype=np.float64).reshape(0, 1)
-    _Xb = np.array(tuple(), dtype=np.float64).reshape(0, 3)
-
     # initialise `iX` intermediate rotations
-    iX = [np.zeros((_K.shape[0], 3), dtype=np.float64) for v in V1]
+    iX = [np.zeros_like(v) for v in V1]
 
+    # solve for V1[0]
     for j in xrange(args.max_restarts):
         status = solve_single_arap_proj(V, T, iX[0], V1[0], C[0], P[0],
                                         first_lambdas, **solver_options)
@@ -448,25 +440,18 @@ def main():
         if status[0] not in (0, 4):
             break
 
-    # initialise to user constraints first
+    # Solve for V1[i] for i > 0 using __only__ user constraints and aiming
+    # for rotational consistency
     def solve_initialisation(i):
         V1[i].flat = V.flat
 
         for j in xrange(args.max_restarts):
-            status = solve_two_source_arap_proj(T, V, V1[i],
-                                                Xg[i-1], 
-                                                _y0,
-                                                iX[i-1],    
-                                                Xg[i], 
-                                                instScales[i], 
-                                                _y,
-                                                iX[i],      
-                                                _Xb,
-                                                _K, 
+            status = solve_two_source_arap_proj(T, V, 
+                                                iX[i], 
+                                                V1[i-1], iX[i-1],
+                                                V1[i],
                                                 C[i], P[i],
                                                 initialisation_lambdas,
-                                                initialisation_preconditioners,
-                                                args.uniform_weights,
                                                 **solver_options)
 
             if status[0] not in (0, 4):
@@ -518,25 +503,19 @@ def main():
                    n=num_processes,
                    chunksize=max(1, num_instances / num_processes))
 
-        # duplicate `Xg`, `y`, and `X`
-        Xg0 = map(to_shared, Xg)
-        y0 = map(to_shared, y)
-        X0 = map(to_shared, X)
+        # duplicate `V10, `Xg`, `y`, and `X`
         V10 = map(to_shared, V1)
+        Xg0 = map(to_shared, Xg)
 
         # solve instances separately
         def solve_instance(i):
             if i > 0:
-                Xg0_ = Xg0[i-1]
-                y0_ = y0[i-1]
-                X0_ = X0[i-1]
                 Vp = V10[i-1]
+                Xg0_ = Xg0[i-1]
                 Xp = np.zeros_like(Vp)
             else:
+                Vp = V10[0] # UNUSED
                 Xg0_ = np.array(tuple(), dtype=np.float64).reshape(0, 3)
-                y0_ = y0[i] # UNUSED
-                X0_ = X0[i] # UNUSED
-                Vp = V10[i-1]
                 Xp = np.array(tuple(), dtype=np.float64).reshape(0, 3)
 
             for j in xrange(args.max_restarts):
@@ -550,7 +529,7 @@ def main():
                     Rx[i], Ry[i], 
                     C[i], P[i],
                     Vp, Xp,
-                    Xg0_, y0_, X0_, 
+                    Xg0_, 
                     instance_lambdas, 
                     preconditioners,
                     piecewise_polynomial,
