@@ -126,7 +126,26 @@ def test_vtkInteractorStyleRubberBandPick():
     iren.Start()
 
 # Constants
-COLORMAP = cm.Set1_r(np.linspace(0., 1., 20))
+NUM_BASIS_ROTATIONS = 4
+NUM_INSTANCE = 4
+
+def make_LABELS():
+    LABELS = ['fixed', 
+              'independent']
+    LABELS += map(lambda i: 'instance-%d' % i, xrange(NUM_INSTANCE))
+
+    LABELS += map(lambda i: 'basis_independent-%d' % i,
+                  xrange(NUM_BASIS_ROTATIONS))
+
+    for i in xrange(NUM_BASIS_ROTATIONS):
+        LABELS += map(lambda j: 'basis_instance-%d_%d' % (i, j),
+                      xrange(NUM_INSTANCE))
+        
+    return LABELS
+
+LABELS = make_LABELS()
+
+COLORMAP = cm.Set1_r(np.linspace(0., 1., len(LABELS)))
 
 def make_LUT():
     LUT = vtk.vtkLookupTable()
@@ -138,27 +157,6 @@ def make_LUT():
     return LUT
 
 LUT = make_LUT()
-
-def make_LABELS():
-    n = COLORMAP.shape[0]
-    LABEL_TYPES = np.zeros(n, dtype=np.int32)
-    LABEL_TYPES[1] = -2
-    LABEL_TYPES[2:n/2] = -1
-    LABEL_TYPES[n/2:n] = 1
-
-    LABELS = map(str, xrange(n))
-    LABELS[0] = LABELS[0] + ' [Fixed]'
-    LABELS[1] = LABELS[1] + ' [Independent]'
-
-    m = (n - 2) / 2
-    for i in xrange(2, 2 + m):
-        LABELS[i] = LABELS[i] + ' [Instance]'
-    for i in xrange(2 + m, n):
-        LABELS[i] = LABELS[i] + ' [Shared]'
-
-    return LABELS, LABEL_TYPES
-
-LABELS, LABEL_TYPES = make_LABELS()
 
 # MeshView
 class MeshView(QVTKWidget):
@@ -441,35 +439,67 @@ class MainWindow(QtGui.QMainWindow):
             #   > K[i, 1] == m: Index of rotation
             # K[i, 0] > 0: "Basis"
             #   > K[i, 1] == n: Index of "Basis" rotation
+            label_selections = map(lambda i: LABELS[i], view._k)
             K = np.zeros((view._k.shape[0], 2), dtype=np.int32)
 
-            # Independent instance rotations
-            i = np.argwhere(view._k == 1).ravel()
-            m = i.shape[0]
+            instance_lookup = {}
+            instance_counter = count()
 
-            K[i, 0] = -1
-            K[i, 1] = xrange(m)
+            basis_lookup = {}
+            basis_counter = count()
 
-            # Shared instance rotations and shared basis rotations
-            shared_instance = count(m)
-            shared_basis = count(0)
-            coefficients = count(1)
+            coefficient_counter = count(1)
 
-            for k in xrange(2, LABEL_TYPES.shape[0]):
-                i = np.argwhere(view._k == k).ravel()
-                m = i.shape[0]
-                if m <= 0:
+            for i, label in enumerate(label_selections):
+                if label == 'fixed':
                     continue
 
-                if LABEL_TYPES[k] == -1:
-                    K[i, 0] = -1
-                    K[i, 1] = next(shared_instance)
-                elif LABEL_TYPES[k] == 1:
-                    K[i, 0] = [next(coefficients) for j in xrange(m)]
-                    K[i, 1] = next(shared_basis)
-                else:
-                    raise ValueError('LABEL_TYPES[%d] = %d' % (k, LABEL_TYPES[k]))
-            np.savez_compressed(filename, K=K, k=view._k, LABEL_TYPES=LABEL_TYPES)
+                if label == 'independent':
+                    K[i,0] = -1
+                    K[i,1] = next(instance_counter)
+                    continue
+
+                label, lookup = label.split('-')
+                
+                if label == 'instance':
+                    j = int(lookup)
+                    if j not in instance_lookup:
+                        instance_lookup[j] = next(instance_counter)
+                        print 'instance-%d ->' % j, instance_lookup[j]
+
+                    K[i,0] = -1
+                    K[i,1] = instance_lookup[j]
+                    continue
+
+                if label == 'basis_independent':
+                    j = int(lookup)
+                    if j not in basis_lookup:
+                        basis_lookup[j] = [next(basis_counter), {}]
+                        print 'basis-%d ->' % j, basis_lookup[j][0]
+
+                    l = basis_lookup[j]
+                    K[i,0] = next(coefficient_counter)
+                    K[i,1] = l[0]
+                    continue
+
+                if label == 'basis_instance':
+                    j, k = map(int, lookup.split('_'))
+                    if j not in basis_lookup:
+                        basis_lookup[j] = [next(basis_counter), {}]
+
+                    l = basis_lookup[j]
+
+                    basis_instance_lookup = l[1]
+                    if k not in basis_instance_lookup:
+                        basis_instance_lookup[k] = next(coefficient_counter)
+
+                    K[i,0] = basis_instance_lookup[k]
+                    K[i,1] = l[0]
+                    continue
+                        
+                raise ValueError('unknown label: "%s"' % label)
+
+            np.savez_compressed(filename, K=K, k=view._k)
 
         save_flexibile.clicked.connect(save_flexibile_clicked)
 
@@ -486,13 +516,6 @@ class MainWindow(QtGui.QMainWindow):
             filename = str(filename)
 
             z = np.load(filename)
-            if not np.all(LABEL_TYPES == z['LABEL_TYPES']):
-                QtGui.QMessageBox.warning(self, 
-                    'Incompatible `LABEL_TYPES`',
-                    'Incompatible `LABEL_TYPES`')
-
-                return
-
             view.set_labels(z['k'])
 
         load_flexible.clicked.connect(load_flexible_clicked)
