@@ -9,6 +9,8 @@ from PyQt4_.vtk.QVTKWidget import QVTKWidget
 
 # InteractiveMeshView
 class InteractiveMeshView(QVTKWidget):
+    pickChanged = QtCore.pyqtSignal(name='pickChanged')
+
     def __init__(self, parent=None):
         QVTKWidget.__init__(self, parent)
 
@@ -193,6 +195,8 @@ class InteractiveMeshView(QVTKWidget):
         elif picker.GetProp3D() is self.image_actor:
             y, x = divmod(i, self.image_actor.GetMaxXBound() + 1)
             self._set_image_point(x, y)
+
+        self.pickChanged.emit()
 
     def _set_image_point(self, x , y):
         sel_points = self.im_sel_poly_data.GetPoints()
