@@ -429,11 +429,19 @@ def main():
                                            preconditioners[4],
                                            preconditioners[2]]
                          
+
     # initialise `iX` intermediate rotations
     iX = [np.zeros_like(v) for v in V1]
     dummyX = np.array(tuple(), dtype=np.float64).reshape(0, 3)
 
+    # set initialisation solver options and update the maximum number of
+    # iterations
+    init_solver_options = solver_options.copy()
+    init_solver_options['maxIterations']= 50
+
     # solve for V1[0]
+    V1[0].flat = V.flat
+
     for j in xrange(args.max_restarts):
         status = solve_two_source_arap_proj(T, V,
                                             Xg[0], instScales[0],
@@ -444,7 +452,7 @@ def main():
                                             C[0], P[0],
                                             initialisation_lambdas,
                                             args.uniform_weights,
-                                            **solver_options)
+                                            **init_solver_options)
 
         if status[0] not in (0, 4):
             break
@@ -453,7 +461,7 @@ def main():
     # for rotational consistency
     def solve_initialisation(i):
         # initialise to previous frame
-        V1[i].flat = V1[i-1].flat
+        V1[i].flat = V1[i].flat
         Xg[i].flat = Xg[i-1].flat
         instScales[i].flat = instScales[i-1].flat
 
@@ -469,7 +477,9 @@ def main():
                                                 C[i], P[i],
                                                 initialisation_lambdas,
                                                 args.uniform_weights,
-                                                **solver_options)
+                                                **init_solver_options)
+
+            print status[1]
 
             if status[0] not in (0, 4):
                 break
