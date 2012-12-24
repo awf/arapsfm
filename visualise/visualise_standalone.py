@@ -327,8 +327,6 @@ def main():
     # show if interactive
     if interactive_session:
         print 'Interactive'
-        print 'Camera:'
-        print vis.ren.GetActiveCamera()
 
         vis.ren_win.Render()
         vis.execute(magnification=args.magnification)
