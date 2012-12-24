@@ -53,6 +53,7 @@ class MainWindow(QtGui.QMainWindow):
         self.toggle_arap_view_pb = QtGui.QPushButton('To&ggle View')
         self.toggle_arap_view_pb.setCheckable(True)
         self.max_iterations_le = QtGui.QLineEdit('10')
+        self.quick_pick = QtGui.QCheckBox('Quic&k Pick')
 
         pb_layout = QtGui.QGridLayout()
 
@@ -92,6 +93,7 @@ class MainWindow(QtGui.QMainWindow):
         correspondences_pbs_layout.addWidget(self.load_pb, 0, 1)
         correspondences_pbs_layout.addWidget(self.reset_pb, 1, 0)
         correspondences_pbs_layout.addWidget(self.print_info_pb, 1, 1)
+        correspondences_pbs_layout.addWidget(self.quick_pick, 2, 0)
         ctrl_layout.addLayout(correspondences_pbs_layout)
         ctrl_layout_add_separator()
 
@@ -135,6 +137,8 @@ class MainWindow(QtGui.QMainWindow):
         self.toggle_arap_view_pb.clicked.connect(self.toggle_arap_view)
 
         self.items.currentRowChanged.connect(self.update_selection)
+
+        self.mesh_view.pickChanged.connect(self._pick_changed)
 
         self.window_title_stem = 'CoreRecovery: '
         self.setWindowTitle(self.window_title_stem)
@@ -269,6 +273,13 @@ class MainWindow(QtGui.QMainWindow):
         item = self.items.item(item_index)
         item.setText(self._make_item_string(position, i, is_active))
 
+        next_row = (item_index + 1) % self.items.count()
+        self.items.setCurrentItem(self.items.item(next_row))
+
+    def _pick_changed(self):
+        if self.quick_pick.isChecked():
+            self.update_correspondence()
+    
     def _set_correspondences(self):
         all_C = (self._get_item(i) for i in xrange(self.items.count()))
         active_C = filter(itemgetter(0), all_C)
@@ -387,10 +398,12 @@ class MainWindow(QtGui.QMainWindow):
         status, status_string = solve_single_arap_proj(
             V, T, X, V1, d['C'], d['P'], lambdas,
             maxIterations=maxIterations,
-            gradientThreshold=1e-5,
-            updateThreshold=1e-5,
-            improvementThreshold=1e-5,
+            gradientThreshold=1e-6,
+            updateThreshold=1e-6,
+            improvementThreshold=1e-6,
             verbosenessLevel=1)
+
+        print status
 
         self.arap_poly_data = numpy_to_vtkPolyData(V1, faces_to_vtkCellArray(T))
 
