@@ -229,6 +229,9 @@ def main():
     parser.add_argument('--outer_loops', type=int, default=5)
     parser.add_argument('--num_processes', type=int, default=1)
 
+    # optional
+    parser.add_argument('--use_single_process', type=int, default=None)
+
     # parse the arguments
     args = parser.parse_args()
 
@@ -523,6 +526,8 @@ def main():
 
         # re-initialise U and L
         def solve_silhouette_info(i):
+            print '> solve_silhouette_info:', i
+
             s = silhouette_info[i]
             u, l = shortest_path_solve(V1[i], T, S[i], SN[i],
                                        s['SilCandDistances'],
@@ -536,10 +541,16 @@ def main():
             U[i].flat = u.flat
             L[i].flat = l.flat
 
-        async_exec(solve_silhouette_info,
-                   ((i,) for i in xrange(num_instances)),
-                   n=num_processes,
-                   chunksize=max(1, num_instances / num_processes))
+            print '< solve_silhouette_info:', i
+
+        if (args.use_single_process is not None and 
+            l < args.use_single_process):
+            async_exec(solve_silhouette_info,
+                       ((i,) for i in xrange(num_instances)),
+                       n=num_processes,
+                       chunksize=max(1, num_instances / num_processes))
+        else:
+            map(solve_silhouette_info, xrange(num_instances))
 
         # duplicate `V10, `Xg`, `y`, and `X`
         V10 = map(to_shared, V1)
@@ -547,6 +558,7 @@ def main():
 
         # solve instances separately
         def solve_instance(i):
+            print '> solve_instance:', i
             if i > 0:
                 Vp = V10[i-1]
                 Xg0_ = Xg0[i-1]
@@ -557,7 +569,6 @@ def main():
                 Xp = np.array(tuple(), dtype=np.float64).reshape(0, 3)
 
             for j in xrange(args.max_restarts):
-                print '# solve_instance:', i
                 status = lm_solve_instance(T, V, 
                     Xg[i], instScales[i], 
                     K, Xb,
@@ -585,6 +596,7 @@ def main():
                     break
 
             statuses[i + 1] = status[0]
+            print '< solve_instance:', i
 
         async_exec(solve_instance, 
                    ((i,) for i in xrange(num_instances)), 
