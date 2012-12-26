@@ -403,7 +403,8 @@ def main():
                              lambdas[5],    # projection
                              lambdas[7],    # temporal ARAP penalty
                              lambdas[8],    # global rotations penalty
-                             ]
+                             lambdas[9],    # global scale penalty rotations penalty
+                             lambdas[10]]   # regular rotations penalty
 
     core_lambdas = np.r_[lambdas[3],    # as-rigid-as-possible
                          lambdas[8],    # global rotations penalty
@@ -428,11 +429,12 @@ def main():
     print 'outer_loops:', args.outer_loops
 
     # solve for initialisations without the basis rotations
-    initialisation_lambdas = np.r_[lambdas[5],  # projection
-                                   lambdas[3],  # as-rigid-as-possible
-                                   lambdas[7],  # temporal ARAP penalty
-                                   lambdas[8],  # global rotations penalty
-                                   lambdas[9]]  # regular rotations penalty
+    initialisation_lambdas = np.r_[lambdas[5],   # projection
+                                   lambdas[3],   # as-rigid-as-possible
+                                   lambdas[7],   # temporal ARAP penalty
+                                   lambdas[8],   # global rotations penalty
+                                   lambdas[9],   # global scale penalty rotations penalty
+                                   lambdas[10]]  # regular rotations penalty
 
     # initialisation preconditioners
     initialisation_preconditioners = np.r_[preconditioners[0], # V
@@ -552,21 +554,22 @@ def main():
         else:
             map(solve_silhouette_info, xrange(num_instances))
 
-        # duplicate `V10, `Xg`, `y`, and `X`
-        V10 = map(to_shared, V1)
-        Xg0 = map(to_shared, Xg)
+        # TODO Check if last `V1` can be used or if sequential is better
+        # V10 = map(to_shared, V1)
+        
+        # require sequential optimisation
+        V10 = V1
 
         # solve instances separately
         def solve_instance(i):
             print '> solve_instance:', i
             if i > 0:
                 Vp = V10[i-1]
-                Xg0_ = Xg0[i-1]
+                Xgp = np.zeros((1, 3), dtype=np.float64)
+                sp = np.ones((1, 1), dtype=np.float64)
                 Xp = np.zeros_like(Vp)
             else:
-                Vp = V10[0] # UNUSED
-                Xg0_ = np.array(tuple(), dtype=np.float64).reshape(0, 3)
-                Xp = np.array(tuple(), dtype=np.float64).reshape(0, 3)
+                Vp = Xgp = sp = Xp = empty3
 
             for j in xrange(args.max_restarts):
                 status = lm_solve_instance(T, V, 
@@ -577,8 +580,7 @@ def main():
                     S[i], SN[i], 
                     Rx[i], Ry[i], 
                     C[i], P[i],
-                    Vp, Xp,
-                    Xg0_, 
+                    Vp, Xgp, sp, Xp,
                     instance_lambdas, 
                     preconditioners,
                     piecewise_polynomial,
@@ -598,10 +600,12 @@ def main():
             statuses[i + 1] = status[0]
             print '< solve_instance:', i
 
-        async_exec(solve_instance, 
-                   ((i,) for i in xrange(num_instances)), 
-                   n=num_processes, 
-                   chunksize=max(1, num_instances / num_processes))
+        # TODO Check if last `V1` can be used or if sequential is better
+        # async_exec(solve_instance, 
+        #            ((i,) for i in xrange(num_instances)), 
+        #            n=num_processes, 
+        #            chunksize=max(1, num_instances / num_processes))
+        map(solve_instance, xrange(num_instances))
 
         print 'instScales:', instScales
 
