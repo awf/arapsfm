@@ -152,11 +152,14 @@ cdef extern from "lm_alt_solvers.h":
         np.ndarray npy_s,
         np.ndarray npy_X,
         np.ndarray npy_Vp,
+        np.ndarray npy_Xgp,
+        np.ndarray npy_sp,
         np.ndarray npy_Xp,
         np.ndarray npy_V1,
         np.ndarray npy_C,
         np.ndarray npy_P,
         np.ndarray npy_lambdas,
+        np.ndarray npy_preconditioners,
         bint uniformWeights,
         OptimiserOptions * options)
 
@@ -501,22 +504,28 @@ def solve_two_source_arap_proj(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
                                np.ndarray[np.float64_t, ndim=2, mode='c'] s, 
                                np.ndarray[np.float64_t, ndim=2, mode='c'] X, 
                                np.ndarray[np.float64_t, ndim=2, mode='c'] Vp, 
+                               np.ndarray[np.float64_t, ndim=2, mode='c'] Xgp, 
+                               np.ndarray[np.float64_t, ndim=2, mode='c'] sp, 
                                np.ndarray[np.float64_t, ndim=2, mode='c'] Xp, 
                                np.ndarray[np.float64_t, ndim=2, mode='c'] V1, 
                                np.ndarray[np.int32_t, ndim=1, mode='c'] C,
                                np.ndarray[np.float64_t, ndim=2, mode='c'] P,
                                np.ndarray[np.float64_t, ndim=1] lambdas,
+                               np.ndarray[np.float64_t, ndim=1] preconditioners,
                                bint uniformWeights,
                                **kwargs):
 
-    assert lambdas.shape[0] == 4
+    assert lambdas.shape[0] == 5
+    assert preconditioners.shape[0] == 4
 
     cdef OptimiserOptions options
     additional_optimiser_options(&options, kwargs)
 
     cdef int status = solve_two_source_arap_proj_c(
-        T, V, Xg, s, X, Vp, Xp, V1, C, P,
-        lambdas, uniformWeights,
+        T, V, Xg, s, X, 
+        Vp, Xgp, sp, Xp, 
+        V1, C, P,
+        lambdas, preconditioners, uniformWeights,
         &options)
 
     return status, STATUS_CODES[status]
