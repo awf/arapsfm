@@ -731,11 +731,14 @@ int solve_two_source_arap_proj(PyArrayObject * npy_T,
                                PyArrayObject * npy_s,
                                PyArrayObject * npy_X,
                                PyArrayObject * npy_Vp,
+                               PyArrayObject * npy_Xgp,
+                               PyArrayObject * npy_sp,
                                PyArrayObject * npy_Xp,
                                PyArrayObject * npy_V1,
                                PyArrayObject * npy_C,
                                PyArrayObject * npy_P,
                                PyArrayObject * npy_lambdas,
+                               PyArrayObject * npy_preconditioners,
                                bool uniformWeights,
                                const OptimiserOptions * options)
 {
@@ -745,30 +748,46 @@ int solve_two_source_arap_proj(PyArrayObject * npy_T,
     PYARRAY_AS_MATRIX(double, npy_s, s);
     PYARRAY_AS_MATRIX(double, npy_X, X);
     PYARRAY_AS_MATRIX(double, npy_Vp, Vp);
+    PYARRAY_AS_MATRIX(double, npy_Xgp, Xgp);
+    PYARRAY_AS_MATRIX(double, npy_sp, sp);
     PYARRAY_AS_MATRIX(double, npy_Xp, Xp);
     PYARRAY_AS_MATRIX(double, npy_V1, V1);
     PYARRAY_AS_VECTOR(int, npy_C, C);
     PYARRAY_AS_MATRIX(double, npy_P, P);
     PYARRAY_AS_VECTOR(double, npy_lambdas, lambdas);
+    PYARRAY_AS_VECTOR(double, npy_preconditioners, preconditioners);
 
     Mesh mesh(V.num_rows(), T);
 
     auto nodeV = new VertexNode(V);
+    nodeV->SetPreconditioner(preconditioners[0]);
+
     auto nodeX = new RotationNode(X);
+    nodeX->SetPreconditioner(preconditioners[1]);
+
     auto nodeXg = new GlobalRotationNode(Xg);
+    nodeXg->SetPreconditioner(preconditioners[3]);
+
     auto nodes = new ScaleNode(s);
+    nodes->SetPreconditioner(preconditioners[2]);
+
     auto nodeVp = new VertexNode(Vp);
+    auto nodeXgp = new GlobalRotationNode(Xgp);
+    auto nodesp = new ScaleNode(sp);
     auto nodeXp = new RotationNode(Xp);
+
     auto nodeV1 = new VertexNode(V1);
 
     Problem problem;
     problem.AddFixedNode(nodeV);
-    problem.AddFixedNode(nodeVp);
-    problem.AddNode(nodeV1);
-    problem.AddNode(nodeX);
     problem.AddNode(nodeXg);
     problem.AddNode(nodes);
+    problem.AddNode(nodeX);
+    problem.AddFixedNode(nodeVp);
+    problem.AddNode(nodeXgp);
+    problem.AddNode(nodesp);
     problem.AddNode(nodeXp);
+    problem.AddNode(nodeV1);
 
     problem.AddEnergy(new ProjectionEnergy(*nodeV1, C, P, sqrt(lambdas[0])));
     problem.AddEnergy(new RigidTransformARAPEnergy3(
@@ -777,8 +796,12 @@ int solve_two_source_arap_proj(PyArrayObject * npy_T,
 
     if (Xp.num_rows() > 0)
     {
-        problem.AddEnergy(new ARAPEnergy(*nodeVp, *nodeXp, *nodeV1, mesh, sqrt(lambdas[2])));
-        problem.AddEnergy(new RotationRegulariseEnergy(*nodeXp, sqrt(lambdas[3])));
+        problem.AddEnergy(new RigidTransformARAPEnergy3(
+            *nodeVp, *nodeXgp, *nodesp, *nodeXp, *nodeV1,
+            mesh, sqrt(lambdas[2]), uniformWeights, false));
+
+        problem.AddEnergy(new GlobalRotationRegulariseEnergy(*nodeXgp, sqrt(Xp.num_rows() * lambdas[3])));
+        problem.AddEnergy(new RotationRegulariseEnergy(*nodeXp, sqrt(lambdas[4])));
     }
 
     return problem.Minimise(*options);
