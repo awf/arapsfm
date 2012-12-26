@@ -71,7 +71,7 @@ def grouper(n, iterable, fillvalue=None):
     return izip_longest(fillvalue=fillvalue, *args)
 
 # async_exec
-def async_exec(f, iterable, n=None, poll=1., chunksize=1):
+def async_exec(f, iterable, n=None, timeout=5., chunksize=1):
     def _async_exec_process(args_list):
         for args in args_list:
             if args is None:
@@ -87,21 +87,32 @@ def async_exec(f, iterable, n=None, poll=1., chunksize=1):
 
     active_processes = []
 
-    for args_list in grouper(chunksize, iterable, None):
+    def wait_for_active_processes(n):
         while len(active_processes) >= n:
+            print 'active_processes:'
+            pprint(active_processes)
             for i, p in enumerate(active_processes):
-                p.join(poll)
+                'join: %d' % p.pid
+                p.join(timeout)
+
                 if not p.is_alive():
-                    del active_processes[i]
+                    '%d is NOT alive' % p.pid
                     break
+            else:
+                continue
+
+            print 'deleting: %d' % p.pid
+            del active_processes[i]
+
+    for args_list in grouper(chunksize, iterable, None):
+        wait_for_active_processes(n)
         
         # launch next process
         p = mp.Process(target=_async_exec_process, args=(args_list, ))
         p.start()
         active_processes.append(p)
 
-    for p in active_processes:
-        p.join()
+    wait_for_active_processes(1)
 
 # Main
 
