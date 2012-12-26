@@ -586,8 +586,9 @@ int solve_instance_sectioned_arap_temporal(PyArrayObject * npy_T,
                                            PyArrayObject * npy_C,
                                            PyArrayObject * npy_P,
                                            PyArrayObject * npy_Vp,
+                                           PyArrayObject * npy_Xgp,
+                                           PyArrayObject * npy_sp,
                                            PyArrayObject * npy_Xp,
-                                           PyArrayObject * npy_Xg0,
                                            PyArrayObject * npy_lambdas,
                                            PyArrayObject * npy_preconditioners,
                                            PyArrayObject * npy_piecewisePolynomial,
@@ -619,9 +620,9 @@ int solve_instance_sectioned_arap_temporal(PyArrayObject * npy_T,
     PYARRAY_AS_MATRIX(double, npy_P, P);
     
     PYARRAY_AS_MATRIX(double, npy_Vp, Vp);
+    PYARRAY_AS_MATRIX(double, npy_Xgp, Xgp);
+    PYARRAY_AS_MATRIX(double, npy_sp, sp);
     PYARRAY_AS_MATRIX(double, npy_Xp, Xp);
-
-    PYARRAY_AS_MATRIX(double, npy_Xg0, Xg0);
 
     PYARRAY_AS_VECTOR(double, npy_lambdas, lambdas);
     PYARRAY_AS_VECTOR(double, npy_preconditioners, preconditioners);
@@ -667,11 +668,14 @@ int solve_instance_sectioned_arap_temporal(PyArrayObject * npy_T,
     auto nodeVp = new VertexNode(Vp);
     problem.AddFixedNode(nodeVp);
 
+    auto nodeXgp = new GlobalRotationNode(Xgp);
+    problem.AddNode(nodeXgp);
+
+    auto nodesp = new ScaleNode(sp);
+    problem.AddNode(nodesp);
+
     auto nodeXp = new RotationNode(Xp);
     problem.AddNode(nodeXp);
-
-    auto nodeXg0 = new GlobalRotationNode(Xg0);
-    problem.AddFixedNode(nodeXg0);
 
     // SectionedBasisArapEnergy
     problem.AddEnergy(new SectionedBasisArapEnergy(
@@ -702,18 +706,15 @@ int solve_instance_sectioned_arap_temporal(PyArrayObject * npy_T,
     // Projection
     problem.AddEnergy(new ProjectionEnergy(*nodeV1, C, P, sqrt(lambdas[4])));
 
-    // ARAPEnergy (pairwise smoothness of the vertices)
     if (Xp.num_rows() > 0)
     {
-        problem.AddEnergy(new ARAPEnergy(*nodeVp, *nodeXp, *nodeV1, mesh, sqrt(lambdas[5])));
-    }
+        problem.AddEnergy(new RigidTransformARAPEnergy3(
+            *nodeVp, *nodeXgp, *nodesp, *nodeXp, *nodeV1,
+            mesh, sqrt(lambdas[5]), uniformWeights, false));
 
-    // GlobalRotationsDifferenceEnergy
-    if (Xg0.num_rows() > 0)
-    {
-        problem.AddEnergy(new GlobalRotationsDifferenceEnergy(*nodeXg, *nodeXg0, sqrt(lambdas[6]), 
-                                                              true  // fixed0
-                                                              ));
+        problem.AddEnergy(new GlobalRotationRegulariseEnergy(*nodeXgp, sqrt(Xp.num_rows() * lambdas[6])));
+        problem.AddEnergy(new GlobalScaleRegulariseEnergy(*nodesp, sqrt(Xp.num_rows() * lambdas[7])));
+        problem.AddEnergy(new RotationRegulariseEnergy(*nodeXp, sqrt(lambdas[8])));
     }
 
     // Minimise
