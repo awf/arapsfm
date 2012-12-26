@@ -1,4 +1,4 @@
-# propagate_user_constraints.py
+# transfer_user_constraints.py
 
 # Imports
 import numpy as np
