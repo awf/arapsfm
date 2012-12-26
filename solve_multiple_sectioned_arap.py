@@ -431,22 +431,19 @@ def main():
     initialisation_lambdas = np.r_[lambdas[5],  # projection
                                    lambdas[3],  # as-rigid-as-possible
                                    lambdas[7],  # temporal ARAP penalty
-                                   lambdas[9]]  # complete rotations penalty
-                                                # (for initialisation only)
+                                   lambdas[8],  # global rotations penalty
+                                   lambdas[9]]  # regular rotations penalty
 
-    first_lambdas = np.r_[lambdas[3],   # as-rigid-as-possible
-                          lambdas[5]]   # projection
-
-    initialisation_preconditioners = np.r_[preconditioners[0],
-                                           preconditioners[1],
-                                           preconditioners[5],
-                                           preconditioners[4],
-                                           preconditioners[2]]
+    # initialisation preconditioners
+    initialisation_preconditioners = np.r_[preconditioners[0], # V
+                                           preconditioners[1], # X
+                                           preconditioners[2], # s
+                                           preconditioners[4]] # Xg
                          
 
     # initialise `iX` intermediate rotations
-    iX = [np.zeros_like(v) for v in V1]
-    dummyX = np.array(tuple(), dtype=np.float64).reshape(0, 3)
+    iX = np.zeros_like(V1[0])
+    empty3 = np.array(tuple(), dtype=np.float64).reshape(0, 3)
 
     # set initialisation solver options and update the maximum number of
     # iterations
@@ -457,39 +454,40 @@ def main():
     V1[0].flat = V.flat
 
     for j in xrange(args.max_restarts):
-        status = solve_two_source_arap_proj(T, V,
-                                            Xg[0], instScales[0],
-                                            iX[0],
-                                            dummyX, # Unused
-                                            dummyX, # Unused
+        status = solve_two_source_arap_proj(T, 
+                                            V, Xg[0], instScales[0], iX,
+                                            empty3, empty3, empty3, empty3,
                                             V1[0],
                                             C[0], P[0],
                                             initialisation_lambdas,
+                                            initialisation_preconditioners,
                                             args.uniform_weights,
                                             **init_solver_options)
 
         if status[0] not in (0, 4):
             break
 
-    # solve for V1[i] for i > 0 using __only__ user constraints and aiming
-    # for rotational consistency
+    # solve for V1[i] for i > 0 using user constraints
     def solve_initialisation(i):
+        print '> solve_initialisation:', i
+
         # initialise to previous frame
-        V1[i].flat = V1[i].flat
-        Xg[i].flat = Xg[i-1].flat
-        instScales[i].flat = instScales[i-1].flat
+        for a in (V1, Xg, instScales):
+            a[i].flat = a[i-1].flat
 
         Vp = V1[i-1]
+        Xgp = np.zeros((1, 3), dtype=np.float64)
+        sp = np.ones((1, 1), dtype=np.float64)
         Xp = np.zeros_like(Vp)
 
         for j in xrange(args.max_restarts):
-            status = solve_two_source_arap_proj(T, V, 
-                                                Xg[i], instScales[i],
-                                                iX[i],
-                                                Vp, Xp,
+            status = solve_two_source_arap_proj(T, 
+                                                V, Xg[i], instScales[i], iX,
+                                                Vp, Xgp, sp, Xp,
                                                 V1[i], 
                                                 C[i], P[i],
                                                 initialisation_lambdas,
+                                                initialisation_preconditioners,
                                                 args.uniform_weights,
                                                 **init_solver_options)
 
@@ -497,6 +495,8 @@ def main():
 
             if status[0] not in (0, 4):
                 break
+
+        print '< solve_initialisation:', i
 
     map(solve_initialisation, xrange(1, num_instances))
 
