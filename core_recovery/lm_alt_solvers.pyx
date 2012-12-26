@@ -515,7 +515,7 @@ def solve_two_source_arap_proj(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
                                bint uniformWeights,
                                **kwargs):
 
-    assert lambdas.shape[0] == 5
+    assert lambdas.shape[0] == 6
     assert preconditioners.shape[0] == 4
 
     cdef OptimiserOptions options

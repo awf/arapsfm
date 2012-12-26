@@ -762,14 +762,14 @@ int solve_two_source_arap_proj(PyArrayObject * npy_T,
     auto nodeV = new VertexNode(V);
     nodeV->SetPreconditioner(preconditioners[0]);
 
-    auto nodeX = new RotationNode(X);
-    nodeX->SetPreconditioner(preconditioners[1]);
-
     auto nodeXg = new GlobalRotationNode(Xg);
     nodeXg->SetPreconditioner(preconditioners[3]);
 
     auto nodes = new ScaleNode(s);
     nodes->SetPreconditioner(preconditioners[2]);
+
+    auto nodeX = new RotationNode(X);
+    nodeX->SetPreconditioner(preconditioners[1]);
 
     auto nodeVp = new VertexNode(Vp);
     auto nodeXgp = new GlobalRotationNode(Xgp);
@@ -801,7 +801,8 @@ int solve_two_source_arap_proj(PyArrayObject * npy_T,
             mesh, sqrt(lambdas[2]), uniformWeights, false));
 
         problem.AddEnergy(new GlobalRotationRegulariseEnergy(*nodeXgp, sqrt(Xp.num_rows() * lambdas[3])));
-        problem.AddEnergy(new RotationRegulariseEnergy(*nodeXp, sqrt(lambdas[4])));
+        problem.AddEnergy(new GlobalScaleRegulariseEnergy(*nodesp, sqrt(Xp.num_rows() * lambdas[4])));
+        problem.AddEnergy(new RotationRegulariseEnergy(*nodeXp, sqrt(lambdas[5])));
     }
 
     return problem.Minimise(*options);
