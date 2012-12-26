@@ -2770,5 +2770,44 @@ protected:
     bool _fixed0;
 };
 
+// GlobalScaleRegulariseEnergy
+class GlobalScaleRegulariseEnergy : public Energy
+{
+public:
+    GlobalScaleRegulariseEnergy(const ScaleNode & s, const double w)
+        : _s(s), _w(w)
+    {}
+
+    virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
+    {
+        vector<int> * pUsedParamTypes = new vector<int>(1, _s.GetParamId());
+        costFunctions.push_back(new Energy_CostFunction(*this, pUsedParamTypes, 3));
+    }
+
+    virtual int GetCorrespondingParam(const int k, const int i) const
+    {
+        return _s.GetOffset();
+    }
+
+    virtual int GetNumberOfMeasurements() const
+    {
+        return 1;
+    }
+
+    virtual void EvaluateResidual(const int k, Vector<double> & e) const
+    {
+        e[0] = _w * _s.GetScale();
+    }
+
+    virtual void EvaluateJacobian(const int k, const int whichParam, Matrix<double> & J) const
+    {
+        J[0][0] = _w;
+    }
+
+protected:
+    const ScaleNode & _s;
+    const double _w;
+};
+
 #endif
 
