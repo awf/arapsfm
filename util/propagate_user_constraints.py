@@ -123,7 +123,6 @@ def test_propagate_single():
     parser.add_argument('--show_positions', default=False, 
                         action='store_true')
 
-    args = parser.parse_args()
     pprint(args)
 
     propagate_single(args.input_constraints,
@@ -144,12 +143,16 @@ def main_dir():
     parser.add_argument('--window_size', type=int, default=5)
     parser.add_argument('--show_positions', default=False, 
                         action='store_true')
+    parser.add_argument('--visualise_only', type=str, default='None')
 
     args = parser.parse_args()
+    for key in ['visualise_only']:
+        setattr(args, key, eval(getattr(args, key)))
+
     pprint(args)
 
-    # if not os.path.exists(args.output_dir):
-    #     os.makedirs(args.output_dir)
+    if not os.path.exists(args.output_dir):
+        os.makedirs(args.output_dir)
 
     input_full_path = lambda i: os.path.join(args.input_dir, '%d.npz' % i)
     output_full_path = lambda i: os.path.join(args.output_dir, '%d.npz' % i)
@@ -196,11 +199,15 @@ def main_dir():
             print ' %s (%s) ->\n %s (%s)' % (src_constraints, src_image, 
                                              dst_constraints, dst_image)
 
+            show_position = args.show_positions
+            if show_position and args.visualise_only is not None:
+                show_position = show_position and i in args.visualise_only
+
             propagate_single(src_constraints, src_image, 
                              dst_image, dst_constraints,
                              args.patch_size,
                              args.window_size,
-                             args.show_positions)
+                             show_position)
 
             already_done[j - _I] = True
             heapq.heappush(to_process, (depth + 1, j))
