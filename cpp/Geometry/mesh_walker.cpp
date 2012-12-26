@@ -17,7 +17,8 @@ using namespace V3D;
 #include "Util/debug_messages.h"
 
 // definitions
-#define BARYCENTRIC_EPS (1e-5)
+#define BARYCENTRIC_EPS (1e-4)
+#define LENGTH_THRESHOLD (1e-4)
 
 MeshWalker::MeshWalker(const Mesh & mesh,
                        const Matrix<double> & V)
@@ -85,7 +86,7 @@ int MeshWalker::applySingleDisplacement(double * u_, int currentFace, const doub
         double worldDeltaLength = norm_L2_Static<double, 3>(worldDelta);
         PRINT_VECTOR3(worldDelta);
 
-        if (worldDeltaLength == 0.)
+        if (worldDeltaLength <= LENGTH_THRESHOLD)
         {
             std::copy(nextU, nextU+2, u_);
             return currentFace;
@@ -113,7 +114,7 @@ int MeshWalker::applySingleDisplacement(double * u_, int currentFace, const doub
         PRINT_VARIABLE(traveledLength);
         PRINT_VARIABLE(remainingLength);
 
-        if (remainingLength <= 0.)
+        if (remainingLength <= LENGTH_THRESHOLD)
         {
             std::copy(nextU, nextU+2, u_);
             return currentFace;
