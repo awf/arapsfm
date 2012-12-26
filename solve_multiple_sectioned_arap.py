@@ -189,19 +189,20 @@ def main():
                         action='store_true',
                         default=False)
 
+    # initial silhouette information
+    parser.add_argument('core_silhouette_info', type=str)
+
     # arap sections
     parser.add_argument('arap_sections', type=str)
 
     # instances
     parser.add_argument('indices', type=str)
-    parser.add_argument('instance_initialisations', type=str)
 
     # projection energy
     parser.add_argument('user_constraints', type=str)
 
     # silhouette energy
     parser.add_argument('silhouette', type=str)
-    parser.add_argument('silhouette_info', type=str)
 
     # spillage 
     parser.add_argument('spillage', type=str)
@@ -251,14 +252,10 @@ def main():
     load_instance_variables = lambda *a: load_formatted(indices, *a)
     print 'indices:', indices
 
-    # load instance initial vertex positions
-    print 'initialisations:'
-    (V1,) = load_instance_variables(args.instance_initialisations, 'V')
-    num_instances = len(V1)
-
     # load user constraints
     print 'user_constraints:'
     C, P = load_instance_variables(args.user_constraints, 'C', 'P')
+    num_instances = len(C)
 
     # load silhouette
     print 'silhouette:'
@@ -266,7 +263,7 @@ def main():
 
     # load silhouette information
     print 'silhouette information:'
-    silhouette_info = load_instance_variables(args.silhouette_info)
+    silhouette_info = np.load(args.core_silhouette_info)
 
     # load spillage
     print 'spillage:'
@@ -333,7 +330,7 @@ def main():
         return b
 
     V = to_shared(V)
-    V1 = map(to_shared, V1)
+    V1 = map(to_shared, num_instances * [V])
 
     # initialise all auxilarity variables
     # ------------------------------------------------------------------------ 
@@ -530,13 +527,14 @@ def main():
         def solve_silhouette_info(i):
             print '> solve_silhouette_info:', i
 
-            s = silhouette_info[i]
+            D = instScales[i] * silhouette_info['SilCandDistances']
+
             u, l = shortest_path_solve(V1[i], T, S[i], SN[i],
-                                       s['SilCandDistances'],
-                                       s['SilEdgeCands'],
-                                       s['SilEdgeCandParam'],
-                                       s['SilCandAssignedFaces'],
-                                       s['SilCandU'],
+                                       D,
+                                       silhouette_info['SilEdgeCands'],
+                                       silhouette_info['SilEdgeCandParam'],
+                                       silhouette_info['SilCandAssignedFaces'],
+                                       silhouette_info['SilCandU'],
                                        global_silhoutte_lambdas,
                                        isCircular=args.find_circular_path)
 
