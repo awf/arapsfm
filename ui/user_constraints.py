@@ -48,12 +48,13 @@ class MainWindow(QtGui.QMainWindow):
         self.toggle_pb = QtGui.QPushButton('&Enable/Disable')
         self.update_pb = QtGui.QPushButton('&Update')
         self.reset_pb = QtGui.QPushButton('Reset')
-        self.print_info_pb = QtGui.QPushButton('Print Inf&o')
+        self.print_info_pb = QtGui.QPushButton('Print In&fo')
         self.apply_arap_pb = QtGui.QPushButton('&Deform')
         self.toggle_arap_view_pb = QtGui.QPushButton('To&ggle View')
         self.toggle_arap_view_pb.setCheckable(True)
         self.max_iterations_le = QtGui.QLineEdit('10')
         self.quick_pick = QtGui.QCheckBox('Quic&k Pick')
+        self.order_constraints_pb = QtGui.QPushButton('&Order Constraints')
 
         pb_layout = QtGui.QGridLayout()
 
@@ -93,8 +94,13 @@ class MainWindow(QtGui.QMainWindow):
         correspondences_pbs_layout.addWidget(self.load_pb, 0, 1)
         correspondences_pbs_layout.addWidget(self.reset_pb, 1, 0)
         correspondences_pbs_layout.addWidget(self.print_info_pb, 1, 1)
-        correspondences_pbs_layout.addWidget(self.quick_pick, 2, 0)
         ctrl_layout.addLayout(correspondences_pbs_layout)
+        ctrl_layout_add_separator()
+
+        misc_pbs_layout = QtGui.QGridLayout() 
+        misc_pbs_layout.addWidget(self.quick_pick, 0, 0)
+        misc_pbs_layout.addWidget(self.order_constraints_pb, 0, 1)
+        ctrl_layout.addLayout(misc_pbs_layout)
         ctrl_layout_add_separator()
 
         arap_layout = QtGui.QGridLayout()
@@ -135,6 +141,8 @@ class MainWindow(QtGui.QMainWindow):
 
         self.apply_arap_pb.clicked.connect(self.apply_arap_deformation)
         self.toggle_arap_view_pb.clicked.connect(self.toggle_arap_view)
+
+        self.order_constraints_pb.clicked.connect(self.order_constraints)
 
         self.items.currentRowChanged.connect(self.update_selection)
 
@@ -314,7 +322,25 @@ class MainWindow(QtGui.QMainWindow):
                     T=self.mesh_view.transform(),
                     V=self.mesh_view.V0,
                     all_P=all_P, all_C=all_C, is_active=is_active)
-         
+
+    def order_constraints(self):
+        d = self.get_projection_constraints()
+        all_C = d['all_C']
+        all_P = d['all_P']
+        is_active = d['is_active']
+
+        i = np.argsort(all_P[:,0])
+        all_C = all_C[i]
+        all_P = all_P[i]
+        is_active = is_active[i]
+
+        self.items.clear()
+
+        for p, i, b in izip(all_P, all_C, is_active):
+            self._add_correspondence(p, i, b)
+
+        self._set_correspondences()
+
     def save(self):
         path = self.last_correspondences_path
         if path is None:
@@ -440,9 +466,9 @@ def main():
     main_window.show()
 
     # test
-    # main_window._load_image('data/frames/dog0/dog-2741327_055.png')
-    # main_window._load_mesh('data/models/Boxer_0B.npz')
-    # main_window._load('data/user_constraints/dog0/Boxer_0B/55B.npz')
+    main_window._load_image('data/frames/camel0/315.png')
+    main_window._load_mesh('data/models/Camel_0.npz')
+    main_window._load('data/user_constraints/camel0/Camel_0/315.npz')
 
     qapp.exec_()
 
