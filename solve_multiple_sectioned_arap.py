@@ -232,6 +232,9 @@ def main():
 
     # optional
     parser.add_argument('--use_single_process', type=int, default=None)
+    parser.add_argument('--quit_after_silhouette',
+                        action='store_true',
+                        default=False)
 
     # parse the arguments
     args = parser.parse_args()
@@ -264,6 +267,7 @@ def main():
     # load silhouette information
     print 'silhouette information:'
     silhouette_info = np.load(args.core_silhouette_info)
+    print '<- %s' % args.core_silhouette_info
 
     # load spillage
     print 'spillage:'
@@ -505,24 +509,6 @@ def main():
         # save optimisation statuses
         statuses = mparray.empty(num_instances + 1, dtype=np.int32)
 
-        # solve for the core geometry
-        for j in xrange(args.max_restarts):
-            print '# solve_core:'
-            status = lm_solve_core(T, V, Xg, instScales, K, Xb, y, X, V1, 
-                                   core_lambdas,
-                                   core_preconditioners,
-                                   args.narrowband,
-                                   args.uniform_weights,
-                                   **solver_options)
-
-            print 'LM Status (%d): ' % status[0], status[1]
-
-            if status[0] not in (0, 4):
-                break
-
-        print 'instScales:', instScales
-        statuses[0] = status[0]
-
         # re-initialise U and L
         def solve_silhouette_info(i):
             print '> solve_silhouette_info:', i
@@ -543,7 +529,7 @@ def main():
 
             print '< solve_silhouette_info:', i
 
-        if (args.use_single_process is not None and 
+        if (args.use_single_process is None or 
             l < args.use_single_process):
             async_exec(solve_silhouette_info,
                        ((i,) for i in xrange(num_instances)),
@@ -551,6 +537,27 @@ def main():
                        chunksize=max(1, num_instances / num_processes))
         else:
             map(solve_silhouette_info, xrange(num_instances))
+
+        if args.quit_after_silhouette:
+            break
+
+        # solve for the core geometry
+        for j in xrange(args.max_restarts):
+            print '# solve_core:'
+            status = lm_solve_core(T, V, Xg, instScales, K, Xb, y, X, V1, 
+                                   core_lambdas,
+                                   core_preconditioners,
+                                   args.narrowband,
+                                   args.uniform_weights,
+                                   **solver_options)
+
+            print 'LM Status (%d): ' % status[0], status[1]
+
+            if status[0] not in (0, 4):
+                break
+
+        print 'instScales:', instScales
+        statuses[0] = status[0]
 
         # TODO Check if last `V1` can be used or if sequential is better
         # V10 = map(to_shared, V1)
