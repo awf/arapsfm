@@ -2,6 +2,7 @@
 
 # Imports
 import argparse, os
+import shutil
 import subprocess
 import operator
 from matplotlib.pyplot import imread
@@ -29,7 +30,8 @@ def valid_file(f, extension='.npz'):
     return False
 
 # avi_visualisation
-def avi_visualisation(vis_script, input_dir, output_dir, fps, N=0, **kwargs):
+def avi_visualisation(vis_script, input_dir, output_dir, fps, N=0,
+                      separate_frames=False, **kwargs):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
@@ -65,6 +67,16 @@ def avi_visualisation(vis_script, input_dir, output_dir, fps, N=0, **kwargs):
                  'lavc', '-lavcopts', 'vcodec=mpeg4:vbitrate=%d:mbd=2' % (vbitrate,),
                  '-oac', 'copy',
                  '-o', os.path.join(output_dir, 'OUTPUT_%d.avi' % f))
+
+    if separate_frames:
+        frames_dir = os.path.join(output_dir, 'frames')
+        if not os.path.exists(frames_dir):
+            os.makedirs(frames_dir)
+
+        frame_paths = map(lambda i: os.path.join(frames_dir, '%d.png' % i),
+                          xrange(len(output_paths)))
+
+        map(lambda src, dst: safe_cmd('cp', src, dst), output_paths, frame_paths)
 
 # make_figures
 def make_figures(vis_script, input_path, output_dir, vis_args=[],
@@ -113,6 +125,9 @@ def main():
     parser.add_argument('--tiling', type=str, default=None)
     parser.add_argument('--fps', type=int, default=[], action='append')
     parser.add_argument('--N', type=int, default=0)
+    parser.add_argument('--separate_frames', 
+                        default=False,
+                        action='store_true')
 
     args = parser.parse_args()
 
@@ -124,6 +139,7 @@ def main():
                       args.output,
                       args.fps,
                       args.N,
+                      args.separate_frames,
                       vis_args=args.vis_args.split(),
                       tiling=args.tiling,
                       post_args=eval(args.post_args))
