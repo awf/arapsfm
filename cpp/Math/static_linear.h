@@ -182,5 +182,13 @@ Elem sumVector_Static(const Elem * v)
     return acc;
 }
 
+template <typename Elem, int n>
+inline
+void copyVector_Static(const Elem * p, Elem * q)
+{
+    for (int i=0; i < n; i++) q[i] = p[i];
+}
+
+
 #endif
 
