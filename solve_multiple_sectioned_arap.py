@@ -239,40 +239,13 @@ def main():
     # parse the arguments
     args = parser.parse_args()
 
-    # parse argments and load variables
+    # setup output directory
     # ------------------------------------------------------------------------ 
-
-    # load the core geometry and input mesh 
-    V = load_input_geometry(args.core_initialisation, 
-                            args.use_linear_transform)
-    T = load_input_mesh(args.mesh)
-    print 'core geometry:'
-    print 'V.shape:', V.shape
-    print 'T.shape:', T.shape
 
     # parse the instance indices
     indices = eval(args.indices)
     load_instance_variables = lambda *a: load_formatted(indices, *a)
     print 'indices:', indices
-
-    # load user constraints
-    print 'user_constraints:'
-    C, P = load_instance_variables(args.user_constraints, 'C', 'P')
-    num_instances = len(C)
-
-    # load silhouette
-    print 'silhouette:'
-    S, SN = load_instance_variables(args.silhouette, 'S', 'SN')
-
-    # load silhouette information
-    print 'silhouette information:'
-    silhouette_info = np.load(args.core_silhouette_info)
-    print '<- %s' % args.core_silhouette_info
-
-    # load spillage
-    print 'spillage:'
-    (R,) = load_instance_variables(args.spillage, 'R')
-    Rx, Ry = map(list, izip(*R))
 
     # parse the lambdas and preconditioners
     lambdas = parse_float_string(args.lambdas)
@@ -297,8 +270,6 @@ def main():
 
     print 'num_processes:', num_processes
 
-    # setup output directory
-    # ------------------------------------------------------------------------ 
     output = args.output
 
     if '{default}' in output:
@@ -325,6 +296,36 @@ def main():
     if output is not None and not os.path.exists(output):
         print 'Creating directory:', output
         os.makedirs(output)
+
+    # parse argments and load variables
+    # ------------------------------------------------------------------------ 
+
+    # load the core geometry and input mesh 
+    V = load_input_geometry(args.core_initialisation, 
+                            args.use_linear_transform)
+    T = load_input_mesh(args.mesh)
+    print 'core geometry:'
+    print 'V.shape:', V.shape
+    print 'T.shape:', T.shape
+
+    # load user constraints
+    print 'user_constraints:'
+    C, P = load_instance_variables(args.user_constraints, 'C', 'P')
+    num_instances = len(C)
+
+    # load silhouette
+    print 'silhouette:'
+    S, SN = load_instance_variables(args.silhouette, 'S', 'SN')
+
+    # load silhouette information
+    print 'silhouette information:'
+    silhouette_info = np.load(args.core_silhouette_info)
+    print '<- %s' % args.core_silhouette_info
+
+    # load spillage
+    print 'spillage:'
+    (R,) = load_instance_variables(args.spillage, 'R')
+    Rx, Ry = map(list, izip(*R))
 
     # transfer vertices to shared memory
     # ------------------------------------------------------------------------
@@ -404,7 +405,7 @@ def main():
                              lambdas[5],    # projection
                              lambdas[7],    # temporal ARAP penalty
                              lambdas[8],    # global rotations penalty
-                             lambdas[9],    # global scale penalty rotations penalty
+                             lambdas[9],    # global scale penalty 
                              lambdas[10]]   # regular rotations penalty
 
     core_lambdas = np.r_[lambdas[3],    # as-rigid-as-possible
@@ -430,12 +431,13 @@ def main():
     print 'outer_loops:', args.outer_loops
 
     # solve for initialisations without the basis rotations
-    initialisation_lambdas = np.r_[lambdas[5],   # projection
-                                   lambdas[3],   # as-rigid-as-possible
-                                   lambdas[7],   # temporal ARAP penalty
-                                   lambdas[8],   # global rotations penalty
-                                   lambdas[9],   # global scale penalty rotations penalty
-                                   lambdas[10]]  # regular rotations penalty
+    initialisation_lambdas = np.r_[
+        lambdas[5],   # projection
+        lambdas[3],   # as-rigid-as-possible
+        lambdas[7],   # temporal ARAP penalty
+        lambdas[8],   # global rotations regularisation
+        lambdas[9],   # global scale regularisation
+        lambdas[10]]  # frame-to-frame rotations regularisation
 
     # initialisation preconditioners
     initialisation_preconditioners = np.r_[preconditioners[0], # V
