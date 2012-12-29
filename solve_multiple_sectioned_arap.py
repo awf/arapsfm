@@ -9,6 +9,8 @@ from core_recovery.lm_alt_solvers import \
     solve_core_sectioned_arap as lm_solve_core, \
     solve_two_source_arap_proj
 
+from core_recovery.lm_alt_solvers2 import solve_core as solve_core2
+
 from core_recovery.lm_solvers import solve_single_arap_proj
 
 from core_recovery.silhouette_global_solver import \
@@ -115,9 +117,10 @@ def async_exec(f, iterable, n=None, timeout=5., chunksize=1):
     wait_for_active_processes(1)
 
 # Main
-
 # save_state
 def save_state(output_dir, **kwargs):
+    # TODO: Ensure that enough state is saved for each output so that
+    # EVERYTHING is recoverable
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
@@ -128,57 +131,57 @@ def save_state(output_dir, **kwargs):
 
     print '-> %s' % output_file
 
-    pickle_.dump(output_file,
-                dict(T=b.T, 
-                     V=b.V,
-                     K=b.K,
-                     Xb=b.Xb,
-                     X=b.X,
-                     y=b.y,
-                     lambdas=b.lambdas,
-                     preconditioners=b.preconditioners,
-                     piecewise_polynomial=b.piecewise_polynomial,
-                     solver_options=b.solver_options,
-                     max_restarts=b.max_restarts,
-                     narrowband=b.narrowband,
-                     uniform_weights=b.uniform_weights,
-                     find_circular_path=b.find_circular_path,
-                     frames=b.frames,
-                     indices=b.indices))
+    core_dictionary = b.args.__dict__.copy()
+    core_dictionary.update(T=b.T, V=b.V)
+
+    pickle_.dump(output_file, core_dictionary)
 
     for l, index in enumerate(b.indices):
         Q = geometry.path2pos(b.V1[l], b.T, b.L[l], b.U[l])
 
-        d = dict(T=b.T,
-                 V=b.V1[l],
-                 Xg=b.Xg[l],
-                 s=b.instScales[l],
-                 K=b.K,
-                 Xb=b.Xb,
-                 y=b.y[l],
-                 X=b.X[l],
-                 L=b.L[l],
-                 U=b.U[l],
-                 Q=Q,
-                 S=b.S[l],
-                 C=b.C[l],
-                 P=b.P[l],
-                 lambdas=b.lambdas,
-                 preconditioners=b.preconditioners,
-                 index=index)
+        output_dictionary = b.args.__dict__.copy()
+        output_dictionary.update(T=b.T, V=b.V1[l], L=b.L[l], U=b.U[l], Q=Q,
+                                 S=b.S[l], C=b.C[l], P=b.P[l])
 
         if b.frames[l] is not None:
-            d['image'] = b.frames[l]
+            output_dictionary['image'] = b.frames[l]
 
         output_file = make_path('%d.npz' % index)
 
         print '-> %s' % output_file
-        pickle_.dump(output_file, d)
+        pickle_.dump(output_file, output_dictionary)
+
+# parse_k
+def parse_k(k):
+    inst_info, basis_info, coeff_info, k_lookup = {}, {}, {}, []
+    l, i = 0, 0
+    while i < k.shape[0]:
+        k_lookup.append(i)
+
+        if k[i] == 0:
+            # fixed global rotation
+            i += 1
+        elif k[i] < 0:
+            # instance global rotation
+            inst_info.setdefault(k[i+1], []).append(l)
+            i += 2
+        else:
+            # basis rotation
+            n = k[i]
+            for j in xrange(n):
+                basis_info.setdefault(k[i+1+2*j], []).append(l)
+                coeff_info.setdefault(k[i+1+2*j+1], []).append(l)
+            i += 2*n + 1
+
+        l += 1
+
+    k_lookup = np.asarray(k_lookup, dtype=np.int32)
+
+    return inst_info, basis_info, coeff_info, k_lookup
 
 # main
 def main():
     # setup parser
-    # ------------------------------------------------------------------------ 
     parser = argparse.ArgumentParser(
         description='Solve multiple frame core recovery problem')
 
@@ -194,6 +197,9 @@ def main():
 
     # arap sections
     parser.add_argument('arap_sections', type=str)
+
+    # global rotation basis configuration 
+    parser.add_argument('global_rotation_config', type=str)
 
     # instances
     parser.add_argument('indices', type=str)
@@ -239,164 +245,241 @@ def main():
     # parse the arguments
     args = parser.parse_args()
 
-    # setup output directory
-    # ------------------------------------------------------------------------ 
+    # evaluate arguments which are passed in as Python strings
+    for key in ['indices',
+                'lambdas',
+                'preconditioners',
+                'piecewise_polynomial',
+                'solver_options',
+                'global_rotation_config']:
+        setattr(args, key, eval(getattr(args, key)))
 
-    # parse the instance indices
-    indices = eval(args.indices)
-    load_instance_variables = lambda *a: load_formatted(indices, *a)
-    print 'indices:', indices
+    # setup `solver_options`
+    def_solver_options = dict(maxIterations=20, 
+                              gradientThreshold=1e-6,
+                              updateThreshold=1e-6,
+                              improvementThreshold=1e-6,
+                              verbosenessLevel=1)
+    def_solver_options.update(args.solver_options)
+    args.solver_options = def_solver_options
 
-    # parse the lambdas and preconditioners
-    lambdas = parse_float_string(args.lambdas)
-    preconditioners = parse_float_string(args.preconditioners)
-    piecewise_polynomial = parse_float_string(args.piecewise_polynomial)
-    print 'lambdas:', lambdas
-    print 'preconditioners:', preconditioners
-    print 'piecewise_polynomial:', piecewise_polynomial
+    # handle `num_processes`, `output`, and `frames`
+    if args.num_processes < 0:
+        args.num_processes = mp.cpu_count()
 
-    # solver arguments
-    solver_options = parse_solver_options(args.solver_options,
-        maxIterations=20, 
-        gradientThreshold=1e-6,
-        updateThreshold=1e-6,
-        improvementThreshold=1e-6,
-        verbosenessLevel=1)
-    print 'solver_options:', solver_options
-
-    num_processes = args.num_processes
-    if num_processes < 0:
-        num_processes = mp.cpu_count()
-
-    print 'num_processes:', num_processes
-
-    output = args.output
-
-    if '{default}' in output:
+    if args.output is not None and '{default}' in args.output:
         make_str = lambda a: ",".join('%.4g' % a_ for a_ in a)
         mesh_file = os.path.split(args.mesh)[1]
 
-        if len(indices) > 20:
-            indices_str = (make_str(indices[:10]) + '---' +
-                           make_str(indices[-10:]))
+        if len(args.indices) > 20:
+            indices_str = (make_str(args.indices[:10]) + '---' +
+                           make_str(args.indices[-10:]))
         else:
-            indices_str = make_str(indices)
+            indices_str = make_str(args.indices)
 
         default_directory = '%s_%s_%s_%s_%s' % (
             os.path.splitext(mesh_file)[0],
             indices_str,
-            make_str(lambdas), 
-            make_str(preconditioners),
-            make_str(piecewise_polynomial))
+            make_str(args.lambdas), 
+            make_str(args.preconditioners),
+            make_str(args.piecewise_polynomial))
 
-        output = output.format(default=default_directory)
+        args.output = args.output.format(default=default_directory)
 
-    print 'output:', output
+    if args.frames is not None:
+        args.frames = [args.frames % d for d in args.indices]
+    else:
+        args.frames = [None for d in args.indices]
 
-    if output is not None and not os.path.exists(output):
-        print 'Creating directory:', output
-        os.makedirs(output)
+    # output arguments
+    pprint(args.__dict__)
 
-    # parse argments and load variables
-    # ------------------------------------------------------------------------ 
+    # setup output directory
+    print '> %s' % args.output
+    if args.output is not None and not os.path.exists(args.output):
+        print 'Creating directory:', args.output
+        os.makedirs(args.output)
 
-    # load the core geometry and input mesh 
+    # parse argments and load data
+    load_instance_variables = lambda *a: load_formatted(args.indices, *a)
+
     V = load_input_geometry(args.core_initialisation, 
                             args.use_linear_transform)
     T = load_input_mesh(args.mesh)
-    print 'core geometry:'
-    print 'V.shape:', V.shape
-    print 'T.shape:', T.shape
 
-    # load user constraints
-    print 'user_constraints:'
     C, P = load_instance_variables(args.user_constraints, 'C', 'P')
     num_instances = len(C)
 
-    # load silhouette
-    print 'silhouette:'
     S, SN = load_instance_variables(args.silhouette, 'S', 'SN')
 
-    # load silhouette information
-    print 'silhouette information:'
     silhouette_info = np.load(args.core_silhouette_info)
     print '<- %s' % args.core_silhouette_info
 
-    # load spillage
-    print 'spillage:'
     (R,) = load_instance_variables(args.spillage, 'R')
     Rx, Ry = map(list, izip(*R))
 
     # transfer vertices to shared memory
-    # ------------------------------------------------------------------------
     def to_shared(a):
         b = mparray.empty_like(a)
         b.flat = a.flat
         return b
 
+    def make_shared(s, n, dtype=np.float64, value=0.):
+        b = []
+        for i in xrange(n):
+            a = mparray.empty(s, dtype=dtype)
+            a.fill(value)
+            b.append(a)
+        return b
+
     V = to_shared(V)
-    V1 = map(to_shared, num_instances * [V])
+    V1 = make_shared(V.shape, num_instances)
+    V1[0].flat = V.flat
 
-    # initialise all auxilarity variables
-    # ------------------------------------------------------------------------ 
+    # parse `kg` to get the configuration of all of the global rotations
+    kg = np.asarray(args.global_rotation_config, dtype=np.int32)
+    kg_inst, kg_basis, kg_coeff, kg_lookup = parse_k(kg)
 
-    # global rotations (X)
-    Xg = [mparray.zeros((1, 3), dtype=np.float64) for v in V1]
+    # allocate global basis rotations
+    Xg = make_shared((1, 3), len(kg_inst))
+    Xgb = make_shared((1, 3), len(kg_basis))
+    yg = make_shared((1, 1), len(kg_coeff), value=1.)
+
+    # parse `ki` to get the configuration of all rotations at each instance
+    ki = np.require(np.load(args.arap_sections)['k2'], dtype=np.int32)
+    ki_inst, ki_basis, ki_coeff, ki_lookup = parse_k(ki)
+
+    X = make_shared((len(ki_inst), 3), num_instances)
+    Xb = mparray.empty((len(ki_basis), 3), dtype=np.float64)
+    y = make_shared((len(ki_coeff), 1), num_instances, value=1.)
 
     # instance scales (s)
-    instScales = [mparray.ones((1, 1), dtype=np.float64) for v in V1]
-
-    # sectioned arap specification
-    K = np.load(args.arap_sections)['K']
-
-    # basis rotations shared across each instance (Xb)
-    i = np.argwhere(K[:, 0] > 0).ravel()
-    unique_Xbi = np.unique(K[i, 1])
-    NXb = unique_Xbi.shape[0]
-    if NXb > 0:
-        assert NXb == np.amax(unique_Xbi) + 1
-
-    Xb = mparray.zeros((NXb, 3), dtype=np.float64)
-
-    # instance basis coefficients (y)
-    unique_yi = np.unique(K[i, 0])
-    Nyi = unique_yi.shape[0]
-    if Nyi > 0:
-        # no requirement for `+1` because y-indices are 1-based
-        assert Nyi == np.amax(unique_yi)
-
-    y = [mparray.ones((Nyi, 1), dtype=np.float64) for v in V1]
-
-    # free (shared) rotations in each instance (X)
-    i = np.argwhere(K[:, 0] < 0).ravel()
-    unique_Xi = np.unique(K[i, 1])
-    NX = unique_Xi.shape[0]
-    if NX > 0:
-        assert NX == np.amax(unique_Xi) + 1
-
-    X = [mparray.zeros((NX, 3), dtype=np.float64) for v in V1]
+    instScales = make_shared((1, 1), num_instances)
 
     # initialise silhouette (U, L)
-    print 'initialising silhouette information:'
-
-    global_silhoutte_lambdas = lambdas[:3]
-    print 'global_silhoutte_lambdas:', global_silhoutte_lambdas
-    print 'isCircular:', args.find_circular_path
-
     U = [mparray.empty((s.shape[0], 2), np.float64) for s in S]
     L = [mparray.empty(s.shape[0], np.int32) for s in S]
 
-    # optional frames
-    if args.frames is not None:
-        frames = [args.frames % d for d in indices]
-    else:
-        frames = [None for d in indices]
+    # solve for initialisations without the basis rotations (global or local)
+    initialisation_lambdas = np.r_[
+        args.lambdas[5],   # projection
+        args.lambdas[3],   # as-rigid-as-possible
+        args.lambdas[7],   # temporal ARAP penalty
+        args.lambdas[8],   # global rotations regularisation
+        args.lambdas[9],   # global scale regularisation
+        args.lambdas[10]]  # frame-to-frame rotations regularisation
 
-    print 'frames:'
-    pprint(frames)
-        
+    # initialisation preconditioners
+    initialisation_preconditioners = np.r_[args.preconditioners[0], # V
+                                           args.preconditioners[1], # X
+                                           args.preconditioners[2], # s
+                                           args.preconditioners[4]] # Xg
+
+    # temporary variables
+    iX = np.zeros_like(V1[0])
+    empty3 = np.array(tuple(), dtype=np.float64).reshape(0, 3)
+    iXg = np.zeros((1, 3), dtype=np.float64)
+
+    initialisation_solver_options = args.solver_options.copy()
+    initialisation_solver_options['maxIterations'] = 100 
+
+    # solve for V1[0]
+    V1[0].flat = V.flat
+
+    print '[-1]: 0'
+    for j in xrange(args.max_restarts):
+        status = solve_two_source_arap_proj(T, 
+                                            V, iXg, instScales[0], iX,
+                                            empty3, empty3, empty3, empty3,
+                                            V1[0],
+                                            C[0], P[0],
+                                            initialisation_lambdas,
+                                            initialisation_preconditioners,
+                                            args.uniform_weights,
+                                            **initialisation_solver_options)
+
+        print status[1]
+        if status[0] not in (0, 4):
+            break
+
+    # solve for V1[:]
+    def solve_initialisation(i):
+        print '[-1]: %d' % i
+
+        # NOTE: use iXg from previous frame
+        V1[i].flat = V1[i-1].flat
+        instScales[i][0] = instScales[i-1][0]
+
+        Vp = V1[i-1]
+        Xgp = np.zeros((1, 3), dtype=np.float64)
+        sp = np.ones((1, 1), dtype=np.float64)
+        Xp = np.zeros_like(Vp)
+
+        for j in xrange(args.max_restarts):
+            status = solve_two_source_arap_proj(T, 
+                                                V, iXg, instScales[i], iX,
+                                                Vp, Xgp, sp, Xp,
+                                                V1[i], 
+                                                C[i], P[i],
+                                                initialisation_lambdas,
+                                                initialisation_preconditioners,
+                                                args.uniform_weights,
+                                                **initialisation_solver_options)
+
+            print status[1]
+            if status[0] not in (0, 4):
+                break
+
+    map(solve_initialisation, xrange(1, num_instances))
+
+    # solve for V, X, ...
+    core_lambdas = np.r_[args.lambdas[3],    # as-rigid-as-possible
+                         args.lambdas[6],    # laplacian
+                        ]
+
+    core_preconditioners = np.r_[args.preconditioners[0], # V
+                                 args.preconditioners[1], # X/Xg
+                                 args.preconditioners[2], # s
+                                 args.preconditioners[5]] # y
+
+    # XXX
+    core_solver_options = args.solver_options.copy()
+    core_solver_options['verbosenessLevel'] = 1
+
+    for i in xrange(args.max_restarts):
+        print '[#] `solve_core2`:',
+        status = solve_core2(T, V, instScales, 
+                             kg, Xgb, yg, Xg,
+                             ki, Xb, y, X, V1,
+                             core_lambdas,
+                             core_preconditioners,
+                             args.narrowband,
+                             args.uniform_weights,
+                             **core_solver_options)
+        print status[1]
+        if status[0] not in (0, 4):
+            break
+
+    # XXX
+    print 'Xgb:'
+    pprint(Xgb)
+
+    print 'yg:'
+    pprint(yg)
+
+    print 'Xg:'
+    pprint(Xg)
+
+
+    if args.output is not None:
+        scope = args.__dict__.copy()
+        scope.update(locals())
+        save_state(args.output, **scope)
+
+    return
+
     # alternating minimisation
-    # ------------------------------------------------------------------------ 
+    global_silhoutte_lambdas = lambdas[:3]
 
     # multiple frame minimise
     instance_lambdas = np.r_[lambdas[3],    # as-rigid-as-possible
@@ -408,6 +491,7 @@ def main():
                              lambdas[9],    # global scale penalty 
                              lambdas[10]]   # regular rotations penalty
 
+    # TODO: instance preconditioners
     core_lambdas = np.r_[lambdas[3],    # as-rigid-as-possible
                          lambdas[8],    # global rotations penalty
                          lambdas[6],    # laplacian
@@ -453,7 +537,7 @@ def main():
     # set initialisation solver options and update the maximum number of
     # iterations
     init_solver_options = solver_options.copy()
-    init_solver_options['maxIterations']= 50
+    init_solver_options['maxIterations'] = 100
 
     # solve for V1[0]
     V1[0].flat = V.flat
