@@ -55,6 +55,7 @@ class MainWindow(QtGui.QMainWindow):
         self.max_iterations_le = QtGui.QLineEdit('10')
         self.quick_pick = QtGui.QCheckBox('Quic&k Pick')
         self.order_constraints_pb = QtGui.QPushButton('&Order Constraints')
+        self.lambdas_le = QtGui.QLineEdit('1.0,1.0')
 
         pb_layout = QtGui.QGridLayout()
 
@@ -105,8 +106,9 @@ class MainWindow(QtGui.QMainWindow):
 
         arap_layout = QtGui.QGridLayout()
         arap_layout.addWidget(self.max_iterations_le, 0, 0)
-        arap_layout.addWidget(self.apply_arap_pb, 0, 1)
-        arap_layout.addWidget(self.toggle_arap_view_pb, 0, 2)
+        arap_layout.addWidget(self.lambdas_le, 0, 1)
+        arap_layout.addWidget(self.apply_arap_pb, 1, 0)
+        arap_layout.addWidget(self.toggle_arap_view_pb, 1, 1)
         ctrl_layout.addLayout(arap_layout)
 
         self.mesh_view = InteractiveMeshView()
@@ -417,9 +419,14 @@ class MainWindow(QtGui.QMainWindow):
         X = np.zeros_like(V)
         V1 = V.copy()
 
-        lambdas = np.array([1.0,  # as-rigid-as-possible
-                            1.0], # projection
-                            dtype=np.float64)
+        lambdas = map(float, str(self.lambdas_le.text()).split(','))
+        lambdas = np.asarray(lambdas, dtype=np.float64)
+        if lambdas.shape[0] != 2:
+            return
+
+        # lambdas = np.array([1.0,  # as-rigid-as-possible
+        #                     1.0], # projection
+                            
 
         status, status_string = solve_single_arap_proj(
             V, T, X, V1, d['C'], d['P'], lambdas,
@@ -466,9 +473,9 @@ def main():
     main_window.show()
 
     # test
-    main_window._load_image('data/frames/camel0/315.png')
-    main_window._load_mesh('data/models/Camel_0.npz')
-    main_window._load('data/user_constraints/camel0/Camel_0/315.npz')
+    # main_window._load_image('data/frames/camel0/315.png')
+    # main_window._load_mesh('data/models/Camel_0.npz')
+    # main_window._load('data/user_constraints/camel0/Camel_0/315.npz')
 
     qapp.exec_()
 
