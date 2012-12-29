@@ -2796,12 +2796,12 @@ public:
 
     virtual void EvaluateResidual(const int k, Vector<double> & e) const
     {
-        e[0] = _w * _s.GetScale();
+        e[0] = _w * log(_s.GetScale());
     }
 
     virtual void EvaluateJacobian(const int k, const int whichParam, Matrix<double> & J) const
     {
-        J[0][0] = _w;
+        J[0][0] = _w * (1.0 / _s.GetScale());
     }
 
 protected:
