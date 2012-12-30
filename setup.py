@@ -147,7 +147,7 @@ setup(
                   library_dirs=[COLAMD_LIB],
                   libraries=['colamd'],
                   define_macros=REMOVE_EXCEPTION_MACROS + [('NO_HELPER', 1)],
-                  extra_compile_args=['-std=c++11', '-Wfatal-errors', '-O0'],
+                  extra_compile_args=['-std=c++11', '-Wfatal-errors'],
                   language='c++'),
 
         # Extension('Test.test_mesh_walker',
