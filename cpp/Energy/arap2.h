@@ -393,8 +393,8 @@ public:
         {
             for (int n=0; n < _k[m]; n++)
                 makeInterpolatedVector_Static<double, 3>(1.0, xi, 
-                                                         _y.GetCoefficient(_k[m + 2*n + 1]), 
-                                                         _Xb.GetRotation(_k[m + 2*n]), 
+                                                         _y.GetCoefficient(_k[m + 1 + 2*n + 1]), 
+                                                         _Xb.GetRotation(_k[m + 1 + 2*n]), 
                                                          xi);
         }
 
@@ -539,7 +539,7 @@ public:
 
             // dqi/xi [xi == _X.GetRotation(_k[m + 1])]
             double Jxi[12];
-            quat_Unsafe(_X.GetRotation(_k[m + 1]), Jxi);
+            quatDx_Unsafe(_X.GetRotation(_k[m + 1]), Jxi);
 
             double A[12];
             multiply_A_B_Static<double, 3, 4, 4>(Jq, Jqi, A);
@@ -564,9 +564,9 @@ public:
 
                     // dqi/xi 
                     double Jxi[12];
-                    quat_Unsafe(xi, Jxi);
+                    quatDx_Unsafe(xi, Jxi);
 
-                    // dxi/dxb == _y.GetCoefficient(_k[m + 2*n + 1])
+                    // dxi/dxb == _y.GetCoefficient(_k[m + 1 + 2*n + 1])
                     scaleVectorIP_Static<double, 12>(_y.GetCoefficient(_k[m + 1 + 2*n + 1]), Jxi);
 
                     double A[12];
@@ -589,7 +589,7 @@ public:
 
                     // dqi/xi 
                     double Jxi[12];
-                    quat_Unsafe(xi, Jxi);
+                    quatDx_Unsafe(xi, Jxi);
 
                     double A[12], B[9];
                     multiply_A_B_Static<double, 3, 4, 4>(Jq, Jqi, A);
