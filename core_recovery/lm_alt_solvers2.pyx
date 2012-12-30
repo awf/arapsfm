@@ -21,51 +21,56 @@ cdef extern from "Solve/optimiser_options.h":
         int verbosenessLevel
 
 cdef extern from "lm_alt_solvers2.h":
+    int solve_core_c 'solve_core' (
+               np.ndarray npy_T,
+               np.ndarray npy_V,
+               list list_s,
+               np.ndarray npy_kg,
+               list list_Xgb,
+               list list_yg,
+               list list_Xg,
+               np.ndarray npy_k,
+               np.ndarray npy_Xb,
+               list list_y,
+               list list_X,
+               list list_V1,
+               np.ndarray npy_lambdas,
+               np.ndarray npy_preconditioners,
+               int narrowBand,
+               bint uniformWeights,
+               OptimiserOptions * options)
+
     int solve_instance_c 'solve_instance' (
-        np.ndarray T, 
-        np.ndarray V, 
-        np.ndarray s, 
-        int kg, 
-        np.ndarray Xgb, 
-        np.ndarray yg, 
-        np.ndarray Xg, 
-        np.ndarray k, 
-        np.ndarray Xb, 
-        np.ndarray y, 
-        np.ndarray X, 
-        np.ndarray Vp,
-        np.ndarray sp,
-        np.ndarray Xgp,
-        np.ndarray Xp,
-        np.ndarray V1, 
-        np.ndarray U, 
-        np.ndarray L, 
-        np.ndarray S, 
-        np.ndarray SN, 
-        np.ndarray Rx, 
-        np.ndarray Ry,
-        np.ndarray C,
-        np.ndarray P,
-        np.ndarray lambdas,
-        np.ndarray preconditioners,
-        np.ndarray piecewisePolynomial,
+        np.ndarray npy_T,
+        np.ndarray npy_V,
+        np.ndarray npy_s,
+        int n, 
+        list list_Xgb,
+        list list_yg,
+        np.ndarray npy_Xg,
+        np.ndarray npy_k,
+        np.ndarray npy_Xb,
+        np.ndarray npy_y,
+        np.ndarray npy_X, 
+        np.ndarray npy_Vp,
+        np.ndarray npy_sp,
+        np.ndarray npy_Xgp,
+        np.ndarray npy_Xp,
+        np.ndarray npy_V1, 
+        np.ndarray npy_U, 
+        np.ndarray npy_L, 
+        np.ndarray npy_S, 
+        np.ndarray npy_SN, 
+        np.ndarray npy_Rx, 
+        np.ndarray npy_Ry,
+        np.ndarray npy_C,
+        np.ndarray npy_P,
+        np.ndarray npy_lambdas,
+        np.ndarray npy_preconditioners,
+        np.ndarray npy_piecewisePolynomial,
         int narrowBand,
         bint uniformWeights,
         bint fixedScale,
-        OptimiserOptions * options)
-
-    int solve_initialisation_first_instance_c 'solve_initialisation_first_instance' (
-        np.ndarray T, 
-        np.ndarray V, 
-        np.ndarray s, 
-        np.ndarray Xg, 
-        np.ndarray X, 
-        np.ndarray V1, 
-        np.ndarray C,
-        np.ndarray P,
-        np.ndarray lambdas,
-        np.ndarray preconditioners,
-        bint uniformWeights,
         OptimiserOptions * options)
 
 # additional_optimiser_options
@@ -107,26 +112,6 @@ STATUS_CODES = ['OPTIMIZER_TIMEOUT',
                 'OPTIMIZER_CONVERGED',
                 'OPTIMIZER_CANT_BEGIN_ITERATION']
 
-cdef extern from "lm_alt_solvers2.h":
-    int solve_core_c 'solve_core' (
-               np.ndarray npy_T,
-               np.ndarray npy_V,
-               list list_s,
-               np.ndarray npy_kg,
-               list list_Xgb,
-               list list_yg,
-               list list_Xg,
-               np.ndarray npy_k,
-               np.ndarray npy_Xb,
-               list list_y,
-               list list_X,
-               list list_V1,
-               np.ndarray npy_lambdas,
-               np.ndarray npy_preconditioners,
-               int narrowBand,
-               bint uniformWeights,
-               OptimiserOptions * options)
-
 # solve_core
 def solve_core(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
                np.ndarray[np.float64_t, ndim=2, mode='c'] V, 
@@ -158,6 +143,57 @@ def solve_core(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
         k, Xb, y, X,
         V1, 
         lambdas, preconditioners, narrowBand, uniformWeights, &options)
+
+    return status, STATUS_CODES[status]
+
+# solve_instance
+def solve_instance(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
+                   np.ndarray[np.float64_t, ndim=2, mode='c'] V,
+                   np.ndarray[np.float64_t, ndim=2, mode='c'] s,
+                   np.int32_t n,
+                   list Xgb,
+                   list yg,
+                   np.ndarray[np.float64_t, ndim=2, mode='c'] Xg,
+                   np.ndarray[np.int32_t, ndim=1, mode='c'] k,
+                   np.ndarray[np.float64_t, ndim=2, mode='c'] Xb,
+                   np.ndarray[np.float64_t, ndim=2, mode='c'] y,
+                   np.ndarray[np.float64_t, ndim=2, mode='c'] X,
+                   np.ndarray[np.float64_t, ndim=2, mode='c'] Vp,
+                   np.ndarray[np.float64_t, ndim=2, mode='c'] sp,
+                   np.ndarray[np.float64_t, ndim=2, mode='c'] Xgp,
+                   np.ndarray[np.float64_t, ndim=2, mode='c'] Xp,
+                   np.ndarray[np.float64_t, ndim=2, mode='c'] V1,
+                   np.ndarray[np.float64_t, ndim=2, mode='c'] U,
+                   np.ndarray[np.int32_t, ndim=1, mode='c'] L,
+                   np.ndarray[np.float64_t, ndim=2, mode='c'] S,
+                   np.ndarray[np.float64_t, ndim=2, mode='c'] SN,
+                   np.ndarray[np.float64_t, ndim=2, mode='c'] Rx,
+                   np.ndarray[np.float64_t, ndim=2, mode='c'] Ry,
+                   np.ndarray[np.int32_t, ndim=1, mode='c'] C,
+                   np.ndarray[np.float64_t, ndim=2, mode='c'] P,
+                   np.ndarray[np.float64_t, ndim=1, mode='c'] lambdas,
+                   np.ndarray[np.float64_t, ndim=1, mode='c'] preconditioners,
+                   np.ndarray[np.float64_t, ndim=1, mode='c'] piecewisePolynomial,
+                   np.int32_t narrowBand,
+                   bint uniformWeights,
+                   bint fixedScale,
+                   **kwargs):
+
+    assert lambdas.shape[0] == 9
+    assert preconditioners.shape[0] == 5
+    assert piecewisePolynomial.shape[0] == 2
+
+    cdef OptimiserOptions options
+    additional_optimiser_options(&options, kwargs)
+
+    cdef int status = solve_instance_c(T, V, s,
+        n,  Xgb,  yg,  Xg,  
+        k,  Xb,  y,  X,  
+        Vp,  sp,  Xgp,  Xp,  
+        V1,  U,  L,  S,  SN,  Rx,  Ry, 
+        C, P, 
+        lambdas,  preconditioners,  piecewisePolynomial, 
+        narrowBand, uniformWeights, fixedScale, &options)
 
     return status, STATUS_CODES[status]
 
