@@ -73,6 +73,24 @@ cdef extern from "lm_alt_solvers2.h":
         bint fixedScale,
         OptimiserOptions * options)
 
+    int solve_two_source_arap_proj_c 'solve_two_source_arap_proj' (
+        np.ndarray npy_T,
+        np.ndarray npy_V,
+        np.ndarray npy_s,
+        np.ndarray npy_Xg,
+        np.ndarray npy_X,
+        np.ndarray npy_Vp,
+        np.ndarray npy_sp,
+        np.ndarray npy_Xgp,
+        np.ndarray npy_Xp,
+        np.ndarray npy_V1,
+        np.ndarray npy_C,
+        np.ndarray npy_P,
+        np.ndarray npy_lambdas,
+        np.ndarray npy_preconditioners,
+        bint uniformWeights,
+        OptimiserOptions * options)
+
 # additional_optimiser_options
 DEFAULT_OPTIMISER_OPTIONS = {
     'maxIterations' : 50,
@@ -194,6 +212,37 @@ def solve_instance(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
         C, P, 
         lambdas,  preconditioners,  piecewisePolynomial, 
         narrowBand, uniformWeights, fixedScale, &options)
+
+    return status, STATUS_CODES[status]
+
+# solve_two_source_arap_proj
+def solve_two_source_arap_proj(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
+                               np.ndarray[np.float64_t, ndim=2, mode='c'] V,
+                               np.ndarray[np.float64_t, ndim=2, mode='c'] s,
+                               np.ndarray[np.float64_t, ndim=2, mode='c'] Xg,
+                               np.ndarray[np.float64_t, ndim=2, mode='c'] X,
+                               np.ndarray[np.float64_t, ndim=2, mode='c'] Vp,
+                               np.ndarray[np.float64_t, ndim=2, mode='c'] sp,
+                               np.ndarray[np.float64_t, ndim=2, mode='c'] Xgp,
+                               np.ndarray[np.float64_t, ndim=2, mode='c'] Xp,
+                               np.ndarray[np.float64_t, ndim=2, mode='c'] V1,
+                               np.ndarray[np.int32_t, ndim=1, mode='c'] C,
+                               np.ndarray[np.float64_t, ndim=2, mode='c'] P,
+                               np.ndarray[np.float64_t, ndim=1, mode='c'] lambdas,
+                               np.ndarray[np.float64_t, ndim=1, mode='c'] preconditioners,
+                               bint uniformWeights,
+                               **kwargs):
+
+    assert lambdas.shape[0] == 6
+    assert preconditioners.shape[0] == 3
+
+    cdef OptimiserOptions options
+    additional_optimiser_options(&options, kwargs)
+
+    cdef int status = solve_two_source_arap_proj_c(
+        T, V, s, Xg, X,
+        Vp, sp, Xgp, Xp,
+        V1, C, P, lambdas, preconditioners, uniformWeights, &options)
 
     return status, STATUS_CODES[status]
 
