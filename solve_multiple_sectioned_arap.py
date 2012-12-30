@@ -4,94 +4,16 @@
 from util.cmdline import * 
 from itertools import count, izip
 
-from core_recovery import lm_alt_solvers2 as lm2
-from core_recovery import silhouette_global_solver as sil
+from core_recovery import lm_alt_solvers2 as lm
+from core_recovery.arap.sectioned import parse_k
+from core_recovery.silhouette import solve_silhouette
 
+from operator import add
 from time import time
-from visualise import *
 from misc.bunch import Bunch
-
-import multiprocessing as mp
-from itertools import izip_longest
 from misc.numpy_ import mparray
     
 # Utilities
-
-# load_formatted
-def load_formatted(indices, stem, *keys):
-    r = [[] for key in keys]
-
-    for i in indices:
-        full_path = stem % i
-
-        try:
-            i = load(full_path)
-        except IOError:
-            break
-
-        print '<- %s' % full_path
-
-        if not keys:
-            r.append(i)
-        else:
-            for l, key in enumerate(keys):
-                r[l].append(i[key])
-
-    return r
-
-# Multiprocessing
-
-# grouper (from `itertools`)
-def grouper(n, iterable, fillvalue=None):
-    "grouper(3, 'ABCDEFG', 'x') --> ABC DEF Gxx"
-    args = [iter(iterable)] * n
-    return izip_longest(fillvalue=fillvalue, *args)
-
-# async_exec
-def async_exec(f, iterable, n=None, timeout=5., chunksize=1, verbose=False):
-    def _async_exec_process(args_list):
-        for args in args_list:
-            if args is None:
-                return
-
-            f(*args)
-
-    if n is None:
-        n = mp.cpu_count()
-
-    if n == 1:
-        return _async_exec_process(iterable)
-
-    active_processes = []
-
-    def wait_for_active_processes(n):
-        while len(active_processes) >= n:
-            if verbose:
-                print 'active_processes:'
-                pprint(map(lambda p: p.pid, active_processes))
-            for i, p in enumerate(active_processes):
-                if verbose:
-                    print 'join: %d' % p.pid
-                p.join(timeout)
-
-                if not p.is_alive():
-                    break
-            else:
-                continue
-
-            if verbose:
-                print 'deleting: %d' % p.pid
-            del active_processes[i]
-
-    for args_list in grouper(chunksize, iterable, None):
-        wait_for_active_processes(n)
-        
-        # launch next process
-        p = mp.Process(target=_async_exec_process, args=(args_list, ))
-        p.start()
-        active_processes.append(p)
-
-    wait_for_active_processes(1)
 
 # Main
 
@@ -110,16 +32,34 @@ def save_state(output_dir, **kwargs):
     print '-> %s' % output_file
 
     core_dictionary = b.args.__dict__.copy()
-    core_dictionary.update(T=b.T, V=b.V)
+    core_dictionary.update(T=b.T, V=b.V, 
+                           s=b.instScales, 
+                           kg=b.kg, Xgb=b.Xgb, yg=b.yg, Xg=b.Xg,
+                           ki=b.ki, Xb=b.Xb, y=b.y, X=b.X)
 
     pickle_.dump(output_file, core_dictionary)
 
     for l, index in enumerate(b.indices):
         Q = geometry.path2pos(b.V1[l], b.T, b.L[l], b.U[l])
 
+        m = b.kg_lookup[l]
+        n = b.kg[m]
+
+        if n == 0:
+            Xg = np.r_[0., 0., 0.].reshape(1, 3)
+        elif n == -1:
+            Xg = b.Xg[b.kg[m + 1]]
+        else:
+            Xg = reduce(add, 
+                        (b.yg[b.kg[m + 1 + 2*ii + 1]] * 
+                         b.Xgb[b.kg[m + 1 + 2*ii]] for ii in xrange(n))).reshape(1, 3)
+
         output_dictionary = b.args.__dict__.copy()
-        output_dictionary.update(T=b.T, V=b.V1[l], L=b.L[l], U=b.U[l], Q=Q,
-                                 S=b.S[l], C=b.C[l], P=b.P[l])
+        output_dictionary.update(T=b.T, V=b.V1[l], 
+                                 S=b.S[l], Q=Q, L=b.L[l], U=b.U[l],
+                                 C=b.C[l], P=b.P[l],
+                                 s=b.instScales[l], Xg=Xg,
+                                 ki=b.ki, Xb=b.Xb, y=b.y[l], X=b.X[l])
 
         if b.frames[l] is not None:
             output_dictionary['image'] = b.frames[l]
@@ -128,34 +68,6 @@ def save_state(output_dir, **kwargs):
 
         print '-> %s' % output_file
         pickle_.dump(output_file, output_dictionary)
-
-# parse_k
-def parse_k(k):
-    inst_info, basis_info, coeff_info, k_lookup = {}, {}, {}, []
-    l, i = 0, 0
-    while i < k.shape[0]:
-        k_lookup.append(i)
-
-        if k[i] == 0:
-            # fixed global rotation
-            i += 1
-        elif k[i] < 0:
-            # instance global rotation
-            inst_info.setdefault(k[i+1], []).append(l)
-            i += 2
-        else:
-            # basis rotation
-            n = k[i]
-            for j in xrange(n):
-                basis_info.setdefault(k[i+1+2*j], []).append(l)
-                coeff_info.setdefault(k[i+1+2*j+1], []).append(l)
-            i += 2*n + 1
-
-        l += 1
-
-    k_lookup = np.asarray(k_lookup, dtype=np.int32)
-
-    return inst_info, basis_info, coeff_info, k_lookup
 
 # main
 def main():
@@ -196,26 +108,22 @@ def main():
     parser.add_argument('preconditioners', type=str)
     parser.add_argument('piecewise_polynomial', type=str)
 
-    parser.add_argument('--output', type=str, default=None)
+    parser.add_argument('output', type=str)
 
     # visualisation
     parser.add_argument('--frames', type=str, default=None)
 
     # solving
     parser.add_argument('--solver_options', type=str, default=None)
-    parser.add_argument('--find_circular_path', 
-                        action='store_true',
-                        default=False)
     parser.add_argument('--narrowband', type=int, default=3)
     parser.add_argument('--uniform_weights', 
                          action='store_true',
                          default=False)
     parser.add_argument('--max_restarts', type=int, default=5)
     parser.add_argument('--outer_loops', type=int, default=5)
-    parser.add_argument('--num_processes', type=int, default=1)
+    parser.add_argument('--candidate_radius', type=float, default=None)
 
     # optional
-    parser.add_argument('--use_single_process', type=int, default=None)
     parser.add_argument('--quit_after_silhouette',
                         action='store_true',
                         default=False)
@@ -241,11 +149,7 @@ def main():
     def_solver_options.update(args.solver_options)
     args.solver_options = def_solver_options
 
-    # handle `num_processes`, `output`, and `frames`
-    if args.num_processes < 0:
-        args.num_processes = mp.cpu_count()
-
-    if args.output is not None and '{default}' in args.output:
+    if '{default}' in args.output:
         make_str = lambda a: ",".join('%.4g' % a_ for a_ in a)
         mesh_file = os.path.split(args.mesh)[1]
 
@@ -283,7 +187,7 @@ def main():
         os.makedirs(args.output)
 
     # parse argments and load data
-    load_instance_variables = lambda *a: load_formatted(args.indices, *a)
+    load_instance_variables = lambda *a: load_formatted(args.indices, *a, verbose=True)
 
     V = load_input_geometry(args.core_initialisation, 
                             args.use_linear_transform)
@@ -362,12 +266,17 @@ def main():
     initialisation_solver_options = args.solver_options.copy()
     initialisation_solver_options['maxIterations'] = 50 
 
+    # start complete timing
+    t1_complete = time()
+
     # perform initialisation
     V1[0].flat = V.flat
 
     # solve for V1[:]
     def solve_initialisation(i):
-        print '[-1] %d:' % i
+        print '[-1] `solve_initialisation` (%d):' % i
+
+        t1 = time()
 
         if i > 0:
             # NOTE: use iXg from previous frame
@@ -382,19 +291,23 @@ def main():
             Vp = Xgp = sp = Xp = empty3
 
         for j in xrange(args.max_restarts):
-            status = lm2.solve_two_source_arap_proj(T, 
-                                                    V, instScales[i], iXg, iX,
-                                                    Vp, sp, Xgp, Xp,
-                                                    V1[i], 
-                                                    C[i], P[i],
-                                                    initialisation_lambdas,
-                                                    initialisation_preconditioners,
-                                                    args.uniform_weights,
-                                                    **initialisation_solver_options)
+            status = lm.solve_two_source_arap_proj(T, 
+                                                   V, instScales[i], iXg, iX,
+                                                   Vp, sp, Xgp, Xp,
+                                                   V1[i], 
+                                                   C[i], P[i],
+                                                   initialisation_lambdas,
+                                                   initialisation_preconditioners,
+                                                   args.uniform_weights,
+                                                   **initialisation_solver_options)
 
             print status[1]
             if status[0] not in (0, 4):
                 break
+
+        t2 = time()
+
+        print '[-1] `solve_initialisation` (%d): %.3fs' % (i, t2 - t1)
 
     map(solve_initialisation, xrange(num_instances))
 
@@ -424,60 +337,67 @@ def main():
 
 
     core_solver_options = args.solver_options.copy()
-    core_solver_options['verbosenessLevel'] = 1
+    # core_solver_options['verbosenessLevel'] = 1
 
     instance_solver_options = args.solver_options.copy()
-    instance_solver_options['verbosenessLevel'] = 1
+    # instance_solver_options['verbosenessLevel'] = 1
 
     silhouette_lambdas = np.require(args.lambdas[:3], dtype=np.float64)
 
     for l in xrange(args.outer_loops):
         print '[%d] `solve_core`:' % l
 
+        t1 = time()
         for j in xrange(args.max_restarts):
-            status = lm2.solve_core(T, V, instScales, 
-                                    kg, Xgb, yg, Xg,
-                                    ki, Xb, y, X, V1,
-                                    core_lambdas,
-                                    core_preconditioners,
-                                    args.narrowband,
-                                    args.uniform_weights,
-                                    **core_solver_options)
+            status = lm.solve_core(T, V, instScales, 
+                                   kg, Xgb, yg, Xg,
+                                   ki, Xb, y, X, V1,
+                                   core_lambdas,
+                                   core_preconditioners,
+                                   args.narrowband,
+                                   args.uniform_weights,
+                                   **core_solver_options)
             print status[1]
             if status[0] not in (0, 4):
                 break
+        t2 = time()
+        print '[%d] `solve_core`: %.3fs' % (l, t2 - t1)
 
         # update_silhouette
         def update_silhouette(i):
-            print '[%d] `update_silhouette`:' % l, i
+            print '[%d] `update_silhouette` (%d):' % (l, i)
             
-            D = instScales[i] * silhouette_info['SilCandDistances']
+            t1 = time()
 
-            u, l_ = sil.shortest_path_solve(
-                V1[i], T, S[i], SN[i], D,
+            # NOTE: `instScales[i] * D` is an approximation to the true
+            # geodesic distances of points on the mesh. It is JUST a guide
+            u, l_ = solve_silhouette(
+                V1[i], T, S[i], SN[i], 
+                instScales[i] * silhouette_info['SilCandDistances'],
                 silhouette_info['SilEdgeCands'],
                 silhouette_info['SilEdgeCandParam'],
                 silhouette_info['SilCandAssignedFaces'],
                 silhouette_info['SilCandU'],
                 silhouette_lambdas,
-                isCircular=args.find_circular_path)
+                radius=args.candidate_radius,
+                verbose=True)
 
             U[i].flat = u.flat
             L[i].flat = l_.flat
 
-        if (args.use_single_process is None or 
-            l < args.use_single_process):
-            async_exec(update_silhouette,
-                       ((i,) for i in xrange(num_instances)),
-                       n=args.num_processes,
-                       chunksize=max(1, num_instances / args.num_processes),
-                       verbose=True)
-        else:
-            map(update_silhouette, xrange(num_instances))
+            t2 = time()
+            print '[%d] `update_silhouette (%d)`: %.3fs' % (l, i, t2 - t1)
+
+        map(update_silhouette, xrange(num_instances))
+
+        if args.quit_after_silhouette:
+            break
 
         # solve_instance
         def solve_instance(i):
-            print '[%d] `solve_instance`:' % l, i
+            print '[%d] `solve_instance` (%d):' % (l, i)
+
+            t1 = time()
 
             if i > 0:
                 Vp = V1[i-1]
@@ -513,27 +433,31 @@ def main():
             fixed_scale = i == 0 
 
             for j in xrange(args.max_restarts):
-                status = lm2.solve_instance(T, V, instScales[i],
-                                            n, Xgbi, ygi, Xgi,
-                                            ki, Xb, y[i], X[i],
-                                            Vp, sp, Xgp, Xp,
-                                            V1[i], U[i], L[i],
-                                            S[i], SN[i],
-                                            Rx[i], Ry[i], 
-                                            C[i], P[i],
-                                            instance_lambdas,
-                                            instance_preconditioners,
-                                            args.piecewise_polynomial,
-                                            args.narrowband,
-                                            args.uniform_weights,
-                                            fixed_scale,
-                                            **instance_solver_options)
+                status = lm.solve_instance(T, V, instScales[i],
+                                           n, Xgbi, ygi, Xgi,
+                                           ki, Xb, y[i], X[i],
+                                           Vp, sp, Xgp, Xp,
+                                           V1[i], U[i], L[i],
+                                           S[i], SN[i],
+                                           Rx[i], Ry[i], 
+                                           C[i], P[i],
+                                           instance_lambdas,
+                                           instance_preconditioners,
+                                           args.piecewise_polynomial,
+                                           args.narrowband,
+                                           args.uniform_weights,
+                                           fixed_scale,
+                                           **instance_solver_options)
 
 
                 print status[1]
 
                 if status[0] not in (0, 4):
                     break
+
+            t2 = time()
+
+            print '[%d] `solve_instance` (%d): %.3fs' % (l, i, t2 - t1)
 
         map(solve_instance, xrange(num_instances))
 
@@ -545,16 +469,24 @@ def main():
         scope.update(locals())
         save_state(intermediate_output, **scope)
 
-    print 'instScales:', instScales
-    print 'kg:', kg
-    print 'Xgb:', Xgb
-    print 'yg:', yg
-    print 'Xg:', Xg
+    t2_complete = time()
 
-    if args.output is not None:
-        scope = args.__dict__.copy()
-        scope.update(locals())
-        save_state(args.output, **scope)
+    print 'instScales:'
+    pprint(instScales)
+    print 'kg:'
+    pprint(kg)
+    print 'Xgb:'
+    pprint(Xgb)
+    print 'yg:'
+    pprint(yg)
+    print 'Xg:'
+    pprint(Xg)
+
+    print '[+] time taken: %.3fs' % (t2_complete - t1_complete)
+
+    scope = args.__dict__.copy()
+    scope.update(locals())
+    save_state(args.output, **scope)
 
 if __name__ == '__main__':
     main()
