@@ -82,6 +82,7 @@ void dealloc_vector(vector<T *> & vec)
     vec.clear();
 }
 
+// make_Matrix
 template <typename T>
 Matrix<T> make_Matrix(unsigned int rows, unsigned int cols, T * data)
 {
@@ -90,6 +91,44 @@ Matrix<T> make_Matrix(unsigned int rows, unsigned int cols, T * data)
         return Matrix<T>(rows, cols, data);
     else
         return Matrix<T>(0, 0, nullptr);
+}
+
+// make_vectorOfMatrix
+template <typename T>
+std::vector<Matrix<T>> make_vectorOfMatrix(PyObject * list)
+{
+    Py_ssize_t len = PyList_GET_SIZE(list);
+
+    std::vector<Matrix<T>> vec;
+    vec.reserve(len);
+
+    for (Py_ssize_t i=0; i < len; ++i)
+    {
+        PyArrayObject * npy_A = (PyArrayObject *)PyList_GET_ITEM(list, i); 
+        vec.push_back(make_Matrix(PyArray_DIMS(npy_A)[0], 
+                                  PyArray_DIMS(npy_A)[1],
+                                  (T *)PyArray_DATA(npy_A)));
+    }
+
+    return vec;
+}
+
+// make_vectorOfVector
+template <typename T>
+std::vector<Vector<T>> make_vectorOfVector(PyObject * list)
+{
+    Py_ssize_t len = PyList_GET_SIZE(list);
+
+    std::vector<Vector<T>> vec;
+    vec.reserve(len);
+
+    for (Py_ssize_t i=0; i < len; ++i)
+    {
+        PyArrayObject * npy_A = (PyArrayObject *)PyList_GET_ITEM(list, i); 
+        vec.push_back(Vector<T>(PyArray_DIMS(npy_A)[0], (T *)PyArray_DATA(npy_A)));
+    }
+
+    return vec;
 }
 
 // Convenience macros
