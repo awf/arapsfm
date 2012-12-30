@@ -70,3 +70,28 @@ def parse_solver_options(solver_options, **kwargs):
 
     return opts
 
+# load_formatted
+def load_formatted(indices, stem, *keys, **kwargs):
+    verbose = kwargs.pop('verbose')
+
+    r = [[] for key in keys]
+
+    for i in indices:
+        full_path = stem % i
+
+        try:
+            i = load(full_path)
+        except IOError:
+            break
+
+        if verbose:
+            print '<- %s' % full_path
+
+        if not keys:
+            r.append(i)
+        else:
+            for l, key in enumerate(keys):
+                r[l].append(i[key])
+
+    return r
+
