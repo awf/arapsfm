@@ -831,7 +831,7 @@ public:
     virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
     {
         vector<int> * pUsedParamTypes = new vector<int>(1, _s.GetParamId());
-        costFunctions.push_back(new Energy_CostFunction(*this, pUsedParamTypes, 3));
+        costFunctions.push_back(new Energy_CostFunction(*this, pUsedParamTypes, 1));
     }
 
     virtual int GetCorrespondingParam(const int k, const int i) const
