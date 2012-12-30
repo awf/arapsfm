@@ -2,6 +2,7 @@
 
 # Imports
 import numpy as np
+from scipy.linalg import norm
 
 # laplacians
 def laplacians(V1, adj_pairs, W_pairs):
@@ -38,4 +39,14 @@ def path2pos(V, T, L, U):
         Q[i] = bary2pos(V[T[face_index]], make_bary(U[i]))
 
     return Q
+
+# face_normal
+def face_normal(V, T, i, normalise=False):
+    n = np.cross(V[T[i,0]] - V[T[i,2]],
+                 V[T[i,1]] - V[T[i,2]])
+
+    if normalise:
+        return n / norm(n)
+
+    return n
 
