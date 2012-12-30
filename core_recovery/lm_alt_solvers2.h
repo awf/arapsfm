@@ -283,22 +283,11 @@ int solve_instance(PyArrayObject * npy_T,
     problem.AddNode(node_X);
 
     PYARRAY_AS_MATRIX(double, npy_Vp, Vp);
-    auto node_Vp = new VertexNode(Vp);
-    problem.AddFixedNode(node_Vp);
-
     PYARRAY_AS_MATRIX(double, npy_sp, sp);
-    auto node_sp = new ScaleNode(sp);
-    problem.AddNode(node_sp);
-
     PYARRAY_AS_MATRIX(double, npy_Xgp, Xgp);
-    auto node_Xgp = new RotationNode(Xgp);
-    problem.AddNode(node_Xgp);
-
     PYARRAY_AS_MATRIX(double, npy_Xp, Xp);
-    auto node_Xp = new RotationNode(Xp);
-    problem.AddNode(node_Xp);
-
     PYARRAY_AS_MATRIX(double, npy_V1, V1);
+
     auto node_V1 = new VertexNode(V1);
     problem.AddNode(node_V1);
 
@@ -365,6 +354,18 @@ int solve_instance(PyArrayObject * npy_T,
 
     if (Xp.num_rows() > 0)
     {
+        auto node_Vp = new VertexNode(Vp);
+        problem.AddFixedNode(node_Vp);
+
+        auto node_sp = new ScaleNode(sp);
+        problem.AddNode(node_sp);
+
+        auto node_Xgp = new RotationNode(Xgp);
+        problem.AddNode(node_Xgp);
+
+        auto node_Xp = new RotationNode(Xp);
+        problem.AddNode(node_Xp);
+
         problem.AddEnergy(new RigidTransformArapEnergy(
             *node_Vp, *node_sp, *node_Xgp, *node_Xp,
             *node_V1,
