@@ -7,6 +7,7 @@ import argparse
 from visualise import *
 from itertools import ifilter, count, izip
 from functools import wraps
+from operator import add, mul
 
 from geometry.axis_angle import *
 from geometry.quaternion import *
@@ -134,7 +135,7 @@ class StandaloneVisualisation(object):
 
         X = self['X']
         y = self['y']
-        if len(X) != y.shape[0]:
+        if not isinstance(y, np.ndarray) or len(X) != y.shape[0]:
             return
 
         T = self['T'] 
@@ -167,7 +168,7 @@ class StandaloneVisualisation(object):
         lut.SetTableValue(0, 1., 0., 1.)
 
     @requires('T', 'Xg', 's', 'K', 'Xb', 'X', 'y', attrs=['vertices_key'])
-    def _add_sectioned_arap(self):
+    def _add_deprecated_sectioned_arap(self):
         if self.core_V is None:
             return
 
@@ -187,6 +188,60 @@ class StandaloneVisualisation(object):
             else:
                 Xi[i,:] = axScale(y[K[i, 0] - 1], Xb[K[i, 1]])
 
+        # setup `solve_V`
+        T = self['T'] 
+        core_V = self.core_V.copy()
+        adj, W = weights(core_V, faces_to_cell_array(T), weights_type='uniform')
+
+        solve_V = ARAPVertexSolver(adj, W, core_V)
+
+        # solve for `V1`
+        rotM = lambda x: rotationMatrix(quat(x))
+        V1 = solve_V(map(lambda x: rotM(x), Xi))
+
+        # apply global rotation and scale
+        A = self['s'] * rotM(np.ravel(self['Xg']))
+
+        V1 = np.dot(V1, np.transpose(A))
+
+        # register by translation to the instance vertices
+        V1 += register.displacement(V1, self[self.vertices_key])
+
+        # add as orange actor
+        self.vis.add_mesh(V1, T, actor_name='arap', 
+                          is_base=False, 
+                          color=(255, 170, 0))
+
+    @requires('T', 'Xg', 's', 'ki', 'Xb', 'y', 'X', attrs=['vertices_key'])
+    def _add_sectioned_arap(self):
+        if self.core_V is None:
+            return
+
+        # calculate `Xi`
+        ki = self['ki']
+        Xb = self['Xb']
+        y = self['y']
+        X = self['X']
+
+        N = self.core_V.shape[0]
+        Xi = np.zeros((N, 3), dtype=np.float64)
+
+        iter_ki = iter(ki)
+
+        for i in xrange(N):
+            n = next(iter_ki)
+            if n == 0:
+                pass
+            elif n < 0:
+                Xi[i, :] = X[next(iter_ki)]
+            else:
+                yi, Xbi = [], []
+                for j in xrange(n):
+                    Xbi.append(Xb[next(iter_ki)])
+                    yi.append(y[next(iter_ki)])
+
+                Xi[i, :] = reduce(add, map(mul, yi, Xbi))
+                    
         # setup `solve_V`
         T = self['T'] 
         core_V = self.core_V.copy()
