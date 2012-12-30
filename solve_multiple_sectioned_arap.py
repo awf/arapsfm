@@ -9,7 +9,8 @@ from core_recovery.lm_alt_solvers import \
     solve_core_sectioned_arap as lm_solve_core, \
     solve_two_source_arap_proj
 
-from core_recovery.lm_alt_solvers2 import solve_core as solve_core2
+from core_recovery.lm_alt_solvers2 import solve_core as solve_core2, \
+    solve_instance as solve_instance2
 
 from core_recovery.lm_solvers import solve_single_arap_proj
 
@@ -92,13 +93,12 @@ def async_exec(f, iterable, n=None, timeout=5., chunksize=1):
     def wait_for_active_processes(n):
         while len(active_processes) >= n:
             print 'active_processes:'
-            pprint(active_processes)
+            pprint(map(lambda p: p.pid, active_processes))
             for i, p in enumerate(active_processes):
-                'join: %d' % p.pid
+                print 'join: %d' % p.pid
                 p.join(timeout)
 
                 if not p.is_alive():
-                    '%d is NOT alive' % p.pid
                     break
             else:
                 continue
@@ -291,6 +291,10 @@ def main():
     else:
         args.frames = [None for d in args.indices]
 
+    args.piecewise_polynomial = np.require(args.piecewise_polynomial,
+                                           dtype=np.float64)
+
+
     # output arguments
     pprint(args.__dict__)
 
@@ -319,11 +323,6 @@ def main():
     Rx, Ry = map(list, izip(*R))
 
     # transfer vertices to shared memory
-    def to_shared(a):
-        b = mparray.empty_like(a)
-        b.flat = a.flat
-        return b
-
     def make_shared(s, n, dtype=np.float64, value=0.):
         b = []
         for i in xrange(n):
@@ -332,7 +331,10 @@ def main():
             b.append(a)
         return b
 
-    V = to_shared(V)
+    V_flat = V.flat
+    V = mparray.empty_like(V)
+    V.flat = V_flat
+
     V1 = make_shared(V.shape, num_instances)
     V1[0].flat = V.flat
 
@@ -376,17 +378,17 @@ def main():
                                            args.preconditioners[4]] # Xg
 
     # temporary variables
-    iX = np.zeros_like(V1[0])
+    iX = np.zeros_like(V)
     empty3 = np.array(tuple(), dtype=np.float64).reshape(0, 3)
     iXg = np.zeros((1, 3), dtype=np.float64)
 
     initialisation_solver_options = args.solver_options.copy()
-    initialisation_solver_options['maxIterations'] = 100 
+    initialisation_solver_options['maxIterations'] = 50 
 
     # solve for V1[0]
     V1[0].flat = V.flat
 
-    print '[-1]: 0'
+    print '[-1] 0:'
     for j in xrange(args.max_restarts):
         status = solve_two_source_arap_proj(T, 
                                             V, iXg, instScales[0], iX,
@@ -404,7 +406,7 @@ def main():
 
     # solve for V1[:]
     def solve_initialisation(i):
-        print '[-1]: %d' % i
+        print '[-1] %d:' % i
 
         # NOTE: use iXg from previous frame
         V1[i].flat = V1[i-1].flat
@@ -432,7 +434,7 @@ def main():
 
     map(solve_initialisation, xrange(1, num_instances))
 
-    # solve for V, X, ...
+    # setup solving for V, X, ... and V1
     core_lambdas = np.r_[args.lambdas[3],    # as-rigid-as-possible
                          args.lambdas[6],    # laplacian
                         ]
@@ -442,34 +444,144 @@ def main():
                                  args.preconditioners[2], # s
                                  args.preconditioners[5]] # y
 
-    # XXX
+    instance_lambdas = np.r_[args.lambdas[3],    # as-rigid-as-possible
+                             args.lambdas[1:3],  # silhouette
+                             args.lambdas[4],    # spillage
+                             args.lambdas[5],    # projection
+                             args.lambdas[7],    # temporal ARAP penalty
+                             args.lambdas[8],    # global rotations penalty
+                             args.lambdas[9],    # global scale penalty 
+                             args.lambdas[10]]   # regular rotations penalty
+
+    instance_preconditioners = np.r_[args.preconditioners[0], # V
+                                     args.preconditioners[1], # X/Xg
+                                     args.preconditioners[2], # s
+                                     args.preconditioners[3], # U
+                                     args.preconditioners[5]] # y
+
+
     core_solver_options = args.solver_options.copy()
     core_solver_options['verbosenessLevel'] = 1
 
-    for i in xrange(args.max_restarts):
-        print '[#] `solve_core2`:',
-        status = solve_core2(T, V, instScales, 
-                             kg, Xgb, yg, Xg,
-                             ki, Xb, y, X, V1,
-                             core_lambdas,
-                             core_preconditioners,
-                             args.narrowband,
-                             args.uniform_weights,
-                             **core_solver_options)
-        print status[1]
-        if status[0] not in (0, 4):
-            break
+    instance_solver_options = args.solver_options.copy()
+    instance_solver_options['verbosenessLevel'] = 1
 
-    # XXX
-    print 'Xgb:'
-    pprint(Xgb)
+    silhouette_lambdas = np.require(args.lambdas[:3], dtype=np.float64)
 
-    print 'yg:'
-    pprint(yg)
+    for l in xrange(args.outer_loops):
+        print '[%d] `solve_core2`:' % l
 
-    print 'Xg:'
-    pprint(Xg)
+        for j in xrange(args.max_restarts):
+            status = solve_core2(T, V, instScales, 
+                                 kg, Xgb, yg, Xg,
+                                 ki, Xb, y, X, V1,
+                                 core_lambdas,
+                                 core_preconditioners,
+                                 args.narrowband,
+                                 args.uniform_weights,
+                                 **core_solver_options)
+            print status[1]
+            if status[0] not in (0, 4):
+                break
 
+        def solve_silhouette_info(i):
+            print '[%d] `solve_silhouette_info`:' % l, i
+            
+            D = instScales[i] * silhouette_info['SilCandDistances']
+
+            u, l_ = shortest_path_solve(V1[i], T, S[i], SN[i], D,
+                                       silhouette_info['SilEdgeCands'],
+                                       silhouette_info['SilEdgeCandParam'],
+                                       silhouette_info['SilCandAssignedFaces'],
+                                       silhouette_info['SilCandU'],
+                                       silhouette_lambdas,
+                                       isCircular=args.find_circular_path)
+
+            U[i].flat = u.flat
+            L[i].flat = l_.flat
+
+        if (args.use_single_process is None or 
+            l < args.use_single_process):
+            async_exec(solve_silhouette_info,
+                       ((i,) for i in xrange(num_instances)),
+                       n=args.num_processes,
+                       chunksize=max(1, num_instances / args.num_processes))
+        else:
+            map(solve_silhouette_info, xrange(num_instances))
+
+        def solve_instance(i):
+            print '[%d] `solve_instance2`:' % l, i
+
+            if i > 0:
+                Vp = V1[i-1]
+                Xgp = np.zeros((1, 3), dtype=np.float64)
+                sp = np.ones((1, 1), dtype=np.float64)
+                Xp = np.zeros_like(Vp)
+            else:
+                Vp = Xgp = sp = Xp = empty3
+            # Vp = Xgp = sp = Xp = empty3
+
+            m = kg_lookup[i]
+            n = kg[m]
+
+            Xgbi = []
+            ygi = []
+            Xgi = empty3
+
+            if n == 0:  # fixed global rotation
+                pass
+            elif n == -1:   # independent global rotation
+                # NOTE: Potential problem here if multiple
+                # instances share the same global rotation it will be changed
+                # as each instance is processed
+                Xgi = Xg[kg[m+1]]
+            else:
+                # n-basis rotation
+                # NOTE: Potential problem here if multiple
+                # instances share the same basis coefficient as it will be
+                # changed as each instance is processed
+                for ii in xrange(n):
+                    Xgbi.append(Xgb[kg[m + 1 + 2*ii]])
+                    ygi.append(yg[kg[m + 1 + 2*ii + 1]])
+                
+            for j in xrange(args.max_restarts):
+                status = solve_instance2(T, V, instScales[i],
+                                         n, Xgbi, ygi, Xgi,
+                                         ki, Xb, y[i], X[i],
+                                         Vp, sp, Xgp, Xp,
+                                         V1[i], U[i], L[i],
+                                         S[i], SN[i],
+                                         Rx[i], Ry[i], 
+                                         C[i], P[i],
+                                         instance_lambdas,
+                                         instance_preconditioners,
+                                         args.piecewise_polynomial,
+                                         args.narrowband,
+                                         args.uniform_weights,
+                                         i == 0,
+                                         **instance_solver_options)
+
+
+                print status[1]
+
+                if status[0] not in (0, 4):
+                    break
+
+        map(solve_instance, xrange(num_instances))
+
+        intermediate_output = os.path.join(args.output, str(l))
+        if not os.path.exists(intermediate_output):
+            os.makedirs(intermediate_output)
+
+        scope = args.__dict__.copy()
+        scope.update(locals())
+        save_state(intermediate_output, **scope)
+
+    print 'instScales:', instScales
+    print 'kg:', kg
+    print 'Xgb:', Xgb
+    print 'yg:', yg
+    print 'Xg:', Xg
 
     if args.output is not None:
         scope = args.__dict__.copy()
@@ -477,6 +589,8 @@ def main():
         save_state(args.output, **scope)
 
     return
+
+    # XXX XXX XXX
 
     # alternating minimisation
     global_silhoutte_lambdas = lambdas[:3]
