@@ -67,7 +67,16 @@ public:
                 _oppositeHalfEdge[l1] = -1;
 
                 // mesh is open so store extra adjacent vertex in map
-                _boundaryVertices.insert(pair<int, int>(GetHalfEdge(l1, 1), GetHalfEdge(l1, 0)));
+                auto j = _boundaryVertices.find(GetHalfEdge(l1, 1));
+                if (j == _boundaryVertices.end())
+                {
+                    vector<int> vertexPairs(1, GetHalfEdge(l1, 0));
+                    _boundaryVertices.insert(pair<int, vector<int>>(GetHalfEdge(l1, 1), vertexPairs));
+                }
+                else
+                {
+                    j->second.push_back(GetHalfEdge(l1, 0));
+                }
             }
             else
             {
@@ -149,7 +158,7 @@ public:
 
         auto j = _boundaryVertices.find(vertexIndex);
         if (j != _boundaryVertices.end())
-            adjVertices.push_back(j->second);
+            copy(j->second.begin(), j->second.end(), back_inserter(adjVertices));
 
         return adjVertices;
     }
@@ -273,7 +282,7 @@ protected:
     const Matrix<int> & _triangles;
     vector<vector<int>> _vertexToHalfEdges;
     Vector<int> _oppositeHalfEdge;
-    map<int, int> _boundaryVertices;
+    map<int, vector<int>> _boundaryVertices;
 };
 
 // Geometric functions
