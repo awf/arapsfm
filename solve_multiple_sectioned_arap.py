@@ -116,9 +116,9 @@ def main():
     # solving
     parser.add_argument('--solver_options', type=str, default=None)
     parser.add_argument('--narrowband', type=int, default=3)
-    parser.add_argument('--uniform_weights', 
-                         action='store_true',
-                         default=False)
+    parser.add_argument('--no_uniform_weights', dest='uniform_weights',
+                        default=True,
+                        action='store_false')
     parser.add_argument('--max_restarts', type=int, default=5)
     parser.add_argument('--outer_loops', type=int, default=5)
     parser.add_argument('--candidate_radius', type=float, default=None)
