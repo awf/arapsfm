@@ -345,23 +345,6 @@ def main():
     silhouette_lambdas = np.require(args.lambdas[:3], dtype=np.float64)
 
     for l in xrange(args.outer_loops):
-        print '[%d] `solve_core`:' % l
-
-        t1 = time()
-        for j in xrange(args.max_restarts):
-            status = lm.solve_core(T, V, instScales, 
-                                   kg, Xgb, yg, Xg,
-                                   ki, Xb, y, X, V1,
-                                   core_lambdas,
-                                   core_preconditioners,
-                                   args.narrowband,
-                                   args.uniform_weights,
-                                   **core_solver_options)
-            print status[1]
-            if status[0] not in (0, 4):
-                break
-        t2 = time()
-        print '[%d] `solve_core`: %.3fs' % (l, t2 - t1)
 
         # update_silhouette
         def update_silhouette(i):
@@ -392,6 +375,24 @@ def main():
 
         if args.quit_after_silhouette:
             break
+
+        print '[%d] `solve_core`:' % l
+
+        t1 = time()
+        for j in xrange(args.max_restarts):
+            status = lm.solve_core(T, V, instScales, 
+                                   kg, Xgb, yg, Xg,
+                                   ki, Xb, y, X, V1,
+                                   core_lambdas,
+                                   core_preconditioners,
+                                   args.narrowband,
+                                   args.uniform_weights,
+                                   **core_solver_options)
+            print status[1]
+            if status[0] not in (0, 4):
+                break
+        t2 = time()
+        print '[%d] `solve_core`: %.3fs' % (l, t2 - t1)
 
         # solve_instance
         def solve_instance(i):
