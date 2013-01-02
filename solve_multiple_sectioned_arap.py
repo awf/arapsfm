@@ -69,6 +69,13 @@ def save_state(output_dir, **kwargs):
         print '-> %s' % output_file
         pickle_.dump(output_file, output_dictionary)
 
+# safe_index_list
+def safe_index_list(l, i):
+    if i not in l:
+        l.append(i)
+
+    return l.index(i)
+
 # main
 def main():
     # setup parser
@@ -313,6 +320,8 @@ def main():
 
     # setup solving for V, X, ... and V1
     core_lambdas = np.r_[args.lambdas[3],    # as-rigid-as-possible
+                         args.lambdas[8],    # global rotations penalty
+                         args.lambdas[9],    # global scale penalty 
                          args.lambdas[6]]    # laplacian
 
     core_preconditioners = np.r_[args.preconditioners[0], # V
@@ -326,8 +335,7 @@ def main():
                              args.lambdas[5],    # projection
                              args.lambdas[7],    # temporal ARAP penalty
                              args.lambdas[8],    # global rotations penalty
-                             args.lambdas[9],    # global scale penalty 
-                             args.lambdas[10]]   # regular rotations penalty
+                             args.lambdas[9]]    # global scale penalty 
 
     instance_preconditioners = np.r_[args.preconditioners[0], # V
                                      args.preconditioners[1], # X/Xg
@@ -376,6 +384,7 @@ def main():
         if args.quit_after_silhouette:
             break
 
+        # solve_core
         print '[%d] `solve_core`:' % l
 
         t1 = time()
@@ -401,43 +410,57 @@ def main():
             t1 = time()
 
             if i > 0:
-                Vp = V1[i-1]
-                Xgp = np.zeros((1, 3), dtype=np.float64)
+                V0 = V1[i-1]
+                s0 = instScales[i-1]
                 sp = np.ones((1, 1), dtype=np.float64)
-                Xp = np.zeros_like(Vp)
+                Xgp = np.zeros((1, 3), dtype=np.float64)
+                Xp = np.zeros_like(V0)
+                subproblem = (i, i - 1)
             else:
-                Vp = Xgp = sp = Xp = empty3
+                V0 = s0 = sp = Xgp = Xp = empty3
+                subproblem = (i,)
 
-            m = kg_lookup[i]
-            n = kg[m]
+            used_Xgb, used_yg, used_Xg = [], [], []
+            kgi = []
 
-            Xgbi = []
-            ygi = []
-            Xgi = empty3
+            for ii in subproblem:
+                m = kg_lookup[ii]
 
-            if n == 0:  # fixed global rotation
-                pass
-            elif n == -1:   # independent global rotation
-                # NOTE: Potential problem here if multiple
-                # instances share the same global rotation it will be changed
-                # as each instance is processed
-                Xgi = Xg[kg[m+1]]
-            else:
-                # n-basis rotation
-                # NOTE: Potential problem here if multiple
-                # instances share the same basis coefficient as it will be
-                # changed as each instance is processed
-                for ii in xrange(n):
-                    Xgbi.append(Xgb[kg[m + 1 + 2*ii]])
-                    ygi.append(yg[kg[m + 1 + 2*ii + 1]])
-                
+                n = kg[m]
+                kgi.append(n)
+
+                if n == 0:
+                    # fixed global rotation
+                    pass
+                elif n == -1:
+                    # independent global rotation
+                    # NOTE: Potential problem here if multiple
+                    # instances share the same global rotation it will be changed
+                    # as each instance is processed
+                    kgi.append(safe_index_list(used_Xg, kg[m+1]))
+                else:
+                    # n-basis rotation
+                    # NOTE: Potential problem here if multiple
+                    # instances share the same basis coefficient as it will be
+                    # changed as each instance is processed
+                    for ii in xrange(n):
+                        kgi.append(safe_index_list(used_Xgb, 
+                                                   kg[m + 1 + 2*ii]))
+                        kgi.append(safe_index_list(used_yg, 
+                                                   kg[m + 1 + 2*ii + 1]))
+
+            kgi = np.require(kgi, dtype=np.int32)
+            Xgbi = [Xgb[ii] for ii in used_Xgb]
+            ygi = [yg[ii] for ii in used_yg]
+            Xgi = [Xg[ii] for ii in used_Xg]
+                            
             fixed_scale = i == 0 
 
             for j in xrange(args.max_restarts):
                 status = lm.solve_instance(T, V, instScales[i],
-                                           n, Xgbi, ygi, Xgi,
+                                           kgi, Xgbi, ygi, Xgi,
                                            ki, Xb, y[i], X[i],
-                                           Vp, sp, Xgp, Xp,
+                                           V0, s0, sp, Xgp, Xp,
                                            V1[i], U[i], L[i],
                                            S[i], SN[i],
                                            Rx[i], Ry[i], 
