@@ -29,6 +29,22 @@ cdef extern from "test_arap2.h":
         np.ndarray npy_jacDims,
         bint debug) 
 
+    object EvaluateGlobalRotationLinearCombinationEnergy_c 'EvaluateGlobalRotationLinearCombinationEnergy' (
+        np.ndarray npy_kg,
+        object list_Xgb,
+        object list_yg,
+        object list_Xg,
+        double w,
+        np.ndarray npy_A,
+        np.ndarray npy_fixed,
+        bint fixedXb,
+        np.ndarray npy_jacDims,
+        bint debug)
+
 def EvaluateCompleteSectionedBasisArapEnergy(T, V, s, n, Xgb, yg, Xg, k, Xb, y, X, V1, k_, jacDims, debug=False):
     return EvaluateCompleteSectionedBasisArapEnergy_c(T, V, s, n, Xgb, yg, Xg, k, Xb, y, X, V1, k_, jacDims, debug)
+
+def EvaluateGlobalRotationLinearCombinationEnergy(kg, Xgb, yg, Xg, w, A, fixed, fixedXb, jacDims, debug=False):
+    return EvaluateGlobalRotationLinearCombinationEnergy_c(kg, Xgb, yg, Xg, w, A, fixed, fixedXb, jacDims, debug)
+
     
