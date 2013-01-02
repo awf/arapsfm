@@ -44,15 +44,16 @@ cdef extern from "lm_alt_solvers2.h":
         np.ndarray npy_T,
         np.ndarray npy_V,
         np.ndarray npy_s,
-        int n, 
+        np.ndarray npy_kg,
         list list_Xgb,
         list list_yg,
-        np.ndarray npy_Xg,
+        list list_Xg,
         np.ndarray npy_k,
         np.ndarray npy_Xb,
         np.ndarray npy_y,
         np.ndarray npy_X, 
-        np.ndarray npy_Vp,
+        np.ndarray npy_V0,
+        np.ndarray npy_s0,
         np.ndarray npy_sp,
         np.ndarray npy_Xgp,
         np.ndarray npy_Xp,
@@ -149,7 +150,7 @@ def solve_core(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
                bint uniformWeights,
                **kwargs):
 
-    assert lambdas.shape[0] == 2
+    assert lambdas.shape[0] == 4
     assert preconditioners.shape[0] == 4
 
     cdef OptimiserOptions options
@@ -168,15 +169,16 @@ def solve_core(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
 def solve_instance(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
                    np.ndarray[np.float64_t, ndim=2, mode='c'] V,
                    np.ndarray[np.float64_t, ndim=2, mode='c'] s,
-                   np.int32_t n,
+                   np.ndarray[np.int32_t, ndim=1, mode='c'] kg,
                    list Xgb,
                    list yg,
-                   np.ndarray[np.float64_t, ndim=2, mode='c'] Xg,
+                   list Xg,
                    np.ndarray[np.int32_t, ndim=1, mode='c'] k,
                    np.ndarray[np.float64_t, ndim=2, mode='c'] Xb,
                    np.ndarray[np.float64_t, ndim=2, mode='c'] y,
                    np.ndarray[np.float64_t, ndim=2, mode='c'] X,
-                   np.ndarray[np.float64_t, ndim=2, mode='c'] Vp,
+                   np.ndarray[np.float64_t, ndim=2, mode='c'] V0,
+                   np.ndarray[np.float64_t, ndim=2, mode='c'] s0,
                    np.ndarray[np.float64_t, ndim=2, mode='c'] sp,
                    np.ndarray[np.float64_t, ndim=2, mode='c'] Xgp,
                    np.ndarray[np.float64_t, ndim=2, mode='c'] Xp,
@@ -197,7 +199,7 @@ def solve_instance(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
                    bint fixedScale,
                    **kwargs):
 
-    assert lambdas.shape[0] == 9
+    assert lambdas.shape[0] == 8
     assert preconditioners.shape[0] == 5
     assert piecewisePolynomial.shape[0] == 2
 
@@ -205,9 +207,9 @@ def solve_instance(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
     additional_optimiser_options(&options, kwargs)
 
     cdef int status = solve_instance_c(T, V, s,
-        n,  Xgb,  yg,  Xg,  
+        kg,  Xgb,  yg,  Xg,  
         k,  Xb,  y,  X,  
-        Vp,  sp,  Xgp,  Xp,  
+        V0,  s0, sp,  Xgp,  Xp,  
         V1,  U,  L,  S,  SN,  Rx,  Ry, 
         C, P, 
         lambdas,  preconditioners,  piecewisePolynomial, 
