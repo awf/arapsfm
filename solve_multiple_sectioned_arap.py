@@ -403,6 +403,10 @@ def main():
         t2 = time()
         print '[%d] `solve_core`: %.3fs' % (l, t2 - t1)
 
+        # don't run `solve_instance` on the last iteration
+        if l >= args.outer_loops - 1:
+            break
+
         # solve_instance
         def solve_instance(i):
             print '[%d] `solve_instance` (%d):' % (l, i)
@@ -411,13 +415,20 @@ def main():
 
             if i > 0:
                 V0 = V1[i-1]
-                s0 = instScales[i-1]
                 sp = np.ones((1, 1), dtype=np.float64)
                 Xgp = np.zeros((1, 3), dtype=np.float64)
                 Xp = np.zeros_like(V0)
+            else:
+                V0 = sp = Xgp = Xp = empty3
+
+            if i > 1:
+                s0 = [instScales[i-1], instScales[i-2]]
+                subproblem = (i, i - 1, i - 2)
+            elif i > 0:
+                s0 = [instScales[i-1]]
                 subproblem = (i, i - 1)
             else:
-                V0 = s0 = sp = Xgp = Xp = empty3
+                s0 = []
                 subproblem = (i,)
 
             used_Xgb, used_yg, used_Xg = [], [], []
@@ -450,9 +461,9 @@ def main():
                                                    kg[m + 1 + 2*ii + 1]))
 
             kgi = np.require(kgi, dtype=np.int32)
-            Xgbi = [Xgb[ii] for ii in used_Xgb]
-            ygi = [yg[ii] for ii in used_yg]
-            Xgi = [Xg[ii] for ii in used_Xg]
+            Xgbi = map(lambda i: Xgb[i], used_Xgb)
+            ygi = map(lambda i: yg[i], used_yg)
+            Xgi = map(lambda i: Xg[i], used_Xg)
                             
             fixed_scale = i == 0 
 
@@ -460,7 +471,7 @@ def main():
                 status = lm.solve_instance(T, V, instScales[i],
                                            kgi, Xgbi, ygi, Xgi,
                                            ki, Xb, y[i], X[i],
-                                           V0, s0, sp, Xgp, Xp,
+                                           V0, sp, Xgp, Xp, s0,
                                            V1[i], U[i], L[i],
                                            S[i], SN[i],
                                            Rx[i], Ry[i], 
