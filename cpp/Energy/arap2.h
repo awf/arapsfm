@@ -903,4 +903,245 @@ protected:
     const double _w;
 };
 
+// GlobalRotationLinearCombinationEnergy
+class GlobalRotationLinearCombinationEnergy : public Energy
+{
+public:
+    GlobalRotationLinearCombinationEnergy(vector<int> && kg, 
+                                          vector<vector<const RotationNode *>> &&  Xgb, 
+                                          vector<vector<const CoefficientsNode *>> && yg, 
+                                          vector<const RotationNode *> && Xg,
+                                          const Vector<double> && A,
+                                          const double w,
+                                          const Vector<int> && fixed,
+                                          bool fixedXgb)
+    : _kg(kg), _Xgb(Xgb), _yg(yg), _Xg(Xg), _A(A), _w(w), _fixed(fixed), _fixedXgb(fixedXgb)
+    {
+        for (int i=0; i < _fixed.size(); i++)
+        {
+            if (_fixed[i])
+                continue;
+
+            int n = 0;
+            switch (_kg[i])
+            {
+            case FIXED_ROTATION:
+                continue;
+            case INDEPENDENT_ROTATION:
+            {
+                _paramMap.push_back(pair<int, int>(i, 0));
+                continue;
+            }
+            default:
+                n = _kg[i];
+                break;
+            }
+
+            int l = 0;
+
+            for (int j=0; j < n; j++)
+            {
+                if (!_fixedXgb) _paramMap.push_back(pair<int, int>(i, l++));
+                _paramMap.push_back(pair<int, int>(i, l++));
+            }
+        }
+    }
+
+    virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
+    {
+        vector<int> * pUsedParamTypes = new vector<int>;
+        
+        for (int i=0; i < _fixed.size(); i++)
+        {
+            if (_fixed[i])
+                continue;
+
+            int n = 0;
+            switch (_kg[i])
+            {
+            case FIXED_ROTATION:
+                continue;
+            case INDEPENDENT_ROTATION:
+            {
+                pUsedParamTypes->push_back(_Xg[i]->GetParamId());
+                continue;
+            }
+            default:
+                n = _kg[i];
+                break;
+            }
+
+            int l = 0;
+
+            for (int j=0; j < n; j++)
+            {
+                if (!_fixedXgb) pUsedParamTypes->push_back(_Xgb[i][j]->GetParamId());
+
+                pUsedParamTypes->push_back(_yg[i][j]->GetParamId());
+            }
+        }
+
+        costFunctions.push_back(new Energy_CostFunction(*this, pUsedParamTypes, 3));
+    }
+
+    virtual int GetCorrespondingParam(const int k, const int l) const
+    {
+        auto entry = _paramMap[l];
+        int i = entry.first;
+
+        if (_kg[i] == FIXED_ROTATION)
+            assert(false);
+        else if (_kg[i] == INDEPENDENT_ROTATION)
+            return _Xg[i]->GetOffset();
+
+        int __ARG_COUNT = 0;
+        #define IF_PARAM_ON_CONDITION(X) if ((X) && (entry.second == __ARG_COUNT++))
+
+        for (int j=0; j < _kg[i]; j++)
+        {
+            IF_PARAM_ON_CONDITION(!_fixedXgb) return _Xgb[i][j]->GetOffset();
+            IF_PARAM_ON_CONDITION(true) return _yg[i][j]->GetOffset();
+        }
+
+        #undef IF_PARAM_ON_CONDITION
+
+        assert(false);
+
+        return -1;
+    }
+
+    virtual int GetNumberOfMeasurements() const
+    {
+        return 1;
+    }
+
+    virtual void GetGlobalRotation_Unsafe(const int i, double * xgi) const
+    {
+        fillVector_Static<double, 3>(0., xgi);
+
+        if (_kg[i] == FIXED_ROTATION) {}
+        else if (_kg[i] == INDEPENDENT_ROTATION)
+        {
+            copyVector_Static<double, 3>(_Xg[i]->GetRotation(0), xgi);
+        }
+        else
+        {
+            for (int n=0; n < _kg[i]; n++)
+                makeInterpolatedVector_Static<double, 3>(1.0, xgi, 
+                                                         _yg[i][n]->GetCoefficient(0), 
+                                                         _Xgb[i][n]->GetRotation(0), 
+                                                         xgi);
+        }
+    }
+
+    virtual void EvaluateResidual(const int k, Vector<double> & e) const
+    {
+        double xg[3] = {0., 0., 0.};
+
+        for (int i = 0; i < _fixed.size(); i++)
+        {
+            double xgi[3];
+            GetGlobalRotation_Unsafe(i, xgi);
+            axScale_Unsafe(_A[i], xgi, xgi);
+            axAdd_Unsafe(xgi, xg, xg);
+        }
+
+        scaleVectorIP_Static<double, 3>(_w, xg);
+        copyVector_Static<double, 3>(xg, &e[0]);
+    }
+
+    virtual void EvaluateJacobian(const int k, const int whichParam, Matrix<double> & J) const
+    {
+        auto entry = _paramMap[whichParam];
+        int i = entry.first;
+
+        if (_kg[i] == FIXED_ROTATION)
+            assert(false);
+
+        double xg[3] = {0.};
+        for (int r = 0; r < i; r++)
+        {
+            double xgr[3];
+            GetGlobalRotation_Unsafe(r, xgr);
+            axScale_Unsafe(_A[r], xgr, xgr);
+            axAdd_Unsafe(xgr, xg, xg);
+        }
+
+        double xgi[3];
+        GetGlobalRotation_Unsafe(i, xgi);
+        axScale_Unsafe(_A[i], xgi, xgi);
+
+        double Jq[9] = {0.};
+        axAdd_da_Unsafe(xgi, xg, Jq);
+        scaleVectorIP_Static<double, 9>(_w * _A[i], Jq);
+
+        axAdd_Unsafe(xgi, xg, xg);
+
+        for (int l = i + 1; l < _fixed.size(); l++)
+        {
+            double xgl[3];
+            GetGlobalRotation_Unsafe(l, xgl);
+            axScale_Unsafe(_A[l], xgl, xgl);
+
+            double Jp[9];
+            axAdd_db_Unsafe(xgl, xg, Jp);
+
+            double Jr[9];
+            multiply_A_B_Static<double, 3, 3, 3>(Jp, Jq, Jr);
+            copyVector_Static<double, 9>(Jr, Jq);
+
+            axAdd_Unsafe(xgl, xg, xg);
+        }
+
+        if (_kg[i] == INDEPENDENT_ROTATION)
+        {
+            copyVector_Static<double, 9>(Jq, J[0]);
+            return;
+        }
+        
+        int __ARG_COUNT = 0;
+        #define IF_PARAM_ON_CONDITION(X) if ((X) && (entry.second == __ARG_COUNT++))
+
+        for (int j=0; j < _kg[i]; j++)
+        {
+            IF_PARAM_ON_CONDITION(!_fixedXgb)
+            {
+                scaleVectorIP_Static<double, 9>(_yg[i][j]->GetCoefficient(0), Jq);
+                copyVector_Static<double, 9>(Jq, J[0]);
+                return;
+            }
+
+            IF_PARAM_ON_CONDITION(true) 
+            {
+                multiply_A_v_Static<double, 3, 3>(Jq, _Xgb[i][j]->GetRotation(0), J[0]);
+                return; 
+            }
+        }
+
+        #undef IF_PARAM_ON_CONDITION
+    }
+
+    enum
+    { 
+        INDEPENDENT_ROTATION=-1, 
+        FIXED_ROTATION=0, 
+        BASIS_ROTATION_1=1, 
+        BASIS_ROTATION_2=2, 
+        BASIS_ROTATION_3=3, 
+        NUM_ROTATION_TYPES=5 
+    };
+
+protected:
+    vector<int> _kg;
+    vector<vector<const RotationNode *>> _Xgb;
+    vector<vector<const CoefficientsNode *>> _yg;
+    vector<const RotationNode *> _Xg;
+    const Vector<double> _A;
+    const double _w;
+    const Vector<int> _fixed;
+    bool _fixedXgb;
+
+    vector<pair<int, int>> _paramMap;
+};
+
 #endif
