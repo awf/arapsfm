@@ -1144,4 +1144,76 @@ protected:
     vector<pair<int, int>> _paramMap;
 };
 
+// GlobalScalesLinearCombinationEnergy
+class GlobalScalesLinearCombinationEnergy : public Energy
+{
+public:
+    GlobalScalesLinearCombinationEnergy(vector<const ScaleNode *> && s,
+                                        const Vector<double> & A,
+                                        const double w,
+                                        const Vector<int> && fixed)
+
+    : _s(s), _A(A), _w(w), _fixed(fixed) 
+    {
+        for (int i=0; i < _fixed.size(); i++)
+        {
+            if (_fixed[i])
+                continue;
+
+            _paramMap.push_back(i);
+        }
+    }
+
+    virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
+    {
+        vector<int> * pUsedParamTypes = new vector<int>;
+
+        for (int i=0; i < _fixed.size(); i++)
+        {
+            if (_fixed[i])
+                continue;
+
+            pUsedParamTypes->push_back(_s[i]->GetParamId());
+        }
+
+        costFunctions.push_back(new Energy_CostFunction(*this, pUsedParamTypes, 1));
+    }
+
+    virtual int GetCorrespondingParam(const int k, const int l) const
+    {
+        int i = _paramMap[l];
+        return _s[i]->GetOffset();
+    }
+
+    virtual int GetNumberOfMeasurements() const
+    {
+        return 1;
+    }
+
+    virtual void EvaluateResidual(const int k, Vector<double> & e) const
+    {
+        double r = 0.;
+        for (int i = 0; i < _A.size(); i++)
+            r += _A[i] * _s[i]->GetScale();
+
+        r *= _w;
+
+        e[0] = r;
+    }
+
+    virtual void EvaluateJacobian(const int k, const int whichParam, Matrix<double> & J) const
+    {
+        int i = _paramMap[whichParam];
+        J[0][0] = _w * _A[i];
+    }
+
+protected:
+    vector<const ScaleNode *> _s;
+    const Vector<double> & _A;
+    const double _w;
+    const Vector<int> _fixed;
+
+    vector<int> _paramMap;
+};
+
 #endif
