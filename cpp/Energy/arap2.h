@@ -1149,7 +1149,7 @@ class GlobalScalesLinearCombinationEnergy : public Energy
 {
 public:
     GlobalScalesLinearCombinationEnergy(vector<const ScaleNode *> && s,
-                                        const Vector<double> & A,
+                                        const Vector<double> && A,
                                         const double w,
                                         const Vector<int> && fixed)
 
@@ -1209,7 +1209,7 @@ public:
 
 protected:
     vector<const ScaleNode *> _s;
-    const Vector<double> & _A;
+    const Vector<double> _A;
     const double _w;
     const Vector<int> _fixed;
 
