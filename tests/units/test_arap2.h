@@ -158,8 +158,6 @@ PyObject * EvaluateGlobalRotationLinearCombinationEnergy(PyArrayObject * npy_kg,
     }
 
     PYARRAY_AS_VECTOR(int, npy_kg, kg);
-    PYARRAY_AS_VECTOR(double, npy_A, A);
-    PYARRAY_AS_VECTOR(int, npy_fixed, fixed);
 
     vector<int> arg_kg;
     vector<vector<const RotationNode *>> arg_Xgb;
@@ -167,6 +165,9 @@ PyObject * EvaluateGlobalRotationLinearCombinationEnergy(PyArrayObject * npy_kg,
     vector<const RotationNode *> arg_Xg;
 
     int l = 0;
+
+    PYARRAY_AS_VECTOR(int, npy_fixed, fixed);
+    PYARRAY_AS_VECTOR(double, npy_A, A);
 
     for (int i = 0; i < A.size(); i++)
     {
@@ -201,9 +202,9 @@ PyObject * EvaluateGlobalRotationLinearCombinationEnergy(PyArrayObject * npy_kg,
                                                  move(arg_Xgb),
                                                  move(arg_yg),
                                                  move(arg_Xg),
-                                                 A,
+                                                 move(A),
                                                  w,
-                                                 fixed,
+                                                 move(fixed),
                                                  fixedXgb);
 
     PyObject * py_list = PyList_New(0);
