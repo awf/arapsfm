@@ -182,23 +182,26 @@ int solve_core(PyArrayObject * npy_T,
             false,  // fixedXb  
             false,  // fixedV
             true,   // fixedV1
-            i == 0   // fixedScale
+            i == 0  // fixedScale
             ));
     }
 
-    for (int i = 1; i < nodes_V1.size(); i++)
+    for (int i = 1; i < nodes_V1.size() - 1; i++)
     {
         vector<const ScaleNode *> s_nodes;
+        s_nodes.push_back(nodes_s[i + 1]);
         s_nodes.push_back(nodes_s[i]);
         s_nodes.push_back(nodes_s[i - 1]);
 
-        Vector<double> scaleCoefficients(2);
+        Vector<double> scaleCoefficients(3);
         scaleCoefficients[0] = 1.0;
-        scaleCoefficients[1] = -1.0;
+        scaleCoefficients[1] = -2.0;
+        scaleCoefficients[2] = 1.0;
 
-        Vector<int> fixedScales(2);
+        Vector<int> fixedScales(3);
         fixedScales[0] = 0;
-        fixedScales[1] = i == 1;
+        fixedScales[1] = 0;
+        fixedScales[2] = (i - 1 == 0);
 
         problem.AddEnergy(new GlobalScalesLinearCombinationEnergy(
             move(s_nodes), 
@@ -206,20 +209,20 @@ int solve_core(PyArrayObject * npy_T,
             sqrt(V.num_rows() * lambdas[1]),
             move(fixedScales)));
 
-        Vector<double> rotationCoefficients(2);
+        Vector<double> rotationCoefficients(3);
         rotationCoefficients[0] = 1.0;
-        rotationCoefficients[1] = -1.0;
+        rotationCoefficients[1] = -2.0;
+        rotationCoefficients[2] = 1.0;
 
-        Vector<int> fixedRotations(2);
-        fixedRotations[0] = 0;
-        fixedRotations[1] = 0;
+        Vector<int> fixedRotations(3);
+        fillVector(0, fixedRotations);
 
         vector<int> arg_kg;
         vector<vector<const RotationNode *>> arg_Xgb; 
         vector<vector<const CoefficientsNode *>> arg_yg; 
         vector<const RotationNode *> arg_Xg;
 
-        for (int j = 0; j < 2; j++)
+        for (int j = -1; j < 2; j++)
         {
             vector<const RotationNode *> arg_nodes_Xgb;
             vector<const CoefficientsNode *> arg_nodes_yg;
@@ -287,10 +290,10 @@ int solve_instance(PyArrayObject * npy_T,
                    PyArrayObject * npy_y,
                    PyArrayObject * npy_X, 
                    PyArrayObject * npy_V0,
-                   PyArrayObject * npy_s0,
                    PyArrayObject * npy_sp,
                    PyArrayObject * npy_Xgp,
                    PyArrayObject * npy_Xp,
+                   PyObject * list_s0,
                    PyArrayObject * npy_V1, 
                    PyArrayObject * npy_U, 
                    PyArrayObject * npy_L, 
@@ -375,7 +378,9 @@ int solve_instance(PyArrayObject * npy_T,
     problem.AddNode(node_X);
 
     PYARRAY_AS_MATRIX(double, npy_V0, V0);
-    PYARRAY_AS_MATRIX(double, npy_s0, s0);
+
+    auto s0 = PyList_to_vector_of_Matrix<double>(list_Xgb);
+
     PYARRAY_AS_MATRIX(double, npy_sp, sp);
     PYARRAY_AS_MATRIX(double, npy_Xgp, Xgp);
     PYARRAY_AS_MATRIX(double, npy_Xp, Xp);
@@ -482,20 +487,47 @@ int solve_instance(PyArrayObject * npy_T,
             *node_V1,
             mesh, sqrt(lambdas[5]), uniformWeights, false));
 
-        auto node_s0 = new ScaleNode(s0);
-        problem.AddFixedNode(node_s0);
+    }
+
+    if (s0.size() > 0)
+    {
+        vector<ScaleNode *> nodes_s0;
+        for (int i = 0; i < s0.size(); i++)
+        {
+            nodes_s0.push_back(new ScaleNode(*s0[i]));
+            problem.AddFixedNode(nodes_s0.back());
+        }
 
         vector<const ScaleNode *> s_nodes;
         s_nodes.push_back(node_s);
-        s_nodes.push_back(node_s0);
+        for (int i = 0; i < nodes_s0.size(); i++)
+            s_nodes.push_back(nodes_s0[i]);
 
-        Vector<double> scaleCoefficients(2);
-        scaleCoefficients[0] = 1.0;
-        scaleCoefficients[1] = -1.0;
+        Vector<double> scaleCoefficients;
+        Vector<int> fixedScales;
 
-        Vector<int> fixedScales(2);
-        fixedScales[0] = 0;
-        fixedScales[1] = 1;
+        if (s_nodes.size() == 2)
+        {
+            scaleCoefficients.newsize(2);
+            scaleCoefficients[0] = 1.0;
+            scaleCoefficients[1] = -1.0;
+
+            fixedScales.newsize(2);
+            fixedScales[0] = 0;
+            fixedScales[1] = 1;
+        }
+        else
+        {
+            scaleCoefficients.newsize(3);
+            scaleCoefficients[0] = 1.0;
+            scaleCoefficients[1] = -2.0;
+            scaleCoefficients[2] = 1.0;
+
+            fixedScales.newsize(3);
+            fixedScales[0] = 0;
+            fixedScales[1] = 1;
+            fixedScales[2] = 1;
+        }
 
         problem.AddEnergy(new GlobalScalesLinearCombinationEnergy(
             move(s_nodes), 
@@ -503,26 +535,40 @@ int solve_instance(PyArrayObject * npy_T,
             sqrt(V0.num_rows() * lambdas[6]),
             move(fixedScales)));
 
+        Vector<double> rotationCoefficients;
+        Vector<int> fixedRotations;
+
+        if (s_nodes.size() == 2)
+        {
+            rotationCoefficients.newsize(2);
+            rotationCoefficients[0] = 1.0;
+            rotationCoefficients[1] = -1.0;
+
+            fixedRotations.newsize(2);
+        }
+        else
+        {
+            rotationCoefficients.newsize(3);
+            rotationCoefficients[0] = 1.0;
+            rotationCoefficients[1] = -2.0;
+            rotationCoefficients[2] = 1.0;
+
+            fixedRotations.newsize(3);
+        }
+
         vector<int> arg_kg;
         vector<vector<const RotationNode *>> arg_Xgb; 
         vector<vector<const CoefficientsNode *>> arg_yg; 
         vector<const RotationNode *> arg_Xg;
 
-        Vector<double> rotationCoefficients(2);
-        rotationCoefficients[0] = 1.0;
-        rotationCoefficients[1] = -1.0;
-
-        Vector<int> fixedRotations(2);
-
         int l = 0;
-        for (int i = 0; i < 2; i++)
+        for (int i = 0; i < rotationCoefficients.size(); i++)
         {
             vector<const RotationNode *> arg_nodes_Xgb;
             vector<const CoefficientsNode *> arg_nodes_yg;
             const RotationNode * arg_ptr_Xg = nullptr;
 
             int isFixed = 1;
-
             int n = kg[l++];
 
             if (n == GlobalRotationLinearCombinationEnergy::FIXED_ROTATION)
@@ -585,6 +631,7 @@ int solve_instance(PyArrayObject * npy_T,
     dealloc_vector(Xgb);
     dealloc_vector(yg);
     dealloc_vector(Xg);
+    dealloc_vector(s0);
 
     return ret;
 }
