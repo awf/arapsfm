@@ -19,14 +19,17 @@ def main():
     for full_path in full_paths:
         print '<- %s' % full_path
         z = np.load(full_path)
-        d = {k:z[k] for k in z.keys()}
+        d = {k:z[k] for k in ['T', 'V']}
 
-        C = d['C'].tolist()
-        P = d['P'].tolist()
+        C = z['C'].tolist()
+        P = z['P'].tolist()
 
-        i = C.index(args.index)
+        try:
+            i = C.index(args.index)
+        except ValueError:
+            continue
 
-        if args.new_index is not None:
+        if args.new_index is None:
             del C[i]
             del P[i]
         else:
