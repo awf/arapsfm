@@ -148,7 +148,8 @@ setup(
                   ['core_recovery/lm_alt_solvers2.pyx',
                    'cpp/Solve/problem.cpp',
                    'cpp/Solve/node.cpp',
-                   'cpp/Geometry/mesh_walker.cpp'
+                   'cpp/Geometry/mesh_walker.cpp',
+                   'cpp/Energy/narrow_band_silhouette.cpp',
                   ] +
                   SSLM_BASE_SRC + 
                   SSLM_MATH_SRC,
