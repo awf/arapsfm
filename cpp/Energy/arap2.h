@@ -178,13 +178,13 @@ public:
                                 const VertexNode & V1,
                                 const Mesh & mesh, const double w,
                                 bool uniformWeights, 
-                                bool fixedXgb, bool fixedXb, bool fixedV, bool fixedV1, bool fixedScale)
+                                bool fixedXgb, bool fixedXb, bool fixedV, bool fixedV1, bool fixedScale, bool fixedXg)
         : _V(V), _s(s), _kg(kg), _Xgb(Xgb), _yg(yg), _Xg(Xg), 
           _k(k), _Xb(Xb), _y(y), _X(X), 
           _V1(V1), 
           _mesh(mesh), _w(w), 
           _uniformWeights(uniformWeights), 
-          _fixedXgb(fixedXgb), _fixedXb(fixedXb), _fixedV(fixedV), _fixedV1(fixedV1), _fixedScale(fixedScale),
+          _fixedXgb(fixedXgb), _fixedXb(fixedXb), _fixedV(fixedV), _fixedV1(fixedV1), _fixedScale(fixedScale), _fixedXg(fixedXg),
           _kLookup(V.GetCount())
     {
         int j = 0;
@@ -213,24 +213,27 @@ public:
 
         if (!_fixedScale) pUsedParamTypes->push_back(_s.GetParamId());
 
-        int n = 0;
-
-        switch (_kg)
+        if (!_fixedXg)
         {
-        case FIXED_ROTATION:
-            break;
-        case INDEPENDENT_ROTATION:
-            pUsedParamTypes->push_back(_Xg->GetParamId());
-            break;
-        default:
-            n = _kg;
-            break;
-        }
+            int n = 0;
 
-        for (int i=0; i < n; i++)
-        {
-            if (!_fixedXgb) pUsedParamTypes->push_back(_Xgb[i]->GetParamId());
-            pUsedParamTypes->push_back(_yg[i]->GetParamId());
+            switch (_kg)
+            {
+            case FIXED_ROTATION:
+                break;
+            case INDEPENDENT_ROTATION:
+                pUsedParamTypes->push_back(_Xg->GetParamId());
+                break;
+            default:
+                n = _kg;
+                break;
+            }
+
+            for (int i=0; i < n; i++)
+            {
+                if (!_fixedXgb) pUsedParamTypes->push_back(_Xgb[i]->GetParamId());
+                pUsedParamTypes->push_back(_yg[i]->GetParamId());
+            }
         }
 
         return pUsedParamTypes;
@@ -310,15 +313,18 @@ public:
         IF_PARAM_ON_CONDITION(!_fixedV) return j + _V.GetOffset();
         IF_PARAM_ON_CONDITION(!_fixedScale) return _s.GetOffset();
 
-        if (_kg == FIXED_ROTATION) {}
-        else IF_PARAM_ON_CONDITION(_kg == INDEPENDENT_ROTATION) return _Xg->GetOffset();
-        else
+        if (!_fixedXg)
         {
-            // `_kg` in {BASIS_ROTATION_1=1, BASIS_ROTATION_2=2, BASIS_ROTATION_3=3}
-            for (int n=0; n < _kg; n++)
+            if (_kg == FIXED_ROTATION) {}
+            else IF_PARAM_ON_CONDITION(_kg == INDEPENDENT_ROTATION) return _Xg->GetOffset();
+            else
             {
-                IF_PARAM_ON_CONDITION(!_fixedXgb) return _Xgb[n]->GetOffset();
-                IF_PARAM_ON_CONDITION(true) return _yg[n]->GetOffset();
+                // `_kg` in {BASIS_ROTATION_1=1, BASIS_ROTATION_2=2, BASIS_ROTATION_3=3}
+                for (int n=0; n < _kg; n++)
+                {
+                    IF_PARAM_ON_CONDITION(!_fixedXgb) return _Xgb[n]->GetOffset();
+                    IF_PARAM_ON_CONDITION(true) return _yg[n]->GetOffset();
+                }
             }
         }
 
@@ -445,80 +451,83 @@ public:
         // s
         IF_PARAM_ON_CONDITION(!_fixedScale) return arapJac_s_Unsafe(w, q, _V.GetVertex(i), _V.GetVertex(j), J[0]);
 
-        if (_kg == FIXED_ROTATION) {}
-        else IF_PARAM_ON_CONDITION(_kg == INDEPENDENT_ROTATION) 
+        if (!_fixedXg)
         {
-            // Xg
-
-            // dr/dq
-            double Jq[12];
-            arapJac_Q_Unsafe(_V.GetVertex(i), _V.GetVertex(j), w * _s.GetScale(), q, Jq);
-
-            // dq/dqg
-            double Jqg[16];
-            quatMultiply_dp_Unsafe(qi, Jqg);
-            
-            // dqg/xg [xg == _Xg->GetRotation(0)]
-            double Jxg[12];
-            quatDx_Unsafe(_Xg->GetRotation(0), Jxg);
-
-            double A[12];
-            multiply_A_B_Static<double, 3, 4, 4>(Jq, Jqg, A);
-            multiply_A_B_Static<double, 3, 4, 3>(A, Jxg, J[0]);
-            return;
-        }
-        else
-        {
-            for (int n=0; n < _kg; n++)
+            if (_kg == FIXED_ROTATION) {}
+            else IF_PARAM_ON_CONDITION(_kg == INDEPENDENT_ROTATION) 
             {
-                IF_PARAM_ON_CONDITION(!_fixedXgb)
+                // Xg
+
+                // dr/dq
+                double Jq[12];
+                arapJac_Q_Unsafe(_V.GetVertex(i), _V.GetVertex(j), w * _s.GetScale(), q, Jq);
+
+                // dq/dqg
+                double Jqg[16];
+                quatMultiply_dp_Unsafe(qi, Jqg);
+                
+                // dqg/xg [xg == _Xg->GetRotation(0)]
+                double Jxg[12];
+                quatDx_Unsafe(_Xg->GetRotation(0), Jxg);
+
+                double A[12];
+                multiply_A_B_Static<double, 3, 4, 4>(Jq, Jqg, A);
+                multiply_A_B_Static<double, 3, 4, 3>(A, Jxg, J[0]);
+                return;
+            }
+            else
+            {
+                for (int n=0; n < _kg; n++)
                 {
-                    // Xgb
+                    IF_PARAM_ON_CONDITION(!_fixedXgb)
+                    {
+                        // Xgb
 
-                    // dr/dq
-                    double Jq[12];
-                    arapJac_Q_Unsafe(_V.GetVertex(i), _V.GetVertex(j), w * _s.GetScale(), q, Jq);
+                        // dr/dq
+                        double Jq[12];
+                        arapJac_Q_Unsafe(_V.GetVertex(i), _V.GetVertex(j), w * _s.GetScale(), q, Jq);
 
-                    // dq/dqg
-                    double Jqg[16];
-                    quatMultiply_dp_Unsafe(qi, Jqg);
+                        // dq/dqg
+                        double Jqg[16];
+                        quatMultiply_dp_Unsafe(qi, Jqg);
 
-                    // dqg/dxg 
-                    double Jxg[12];
-                    quatDx_Unsafe(xg, Jxg);
+                        // dqg/dxg 
+                        double Jxg[12];
+                        quatDx_Unsafe(xg, Jxg);
 
-                    // dxg/dxgb == _yg[n]->GetCoefficient(0)
-                    scaleVectorIP_Static<double, 12>(_yg[n]->GetCoefficient(0), Jxg);
+                        // dxg/dxgb == _yg[n]->GetCoefficient(0)
+                        scaleVectorIP_Static<double, 12>(_yg[n]->GetCoefficient(0), Jxg);
 
-                    double A[12];
-                    multiply_A_B_Static<double, 3, 4, 4>(Jq, Jqg, A);
-                    multiply_A_B_Static<double, 3, 4, 3>(A, Jxg, J[0]);
-                    return;
-                }
+                        double A[12];
+                        multiply_A_B_Static<double, 3, 4, 4>(Jq, Jqg, A);
+                        multiply_A_B_Static<double, 3, 4, 3>(A, Jxg, J[0]);
+                        return;
+                    }
 
-                IF_PARAM_ON_CONDITION(true)
-                {
-                    // yg
+                    IF_PARAM_ON_CONDITION(true)
+                    {
+                        // yg
 
-                    // dr/dq
-                    double Jq[12];
-                    arapJac_Q_Unsafe(_V.GetVertex(i), _V.GetVertex(j), w * _s.GetScale(), q, Jq);
+                        // dr/dq
+                        double Jq[12];
+                        arapJac_Q_Unsafe(_V.GetVertex(i), _V.GetVertex(j), w * _s.GetScale(), q, Jq);
 
-                    // dq/dqg
-                    double Jqg[16];
-                    quatMultiply_dp_Unsafe(qi, Jqg);
+                        // dq/dqg
+                        double Jqg[16];
+                        quatMultiply_dp_Unsafe(qi, Jqg);
 
-                    // dqg/dxg 
-                    double Jxg[12];
-                    quatDx_Unsafe(xg, Jxg);
+                        // dqg/dxg 
+                        double Jxg[12];
+                        quatDx_Unsafe(xg, Jxg);
 
-                    // dxg/dyg == _Xgb[n]->GetRotation(0)
+                        // dxg/dyg == _Xgb[n]->GetRotation(0)
 
-                    double A[12], B[9];
-                    multiply_A_B_Static<double, 3, 4, 4>(Jq, Jqg, A);
-                    multiply_A_B_Static<double, 3, 4, 3>(A, Jxg, B);
-                    multiply_A_v_Static<double, 3, 3>(B, _Xgb[n]->GetRotation(0), J[0]);
-                    return;
+                        double A[12], B[9];
+                        multiply_A_B_Static<double, 3, 4, 4>(Jq, Jqg, A);
+                        multiply_A_B_Static<double, 3, 4, 3>(A, Jxg, B);
+                        multiply_A_v_Static<double, 3, 3>(B, _Xgb[n]->GetRotation(0), J[0]);
+                        return;
+                    }
                 }
             }
         }
@@ -638,6 +647,8 @@ protected:
     bool _fixedV;
     bool _fixedV1;
     bool _fixedScale;
+    bool _fixedXg;
+
     Vector<int> _kLookup;
 };
 
