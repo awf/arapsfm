@@ -52,6 +52,8 @@ cdef extern from "lm_alt_solvers2.h":
         np.ndarray npy_Xb,
         np.ndarray npy_y,
         np.ndarray npy_X, 
+        list list_y0,
+        list list_X0,
         np.ndarray npy_V0,
         np.ndarray npy_sp,
         np.ndarray npy_Xgp,
@@ -150,7 +152,7 @@ def solve_core(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
                bint uniformWeights,
                **kwargs):
 
-    assert lambdas.shape[0] == 4
+    assert lambdas.shape[0] == 5
     assert preconditioners.shape[0] == 4
 
     cdef OptimiserOptions options
@@ -177,6 +179,8 @@ def solve_instance(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
                    np.ndarray[np.float64_t, ndim=2, mode='c'] Xb,
                    np.ndarray[np.float64_t, ndim=2, mode='c'] y,
                    np.ndarray[np.float64_t, ndim=2, mode='c'] X,
+                   list y0,
+                   list X0,
                    np.ndarray[np.float64_t, ndim=2, mode='c'] V0,
                    np.ndarray[np.float64_t, ndim=2, mode='c'] sp,
                    np.ndarray[np.float64_t, ndim=2, mode='c'] Xgp,
@@ -199,7 +203,7 @@ def solve_instance(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
                    bint fixedScale,
                    **kwargs):
 
-    assert lambdas.shape[0] == 8
+    assert lambdas.shape[0] == 9
     assert preconditioners.shape[0] == 5
     assert piecewisePolynomial.shape[0] == 2
 
@@ -208,7 +212,7 @@ def solve_instance(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
 
     cdef int status = solve_instance_c(T, V, s,
         kg,  Xgb,  yg,  Xg,  
-        k,  Xb,  y,  X,  
+        k,  Xb,  y,  X,  y0, X0,
         V0,  sp,  Xgp,  Xp, s0, 
         V1,  U,  L,  S,  SN,  Rx,  Ry, 
         C, P, 
