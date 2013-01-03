@@ -414,7 +414,7 @@ int solve_instance(PyArrayObject * npy_T,
 
     PYARRAY_AS_MATRIX(double, npy_V0, V0);
 
-    auto s0 = PyList_to_vector_of_Matrix<double>(list_Xgb);
+    auto s0 = PyList_to_vector_of_Matrix<double>(list_s0);
 
     PYARRAY_AS_MATRIX(double, npy_sp, sp);
     PYARRAY_AS_MATRIX(double, npy_Xgp, Xgp);
@@ -445,13 +445,24 @@ int solve_instance(PyArrayObject * npy_T,
     int l = 0;
     int n = kg[l++];
 
+    // bool fixedGlobalRotation = s0.size() < 2;
+    bool fixedGlobalRotation = false;
+
     if (n == CompleteSectionedArapEnergy::FIXED_ROTATION ) {}
     else if (n == CompleteSectionedArapEnergy::INDEPENDENT_ROTATION)
     {
         int m = kg[l++];
         Xgi = nodes_Xg[m];
-        problem.AddNode(nodes_Xg[m]);
-        XgAdded[m] = 1;
+        if (fixedGlobalRotation)
+        {
+            problem.AddFixedNode(nodes_Xg[m]);
+            XgAdded[m] = 2;
+        }
+        else
+        {
+            problem.AddNode(nodes_Xg[m]);
+            XgAdded[m] = 1;
+        }
     }
     else
     {
@@ -462,8 +473,16 @@ int solve_instance(PyArrayObject * npy_T,
             int m = kg[l++];
             if (!ygAdded[m])
             {
-                problem.AddNode(nodes_yg[m]);
-                ygAdded[m] = 1;
+                if (fixedGlobalRotation)
+                {
+                    problem.AddFixedNode(nodes_yg[m]);
+                    ygAdded[m] = 2;
+                }
+                else
+                {
+                    problem.AddNode(nodes_yg[m]);
+                    ygAdded[m] = 1;
+                }
             }
             ygi.push_back(nodes_yg[m]);
         }
@@ -480,7 +499,8 @@ int solve_instance(PyArrayObject * npy_T,
         true,   // fixedXb
         true,   // fixedV
         false,  // fixedV1
-        fixedScale));
+        fixedScale,
+        fixedGlobalRotation));
 
     PYARRAY_AS_VECTOR(double, npy_piecewisePolynomial, piecewisePolynomial);
 
