@@ -109,6 +109,7 @@ int solve_core(PyArrayObject * npy_T,
 
     auto node_Xb = new RotationNode(Xb);
     problem.AddNode(node_Xb);
+    node_Xb->SetPreconditioner(preconditioners[1]);
 
     vector<CoefficientsNode *> nodes_y;
     for (int i = 0; i < y.size(); i++)
@@ -182,8 +183,39 @@ int solve_core(PyArrayObject * npy_T,
             false,  // fixedXb  
             false,  // fixedV
             true,   // fixedV1
-            i == 0  // fixedScale
+            i == 0, // fixedScale
+            false   // fixedXg
             ));
+    }
+
+    for (int i = 1; i < nodes_V1.size() - 1; i++)
+    {
+        vector<const RotationNode *> X_nodes;
+        for (int j = i - 1; j <= i + 1; j ++)
+            if (j < nodes_X.size())
+                X_nodes.push_back(nodes_X[j]);
+
+        vector<const CoefficientsNode *> y_nodes;
+        for (int j = i - 1; j <= i + 1; j ++)
+            if (j < nodes_y.size())
+                y_nodes.push_back(nodes_y[j]);
+
+        Vector<double> rotationCoefficients(3);
+        rotationCoefficients[0] = 1.0;
+        rotationCoefficients[1] = -2.0;
+        rotationCoefficients[2] = 1.0;
+
+        Vector<int> fixed(3);
+        fillVector(0, fixed);
+
+        problem.AddEnergy(new SectionedArapLinearCombinationEnergy(
+            k, *node_Xb,
+            move(X_nodes),
+            move(y_nodes),
+            move(rotationCoefficients),
+            sqrt(lambdas[3]),
+            move(fixed),
+            false));
     }
 
     for (int i = 1; i < nodes_V1.size() - 1; i++)
@@ -208,7 +240,10 @@ int solve_core(PyArrayObject * npy_T,
             move(scaleCoefficients), 
             sqrt(V.num_rows() * lambdas[1]),
             move(fixedScales)));
+    }
 
+    for (int i = 1; i < nodes_V1.size() - 1; i++)
+    {
         Vector<double> rotationCoefficients(3);
         rotationCoefficients[0] = 1.0;
         rotationCoefficients[1] = -2.0;
@@ -262,7 +297,7 @@ int solve_core(PyArrayObject * npy_T,
                                                                     false));
     }
 
-    problem.AddEnergy(new LaplacianEnergy(*node_V, mesh, sqrt(lambdas[3])));
+    problem.AddEnergy(new LaplacianEnergy(*node_V, mesh, sqrt(lambdas[4])));
 
     int ret = problem.Minimise(*options);
 
