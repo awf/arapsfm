@@ -8,6 +8,7 @@ from visualise import *
 from itertools import ifilter, count, izip
 from functools import wraps
 from operator import add, mul
+from pprint import pprint
 
 from geometry.axis_angle import *
 from geometry.quaternion import *
@@ -331,60 +332,103 @@ def main():
     parser.add_argument('--with_core', type=str, default=None)
     parser.add_argument('--subdivide', type=int, default=0)
     parser.add_argument('--compute_normals', action='store_true', default=False)
+    parser.add_argument('--extension', type=str, default='.npz')
+    parser.add_argument('--N', type=int, default=-1)
 
     args = parser.parse_args()
 
     # echo arguments
     print 'Arguments:', args
 
-    # setup visualisation
-    print 'Source file: %s' % args.input
-    print 'Available keys:', np.load(args.input).keys()
+    if os.path.isfile(args.input):
+        input_paths = [args.input]
+        output_paths = [args.output_directory]
+    else: 
+        input_files = filter(lambda f: f.endswith(args.extension),
+                             os.listdir(args.input))
 
-    vis = StandaloneVisualisation(args.input,
-                                  vertices_key=args.vertices_key,
-                                  with_core=args.with_core,
-                                  subdivide=args.subdivide,
-                                  compute_normals=args.compute_normals)
+        def input_number(f):
+            try:
+                return int(os.path.splitext(f)[0].split('_')[-1])
+            except ValueError:
+                return None
 
-    if args.ren_win_size is not None:
-        vis.ren_win.SetSize(*tuple_from_string(args.ren_win_size))
+        input_files = filter(lambda f: input_number(f) is not None,
+                             input_files)
+
+        sorted_input_files = sorted(input_files, key=input_number)
+
+        if args.N > 0:
+            sorted_input_files = sorted_input_files[:args.N]
+                
+        input_paths = map(lambda f: os.path.join(args.input, f),
+                          sorted_input_files)
+
+        if args.output_directory is not None:
+            input_numbers = map(input_number, sorted_input_files)
+            output_paths = map(lambda i: os.path.join(
+                               args.output_directory, str(i)), input_numbers)
+        else:
+            output_paths = [None] * len(input_paths)
 
     # is visualisation interface or to file?
     interactive_session = args.output_directory is None
 
     # setup output directory
-    if not interactive_session and not os.path.exists(args.output_directory):
-        print 'Creating directory: ', args.output_directory
-        os.makedirs(args.output_directory)
+    if not interactive_session:
+        paths_to_make = filter(lambda p: not os.path.exists(p),
+                               output_paths)
+        map(os.makedirs, paths_to_make)
 
-    # peform camera actions and save outputs as required
-    n = count(0)
+    vis = None
 
-    for action in args.camera_actions:
-        # parse the action
-        method, tup, save_after = parse_camera_action(action)
-        print '%s(*%s), save_after=%s' % (method, tup, save_after)
+    for i, input_path in enumerate(input_paths):
+        # setup visualisation
+        print 'Source file: %s' % input_path
+        print 'Available keys:', np.load(input_path).keys()
 
-        if ':' in method:
-            name, method = method.split(':')
-            vis.actor_properties(name, (method, tup))
+        if vis is None:
+            vis = StandaloneVisualisation(input_path,
+                                          vertices_key=args.vertices_key,
+                                          with_core=args.with_core,
+                                          subdivide=args.subdivide,
+                                          compute_normals=args.compute_normals)
+
+            if args.ren_win_size is not None:
+                vis.ren_win.SetSize(*tuple_from_string(args.ren_win_size))
         else:
-            # execute the camera action
-            vis.camera_actions((method, tup))
+            # re-initialise the visualisation with-out closing the renderer
+            vis.z = np.load(input_path)
+            map(vis.remove_actor, vis.actors.keys())
+            vis.setup()
 
-        # save if required
-        if not interactive_session and save_after:
-            full_path = os.path.join(args.output_directory, '%d.png' % next(n))
-            print 'Output: ', full_path
-            vis.write(full_path, magnification=args.magnification)
+        n = count(0)
 
-    # show if interactive
-    if interactive_session:
-        print 'Interactive'
+        # peform camera actions and save outputs as required
+        for action in args.camera_actions:
+            # parse the action
+            method, tup, save_after = parse_camera_action(action)
+            print '%s(*%s), save_after=%s' % (method, tup, save_after)
 
-        vis.ren_win.Render()
-        vis.execute(magnification=args.magnification)
+            if ':' in method:
+                name, method = method.split(':')
+                vis.actor_properties(name, (method, tup))
+            else:
+                # execute the camera action
+                vis.camera_actions((method, tup))
+
+            # save if required
+            if not interactive_session and save_after:
+                full_path = os.path.join(output_paths[i], '%d.png' % next(n))
+                print 'Output: ', full_path
+                vis.write(full_path, magnification=args.magnification)
+
+        # show if interactive
+        if interactive_session:
+            print 'Interactive'
+
+            vis.ren_win.Render()
+            vis.execute(magnification=args.magnification)
 
 # test_tuple_from_string
 def test_tuple_from_string():
