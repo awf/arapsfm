@@ -956,11 +956,11 @@ public:
                 continue;
 
             int j = n + 1;
-
             if (residualMaps[j] == nullptr)
                 residualMaps[j] = new vector<int>;
 
-            residualMaps[j]->push_back(i);
+            residualMaps[j]->push_back(_localResidualMap.size());
+            _localResidualMap.push_back(i);
         }
 
         if (residualMaps[INDEPENDENT_ROTATION + 1] != nullptr)
@@ -1000,8 +1000,10 @@ public:
         }
     }
 
-    virtual int GetCorrespondingParam(const int k, const int l) const
+    virtual int GetCorrespondingParam(const int k1, const int l) const
     {
+        int k = _localResidualMap[k1];
+
         int __ARG_COUNT = 0;
         #define IF_PARAM_ON_CONDITION(X) if ((X) && (l == __ARG_COUNT++))
 
@@ -1034,7 +1036,7 @@ public:
 
     virtual int GetNumberOfMeasurements() const
     {
-        return _kLookup.size();
+        return _localResidualMap.size();
     }
 
     virtual void GetRotation_Unsafe(const int i, const int k, double * x) const
@@ -1060,8 +1062,10 @@ public:
         return;
     }
 
-    virtual void EvaluateResidual(const int k, Vector<double> & e) const
+    virtual void EvaluateResidual(const int k1, Vector<double> & e) const
     {
+        int k = _localResidualMap[k1];
+
         double x[3] = {0.};
 
         for (int i = 0; i < _A.size(); i++)
@@ -1076,8 +1080,10 @@ public:
         copyVector_Static<double, 3>(x, &e[0]);
     }
 
-    virtual void EvaluateJacobian(const int k, const int whichParam, Matrix<double> & J) const
+    virtual void EvaluateJacobian(const int k1, const int whichParam, Matrix<double> & J) const
     {
+        int k = _localResidualMap[k1];
+
         int m = _kLookup[k];
         assert(_k[m] != FIXED_ROTATION);
 
@@ -1194,6 +1200,7 @@ protected:
     bool _fixedXb;
 
     vector<int> _kLookup;
+    vector<int> _localResidualMap;
 };
 
 // GlobalRotationLinearCombinationEnergy
