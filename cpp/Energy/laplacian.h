@@ -9,61 +9,18 @@ using namespace V3D;
 #include "Energy/energy.h"
 #include "Geometry/mesh.h"
 
-// laplacianResiduals_Unsafe
-inline void laplacianResiduals_Unsafe(const Mesh & mesh, const Matrix<double> & V, const int vertexIndex, const double & w, double * e)
-{
-    // get the indices for the (directional) incident edges
-    const vector<int> & halfEdges = mesh.GetHalfEdgesFromVertex(vertexIndex);
-
-    // calculate the centroid
-    double centroid[3] = {0., 0., 0.};
-    const double wSum = (double)halfEdges.size();
-
-    for (int i=0; i < halfEdges.size(); i++)
-    {
-        const int j = mesh.GetHalfEdge(halfEdges[i], 1);
-        makeInterpolatedVector_Static<double, 3>(1.0, centroid, 1.0, V[j], centroid);
-    }
-
-    // calulate the weighted error
-    makeInterpolatedVector_Static<double, 3>(w, V[vertexIndex], -w / wSum, centroid, e);
-}
-
-// laplacianJac_Vi_Unsafe
-inline void laplacianJac_Vi_Unsafe(const Mesh & mesh, const int vertexIndex, const int whichParam, const double & w, double * J)
-{
-    // get the indices for the (directional) incident edges
-    const vector<int> & halfEdges = mesh.GetHalfEdgesFromVertex(vertexIndex);
-    int indexIntoAdj = whichParam - 1;
-
-    double diagonalEntry;
-
-    if (indexIntoAdj < 0)
-    {
-        // centre vertex
-        diagonalEntry = w;
-    }
-    else
-    {
-        const double wSum = (double)halfEdges.size();
-
-        // adjacent vertex
-        diagonalEntry = -w * (1.0 / wSum);
-    }
-
-    fillVector_Static<double, 9>(0., J); 
-    J[0] = diagonalEntry;
-    J[4] = diagonalEntry;
-    J[8] = diagonalEntry;
-}
+#include <algorithm>
+using namespace std;
 
 // LaplacianEnergy
 class LaplacianEnergy : public Energy
 {
 public:
-    LaplacianEnergy(const VertexNode & V, const Mesh & mesh, const double w)
-        : _V(V), _mesh(mesh), _w(w)
-    {}
+    LaplacianEnergy(const VertexNode & V, const vector<const ScaleNode *> && s, const Mesh & mesh, const double w)
+        : _V(V), _s(s), _mesh(mesh), _w(w)
+    {
+        assert(_s.size() > 0);
+    }
 
     virtual ~LaplacianEnergy()
     {
@@ -97,14 +54,24 @@ public:
         // for each size of one ring create a cost function
         for (auto i = mapIncOneRingToVertex.begin(); i != mapIncOneRingToVertex.end(); i++)
         {
-            vector<int> * pUsedParamTypes = new vector<int>(i->first, _V.GetParamId());
+            auto pUsedParamTypes = new vector<int>(i->first + _s.size());
+
+            fill_n(pUsedParamTypes->begin(), i->first, _V.GetParamId());
+            for (int j = 0; j < _s.size(); j++)
+                (*pUsedParamTypes)[j + i->first] = _s[j]->GetParamId();
+
             costFunctions.push_back(new Energy_CostFunction(*this, pUsedParamTypes, 3, i->second));
         }
     }
 
     virtual int GetCorrespondingParam(const int k, const int i) const
     {
-        return (*_allOneRings[k])[i] + _V.GetOffset();
+        const vector<int> & oneRing = *_allOneRings[k];
+        if (i < oneRing.size())
+            return oneRing[i] + _V.GetOffset();
+
+        int scaleIndex = i - oneRing.size();
+        return _s[scaleIndex]->GetOffset();
     }
 
     virtual int GetNumberOfMeasurements() const 
@@ -112,18 +79,73 @@ public:
         return _mesh.GetNumberOfVertices();
     }
 
+    virtual double GetMeanScale() const
+    {
+        // get the mean scale
+        double sum_s = 0.;
+        for (int i=0; i < _s.size(); i++)
+            sum_s += _s[i]->GetScale();
+
+        assert(sum_s > 0.);
+
+        return sum_s / _s.size();
+    }
+
+    virtual void GetCentroid(int k, double * centroid) const
+    {
+        const vector<int> & oneRing = *_allOneRings[k];
+
+        fillVector_Static<double, 3>(0., centroid);
+
+        for (int i=1; i < oneRing.size(); i++)
+        {
+            makeInterpolatedVector_Static<double, 3>(1.0, centroid, 
+                                                     1.0, _V.GetVertex(oneRing[i]), 
+                                                     centroid);
+        }
+
+        scaleVectorIP_Static<double, 3>(1.0 / (oneRing.size() - 1), centroid);
+    }
+
     virtual void EvaluateResidual(const int k, Vector<double> & e) const
     {
-        laplacianResiduals_Unsafe(_mesh, _V.GetVertices(), k, _w, &e[0]);
+        // calculate the centroid
+        double centroid[3];
+        GetCentroid(k, centroid);
+
+        // calulate the weighted error
+        const double w = _w * GetMeanScale();
+
+        makeInterpolatedVector_Static<double, 3>(w, _V.GetVertex(k), -w, centroid, &e[0]);
     }
     
     virtual void EvaluateJacobian(const int k, const int whichParam, Matrix<double> & J) const
     {
-        laplacianJac_Vi_Unsafe(_mesh, k, whichParam, _w, J[0]);
+        // get the indices for the (directional) incident edges
+        if (whichParam < _allOneRings[k]->size())
+        {
+            double w = _w * GetMeanScale();
+
+            if (whichParam > 0)
+                w *= -1.0 / (_allOneRings[k]->size() - 1);
+
+            fillVector_Static<double, 9>(0., J[0]); 
+            J[0][0] = w;
+            J[1][1] = w;
+            J[2][2] = w;
+            return;
+        }
+
+        double centroid[3];
+        GetCentroid(k, centroid);
+
+        const double w = _w / _s.size();
+        makeInterpolatedVector_Static<double, 3>(w, _V.GetVertex(k), -w, centroid, J[0]);
     }
 
 protected:
     const VertexNode & _V;
+    const vector<const ScaleNode *> _s;
     const Mesh & _mesh;
     const double _w;
 
