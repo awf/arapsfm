@@ -378,9 +378,8 @@ def main():
             t2 = time()
             print '[%d] `update_silhouette (%d)`: %.3fs' % (l, i, t2 - t1)
 
-        map(update_silhouette, xrange(num_instances))
-
         if args.quit_after_silhouette:
+            map(update_silhouette, xrange(num_instances))
             break
 
         # solve_core
@@ -402,9 +401,23 @@ def main():
         t2 = time()
         print '[%d] `solve_core`: %.3fs' % (l, t2 - t1)
 
+        print 'scales:', np.squeeze(instScales)
+
         # don't run `solve_instance` on the last iteration
         if l >= args.outer_loops - 1:
             break
+
+        # save update from the core
+        intermediate_output = os.path.join(args.output, str(l) + 'A')
+        if not os.path.exists(intermediate_output):
+            os.makedirs(intermediate_output)
+
+        scope = args.__dict__.copy()
+        scope.update(locals())
+        save_state(intermediate_output, **scope)
+
+        # update the silhouette
+        map(update_silhouette, xrange(num_instances))
 
         # solve_instance
         def solve_instance(i):
@@ -422,12 +435,13 @@ def main():
 
             if i > 1:
                 s0 = [instScales[i-1], instScales[i-2]]
+                y0 = [y[i-1], y[i-2]]
+                X0 = [X[i-1], X[i-2]]
                 subproblem = (i, i - 1, i - 2)
-            elif i > 0:
-                s0 = [instScales[i-1]]
-                subproblem = (i, i - 1)
             else:
                 s0 = []
+                y0 = []
+                X0 = []
                 subproblem = (i,)
 
             used_Xgb, used_yg, used_Xg = [], [], []
@@ -463,13 +477,16 @@ def main():
             Xgbi = map(lambda i: Xgb[i], used_Xgb)
             ygi = map(lambda i: yg[i], used_yg)
             Xgi = map(lambda i: Xg[i], used_Xg)
-                            
-            fixed_scale = i == 0 
+
+            # fixed_scale = i == 0 
+            fixed_scale = False
 
             for j in xrange(args.max_restarts):
+                print ' [%d] s[%d]: %.3f' % (j, i, instScales[i])
+
                 status = lm.solve_instance(T, V, instScales[i],
                                            kgi, Xgbi, ygi, Xgi,
-                                           ki, Xb, y[i], X[i],
+                                           ki, Xb, y[i], X[i], y0, X0,
                                            V0, sp, Xgp, Xp, s0,
                                            V1[i], U[i], L[i],
                                            S[i], SN[i],
@@ -485,6 +502,8 @@ def main():
 
 
                 print status[1]
+
+                print ' [%d] s[%d]: %.3f' % (j, i, instScales[i])
 
                 if status[0] not in (0, 4):
                     break
