@@ -443,6 +443,8 @@ int solve_instance(PyArrayObject * npy_T,
 
     Vector<int> ygAdded(nodes_yg.size());
     Vector<int> XgAdded(nodes_Xg.size());
+    fillVector(0, ygAdded);
+    fillVector(0, XgAdded);
 
     int l = 0;
     int n = kg[l++];
