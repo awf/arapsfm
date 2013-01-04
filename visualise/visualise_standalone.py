@@ -333,9 +333,10 @@ def main():
     parser.add_argument('--subdivide', type=int, default=0)
     parser.add_argument('--compute_normals', action='store_true', default=False)
     parser.add_argument('--extension', type=str, default='.npz')
-    parser.add_argument('--N', type=int, default=-1)
+    parser.add_argument('--indices', type=str, default='None')
 
     args = parser.parse_args()
+    args.indices = eval(args.indices)
 
     # echo arguments
     print 'Arguments:', args
@@ -358,8 +359,8 @@ def main():
 
         sorted_input_files = sorted(input_files, key=input_number)
 
-        if args.N > 0:
-            sorted_input_files = sorted_input_files[:args.N]
+        if args.indices is not None:
+            sorted_input_files = [sorted_input_files[i] for i in args.indices]
                 
         input_paths = map(lambda f: os.path.join(args.input, f),
                           sorted_input_files)
