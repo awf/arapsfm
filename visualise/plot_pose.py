@@ -42,21 +42,19 @@ def main():
     get_item = lambda z, k: np.squeeze(z[k])
     get_pose = lambda z: (get_item(z, 'Xg'), get_item(z, 's'))
     Xgs, ss = zip(*map(lambda p: get_pose(np.load(p)), instance_paths))
-    # dump('state.dat', dict(Xgs=Xgs, ss=ss))
-    # return
-    # z = np.load('state.dat')
-    # Xgs = z['Xgs']
-    # ss = z['ss']
+
+    length_Xgs = map(norm, Xgs)
 
     del_Xgs = map(del_rot, Xgs[:-1], Xgs[1:])
     length_del_Xgs = map(norm, del_Xgs)
 
     # global pose
     f = plt.figure()
-    axs = [f.add_subplot(221, projection='3d'),
-           f.add_subplot(222),
-           f.add_subplot(223),
-           f.add_subplot(224),]
+    axs = [f.add_subplot(311, projection='3d'),
+           f.add_subplot(323),
+           f.add_subplot(324),
+           f.add_subplot(325),
+           f.add_subplot(326),]
             
     Xgs = np.asarray(Xgs)
 
@@ -67,19 +65,23 @@ def main():
     x, y, z = np.transpose(Xgs)
     axs[0].plot(x, y, z, 'bo-')
 
+    # absolute pose
+    length_Xgs = np.asarray(length_Xgs)
+    n = np.arange(length_Xgs.shape[0])
+    axs[1].plot(n, np.rad2deg(length_Xgs), 'bo-')
+
     # change in pose
     length_del_Xgs = np.asarray(length_del_Xgs)
-    print np.around(np.rad2deg(length_del_Xgs), decimals=3)
     n = np.arange(length_del_Xgs.shape[0])
-    axs[1].plot(n, np.rad2deg(length_del_Xgs), 'bo-')
+    axs[2].plot(n, np.rad2deg(length_del_Xgs), 'bo-')
 
     # scale
     ss = np.asarray(ss)
     n = np.arange(ss.shape[0])
-    axs[2].plot(n, ss, 'bo-')
+    axs[3].plot(n, ss, 'bo-')
 
     del_ss = ss[1:] - ss[:-1]
-    axs[3].plot(n[:-1], del_ss, 'bo-')
+    axs[4].plot(n[:-1], del_ss, 'bo-')
 
     input_dir = (args.input_dir[:-1] if args.input_dir.endswith(os.path.sep)
                                      else args.input_dir)
