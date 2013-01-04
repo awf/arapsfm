@@ -71,11 +71,7 @@ int solve_core(PyArrayObject * npy_T,
     for (int i = 0; i < s.size(); i++)
     {
         nodes_s.push_back(new ScaleNode(*s[i]));
-
-        if (i == 0)
-            problem.AddFixedNode(nodes_s.back());
-        else
-            problem.AddNode(nodes_s.back());
+        problem.AddNode(nodes_s.back());
 
         nodes_s.back()->SetPreconditioner(preconditioners[2]);
     }
@@ -183,7 +179,7 @@ int solve_core(PyArrayObject * npy_T,
             false,  // fixedXb  
             false,  // fixedV
             true,   // fixedV1
-            i == 0, // fixedScale
+            false,  // fixedScale
             false   // fixedXg
             ));
     }
@@ -233,7 +229,7 @@ int solve_core(PyArrayObject * npy_T,
         Vector<int> fixedScales(3);
         fixedScales[0] = 0;
         fixedScales[1] = 0;
-        fixedScales[2] = (i - 1 == 0);
+        fixedScales[2] = 0;
 
         problem.AddEnergy(new GlobalScalesLinearCombinationEnergy(
             move(s_nodes), 
@@ -297,7 +293,9 @@ int solve_core(PyArrayObject * npy_T,
                                                                     false));
     }
 
-    problem.AddEnergy(new LaplacianEnergy(*node_V, mesh, sqrt(lambdas[4])));
+    vector<const ScaleNode *> s_nodes;
+    copy(nodes_s.begin(), nodes_s.end(), back_inserter(s_nodes));
+    problem.AddEnergy(new LaplacianEnergy(*node_V, move(s_nodes), mesh, sqrt(lambdas[4])));
 
     int ret = problem.Minimise(*options);
 
