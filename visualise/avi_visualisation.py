@@ -35,19 +35,21 @@ def avi_visualisation(vis_script, input_dir, output_dir, fps, N=0,
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    valid_files = filter(valid_file, os.listdir(input_dir))
-    sorted_files = sorted(valid_files,
-                          key=lambda f: int(os.path.splitext(f)[0]))
-    if N > 0:
-        sorted_files = sorted_files[:N]
+    vis_args = kwargs.pop('vis_args')
 
-    output_paths = map(lambda f: make_figures(
-                       vis_script, 
-                       os.path.join(input_dir, f),
-                       os.path.join(output_dir, os.path.splitext(f)[0]),
-                       **kwargs),
-                       sorted_files)
+    safe_cmd(*(['python', vis_script, input_dir, 
+                '--output', output_dir,
+                '--N', str(N)] +
+               vis_args))
 
+    all_outputs = map(lambda f: os.path.join(output_dir, f),
+                      os.listdir(output_dir))
+    output_dirs = filter(os.path.isdir, all_outputs)
+    sorted_output_dirs = sorted(output_dirs, 
+        key=lambda p: int(os.path.split(p)[-1]))
+                        
+    output_paths = map(lambda d: make_figures(d, **kwargs), 
+                       sorted_output_dirs)
     output_paths = reduce(operator.add, output_paths)
 
     listing_path = os.path.join(output_dir, '_LISTING.txt')
@@ -79,13 +81,8 @@ def avi_visualisation(vis_script, input_dir, output_dir, fps, N=0,
         map(lambda src, dst: safe_cmd('cp', src, dst), output_paths, frame_paths)
 
 # make_figures
-def make_figures(vis_script, input_path, output_dir, vis_args=[],
-                 tiling=None, post_args=None):
-
+def make_figures(output_dir, tiling=None, post_args=None):
     # create initial visualistaions by calling `vis_script`
-    safe_cmd(*(['python', vis_script, input_path, '--output', output_dir] +
-               vis_args))
-
     files = filter(lambda f: valid_file(f, '.png'), os.listdir(output_dir))
     sorted_files = sorted(files, key=lambda f: int(os.path.splitext(f)[0]))
 
@@ -101,18 +98,21 @@ def make_figures(vis_script, input_path, output_dir, vis_args=[],
                            [full_paths[i]]))
 
     # join the images
-    joined_path = os.path.join(output_dir, 'JOINED.png')
+    if len(full_paths) > 1:
+        joined_path = os.path.join(output_dir, 'JOINED.png')
 
-    if tiling is None:
-        tiling = '%dx' % len(full_paths)
+        if tiling is None:
+            tiling = '%dx' % len(full_paths)
 
-    safe_cmd(*(['montage', 
-                '-depth', '8',
-                '-mode', 'concatenate', 
-                '-tile', tiling] +
-               full_paths + [joined_path]))
+        safe_cmd(*(['montage', 
+                    '-depth', '8',
+                    '-mode', 'concatenate', 
+                    '-tile', tiling] +
+                   full_paths + [joined_path]))
 
-    return [joined_path]
+        return [joined_path]
+    else:
+        return [full_paths[0]]
 
 # main
 def main():
