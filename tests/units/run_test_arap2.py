@@ -338,6 +338,78 @@ def main_EvaluateCompleteSectionedBasisArapEnergy():
     print_comparison(approx_V1i=approx_JV1[:, 12:15], JV1i=JV1i)
     print_comparison(approx_V1j=approx_JV1[:, 9:12], JV1j=JV1j)
 
+# main_EvaluateGlobalRotationLinearCombinationEnergy
+def main_EvaluateGlobalRotationLinearCombinationEnergy():
+    randomise = lambda arr: np.random.randn(arr.size).reshape(arr.shape)
+
+    # three independent rotations
+    kg = np.r_[-1, 0, -1, 1, -1, 2].astype(np.int32)
+
+    Xgb = []
+    yg = []
+
+    Xg = [np.r_[1., 0., 0.].reshape(1, 3),
+          np.r_[1., 0., 0.].reshape(1, 3),
+          np.r_[1., 0., 0.].reshape(1, 3),]
+
+    w = 3.0
+    A = np.r_[1.0, -2.0, 1.0]
+
+    Xg = map(randomise, Xg)
+    A = randomise(A)
+
+    fixed = np.r_[0, 0, 0].astype(np.int32)
+    fixedXgb = False
+
+    empty_jacDims = np.empty((0, 0), dtype=np.int32)
+    jacDims = np.r_[3, 3,
+                    3, 3,
+                    3, 3].reshape(-1, 2).astype(np.int32)
+
+    l = EvaluateGlobalRotationLinearCombinationEnergy(kg, Xgb, yg, Xg, w, A, fixed, fixedXgb, jacDims, debug=False)
+    r, JX = l[0], l[1:]
+
+    approx_JX0, approx_JX1, approx_JX2 = approx_jacs(
+        lambda *a: EvaluateGlobalRotationLinearCombinationEnergy(*(a[:3] + ([a[3], a[4], a[5]],) + a[6:]))[0],
+        [3, 4, 5],
+        1e-6,
+        kg, Xgb, yg, Xg[0], Xg[1], Xg[2], w, A, fixed, fixedXgb, empty_jacDims, False)
+
+    print 'r:', r
+
+    print_comparison(approx_JX0=approx_JX0, JX0=JX[0])
+    print_comparison(approx_JX1=approx_JX1, JX1=JX[1])
+    print_comparison(approx_JX2=approx_JX2, JX2=JX[2])
+
+    # one no rotation, one free rotation, and one basis rotation
+    kg = np.r_[0, -1, 0, 1, 0, 0].astype(np.int32)
+
+    Xgb = [np.r_[1., 1., 1.].reshape(1, 3)]
+    yg = [np.r_[1.].reshape(1, 1)]
+    Xg = [np.r_[1., 0., 1.].reshape(1, 3)]
+
+    A = np.r_[0., 1., 1.]
+
+    fixed = np.r_[0, 0, 0].astype(np.int32)
+    fixedXgb = False
+
+    jacDims = np.r_[3, 3,
+                    3, 3,
+                    3, 1].reshape(-1, 2).astype(np.int32)
+
+    r, JX0, JXb, Jyg = EvaluateGlobalRotationLinearCombinationEnergy(kg, Xgb, yg, Xg, w, A, fixed, fixedXgb, jacDims, debug=False)
+
+    approx_JXb, approx_Jyg, approx_JX0  = approx_jacs(
+        lambda *a: EvaluateGlobalRotationLinearCombinationEnergy(*( (a[0],) + ([a[1]],) + ([a[2]],) + ([a[3]],) + a[4:]))[0],
+        [1, 2, 3],
+        1e-6,
+        kg, Xgb[0], yg[0], Xg[0], w, A, fixed, fixedXgb, empty_jacDims, False)
+
+    print_comparison(approx_JX0=approx_JX0, JX0=JX0)
+    print_comparison(approx_JXb=approx_JXb, JXb=JXb)
+    print_comparison(approx_Jyg=approx_Jyg, Jyg=Jyg)
+
 if __name__ == '__main__':
-    main_EvaluateCompleteSectionedBasisArapEnergy()
+    # main_EvaluateCompleteSectionedBasisArapEnergy()
+    main_EvaluateGlobalRotationLinearCombinationEnergy()
 

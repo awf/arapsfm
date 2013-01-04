@@ -16,6 +16,8 @@ using namespace V3D;
 #include "Geometry/mesh.h"
 #include "Util/debug_messages.h"
 
+#include "Energy/narrow_band_silhouette.h"
+
 // definitions
 #define BARYCENTRIC_EPS (1e-4)
 #define LENGTH_THRESHOLD (1e-4)
@@ -25,23 +27,75 @@ MeshWalker::MeshWalker(const Mesh & mesh,
         : _mesh(mesh), _V(V)
 {}
 
+double MeshWalker::calculateEnergy(int k, bool * isValid) const
+{
+    if (_energies.size() == 0)
+    {
+        if (isValid != nullptr) *isValid = false;
+        return 0.;
+    }
+
+    if (isValid != nullptr) *isValid = true;
+
+    double r = 0.;
+    for (int i = 0; i < _energies.size(); i++)
+    {
+        auto energy = _energies[i];
+
+        Vector<double> e(energy->GetMeasurementDim());
+        energy->EvaluateResidual(k, e);
+
+        for (int j = 0; j < e.size(); j++)
+            r += e[j] * e[j];
+    }
+
+    return r;
+}
+
 bool MeshWalker::applyDisplacement(Matrix<double> & U,
                                    Vector<int> & L,
                                    const VectorArrayAdapter<double> & delta) const
 {
-    bool aFaceHasChanged = false;
+    bool anyFaceChanged = false;
 
     for (int i=0; i < U.num_rows(); i++)
     {
-        const int newFace = applySingleDisplacement(U[i], L[i], delta[i].begin());
+        double E0 = calculateEnergy(i);
+        double u0[2] = { U[i][0], U[i][1] };
+        const int l0 = L[i];
 
-        if (newFace != L[i])
-            aFaceHasChanged = true;
+        Vector<double> scaledDelta(delta[i].size());
+        double deltaFraction = 1.0;
 
-        L[i] = newFace;
+        double E = numeric_limits<double>::max();
+        bool faceChanged; 
+
+        while (deltaFraction > 1e-5)
+        {
+            scaleVector(deltaFraction, delta[i], scaledDelta);
+
+            int newFace = applySingleDisplacement(U[i], L[i], &scaledDelta[0]);
+            faceChanged = newFace != L[i];
+            L[i] = newFace;
+
+            bool isValid = false;
+            E = calculateEnergy(i, &isValid);
+
+            if (!isValid || (E < E0))
+                break;
+
+            copyVector_Static<double, 2>(u0, U[i]);
+            L[i] = l0;
+
+            deltaFraction *= 0.5;
+
+            faceChanged = false;
+        }
+
+        anyFaceChanged |= faceChanged;
     }
 
-    return aFaceHasChanged;
+    return anyFaceChanged;
 }
 
 int MeshWalker::applySingleDisplacement(double * u_, int currentFace, const double * delta_) const
@@ -271,6 +325,11 @@ int MeshWalker::whichEdgeBroke(const double * u, const double * delta,
     assert(false);
 
     return -2;
+}
+
+void MeshWalker::addEnergy(const SilhouetteBaseEnergy * energy)
+{
+    _energies.push_back(energy);
 }
 
 void MeshWalker::baryToPosition(int faceIndex, const double * u, double * p) const

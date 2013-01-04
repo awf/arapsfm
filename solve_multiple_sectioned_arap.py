@@ -69,6 +69,13 @@ def save_state(output_dir, **kwargs):
         print '-> %s' % output_file
         pickle_.dump(output_file, output_dictionary)
 
+# safe_index_list
+def safe_index_list(l, i):
+    if i not in l:
+        l.append(i)
+
+    return l.index(i)
+
 # main
 def main():
     # setup parser
@@ -313,6 +320,9 @@ def main():
 
     # setup solving for V, X, ... and V1
     core_lambdas = np.r_[args.lambdas[3],    # as-rigid-as-possible
+                         args.lambdas[8],    # global rotations penalty
+                         args.lambdas[9],    # global scale penalty 
+                         args.lambdas[10],   # frame-to-frame rotations regularisation
                          args.lambdas[6]]    # laplacian
 
     core_preconditioners = np.r_[args.preconditioners[0], # V
@@ -327,7 +337,7 @@ def main():
                              args.lambdas[7],    # temporal ARAP penalty
                              args.lambdas[8],    # global rotations penalty
                              args.lambdas[9],    # global scale penalty 
-                             args.lambdas[10]]   # regular rotations penalty
+                             args.lambdas[10]]   # frame-to-frame rotations regularisation
 
     instance_preconditioners = np.r_[args.preconditioners[0], # V
                                      args.preconditioners[1], # X/Xg
@@ -345,18 +355,15 @@ def main():
     silhouette_lambdas = np.require(args.lambdas[:3], dtype=np.float64)
 
     for l in xrange(args.outer_loops):
-
-        # update_silhouette
+        # update_silhouette immediately if `quit_after_silhouette`
         def update_silhouette(i):
             print '[%d] `update_silhouette` (%d):' % (l, i)
             
             t1 = time()
 
-            # NOTE: `instScales[i] * D` is an approximation to the true
-            # geodesic distances of points on the mesh. It is JUST a guide
             u, l_ = solve_silhouette(
                 V1[i], T, S[i], SN[i], 
-                instScales[i] * silhouette_info['SilCandDistances'],
+                silhouette_info['SilCandDistances'],
                 silhouette_info['SilEdgeCands'],
                 silhouette_info['SilEdgeCandParam'],
                 silhouette_info['SilCandAssignedFaces'],
@@ -371,11 +378,11 @@ def main():
             t2 = time()
             print '[%d] `update_silhouette (%d)`: %.3fs' % (l, i, t2 - t1)
 
-        map(update_silhouette, xrange(num_instances))
-
         if args.quit_after_silhouette:
+            map(update_silhouette, xrange(num_instances))
             break
 
+        # solve_core
         print '[%d] `solve_core`:' % l
 
         t1 = time()
@@ -394,6 +401,24 @@ def main():
         t2 = time()
         print '[%d] `solve_core`: %.3fs' % (l, t2 - t1)
 
+        print 'scales:', np.squeeze(instScales)
+
+        # don't run `solve_instance` on the last iteration
+        if l >= args.outer_loops - 1:
+            break
+
+        # save update from the core
+        intermediate_output = os.path.join(args.output, str(l) + 'A')
+        if not os.path.exists(intermediate_output):
+            os.makedirs(intermediate_output)
+
+        scope = args.__dict__.copy()
+        scope.update(locals())
+        save_state(intermediate_output, **scope)
+
+        # update the silhouette
+        map(update_silhouette, xrange(num_instances))
+
         # solve_instance
         def solve_instance(i):
             print '[%d] `solve_instance` (%d):' % (l, i)
@@ -401,43 +426,68 @@ def main():
             t1 = time()
 
             if i > 0:
-                Vp = V1[i-1]
-                Xgp = np.zeros((1, 3), dtype=np.float64)
+                V0 = V1[i-1]
                 sp = np.ones((1, 1), dtype=np.float64)
-                Xp = np.zeros_like(Vp)
+                Xgp = np.zeros((1, 3), dtype=np.float64)
+                Xp = np.zeros_like(V0)
             else:
-                Vp = Xgp = sp = Xp = empty3
+                V0 = sp = Xgp = Xp = empty3
 
-            m = kg_lookup[i]
-            n = kg[m]
-
-            Xgbi = []
-            ygi = []
-            Xgi = empty3
-
-            if n == 0:  # fixed global rotation
-                pass
-            elif n == -1:   # independent global rotation
-                # NOTE: Potential problem here if multiple
-                # instances share the same global rotation it will be changed
-                # as each instance is processed
-                Xgi = Xg[kg[m+1]]
+            if i > 1:
+                s0 = [instScales[i-1], instScales[i-2]]
+                y0 = [y[i-1], y[i-2]]
+                X0 = [X[i-1], X[i-2]]
+                subproblem = (i, i - 1, i - 2)
             else:
-                # n-basis rotation
-                # NOTE: Potential problem here if multiple
-                # instances share the same basis coefficient as it will be
-                # changed as each instance is processed
-                for ii in xrange(n):
-                    Xgbi.append(Xgb[kg[m + 1 + 2*ii]])
-                    ygi.append(yg[kg[m + 1 + 2*ii + 1]])
-                
-            fixed_scale = i == 0 
+                s0 = []
+                y0 = []
+                X0 = []
+                subproblem = (i,)
+
+            used_Xgb, used_yg, used_Xg = [], [], []
+            kgi = []
+
+            for ii in subproblem:
+                m = kg_lookup[ii]
+
+                n = kg[m]
+                kgi.append(n)
+
+                if n == 0:
+                    # fixed global rotation
+                    pass
+                elif n == -1:
+                    # independent global rotation
+                    # NOTE: Potential problem here if multiple
+                    # instances share the same global rotation it will be changed
+                    # as each instance is processed
+                    kgi.append(safe_index_list(used_Xg, kg[m+1]))
+                else:
+                    # n-basis rotation
+                    # NOTE: Potential problem here if multiple
+                    # instances share the same basis coefficient as it will be
+                    # changed as each instance is processed
+                    for ii in xrange(n):
+                        kgi.append(safe_index_list(used_Xgb, 
+                                                   kg[m + 1 + 2*ii]))
+                        kgi.append(safe_index_list(used_yg, 
+                                                   kg[m + 1 + 2*ii + 1]))
+
+            kgi = np.require(kgi, dtype=np.int32)
+            Xgbi = map(lambda i: Xgb[i], used_Xgb)
+            ygi = map(lambda i: yg[i], used_yg)
+            Xgi = map(lambda i: Xg[i], used_Xg)
+
+            # fixed_scale = i == 0 
+            fixed_scale = False
 
             for j in xrange(args.max_restarts):
+                print ' [%d] s[%d]: %.3f' % (j, i, instScales[i])
+
                 status = lm.solve_instance(T, V, instScales[i],
-                                           n, Xgbi, ygi, Xgi,
-                                           ki, Xb, y[i], X[i],
-                                           Vp, sp, Xgp, Xp,
+                                           kgi, Xgbi, ygi, Xgi,
+                                           ki, Xb, y[i], X[i], y0, X0,
+                                           V0, sp, Xgp, Xp, s0,
                                            V1[i], U[i], L[i],
                                            S[i], SN[i],
                                            Rx[i], Ry[i], 
@@ -452,6 +502,8 @@ def main():
 
 
                 print status[1]
+
+                print ' [%d] s[%d]: %.3f' % (j, i, instScales[i])
 
                 if status[0] not in (0, 4):
                     break

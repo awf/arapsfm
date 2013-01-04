@@ -119,5 +119,125 @@ PyObject * EvaluateCompleteSectionedBasisArapEnergy(PyArrayObject * npy_T,
     return py_list;
 }
 
+PyObject * EvaluateGlobalRotationLinearCombinationEnergy(PyArrayObject * npy_kg,
+                                                         PyObject * list_Xgb,
+                                                         PyObject * list_yg,
+                                                         PyObject * list_Xg,
+                                                         double w,
+                                                         PyArrayObject * npy_A,
+                                                         PyArrayObject * npy_fixed,
+                                                         bool fixedXgb,
+                                                         PyArrayObject * npy_jacDims,
+                                                         bool debug)
+{
+    if (debug)
+    {
+        asm("int $0x3");
+    }
+
+    auto Xgb = make_vectorOfMatrix<double>(list_Xgb);
+    auto yg = make_vectorOfMatrix<double>(list_yg);
+    auto Xg = make_vectorOfMatrix<double>(list_Xg);
+
+    vector<const RotationNode *> nodes_Xgb;
+    for (int i = 0; i < Xgb.size(); i++)
+    {
+        nodes_Xgb.push_back(new RotationNode(Xgb[i]));
+    }
+
+    vector<const CoefficientsNode *> nodes_yg;
+    for (int i = 0; i < yg.size(); i++)
+    {
+        nodes_yg.push_back(new CoefficientsNode(yg[i]));
+    }
+
+    vector<const RotationNode *> nodes_Xg;
+    for (int i = 0; i < Xg.size(); i++)
+    {
+        nodes_Xg.push_back(new RotationNode(Xg[i]));
+    }
+
+    PYARRAY_AS_VECTOR(int, npy_kg, kg);
+
+    vector<int> arg_kg;
+    vector<vector<const RotationNode *>> arg_Xgb;
+    vector<vector<const CoefficientsNode *>> arg_yg;
+    vector<const RotationNode *> arg_Xg;
+
+    int l = 0;
+
+    PYARRAY_AS_VECTOR(int, npy_fixed, fixed);
+    PYARRAY_AS_VECTOR(double, npy_A, A);
+
+    for (int i = 0; i < A.size(); i++)
+    {
+        vector<const RotationNode *> arg_nodes_Xgb;
+        vector<const CoefficientsNode *> arg_nodes_yg;
+        const RotationNode * arg_ptr_Xg = nullptr;
+
+        int n = kg[l++];
+
+        if (n == GlobalRotationLinearCombinationEnergy::FIXED_ROTATION)
+        { }
+        else if (n == GlobalRotationLinearCombinationEnergy::INDEPENDENT_ROTATION)
+        {
+            arg_ptr_Xg = nodes_Xg[kg[l++]];
+        }
+        else
+        {
+            for (int j = 0; j < n; j++)
+            {
+                arg_nodes_Xgb.push_back(nodes_Xgb[kg[l++]]); 
+                arg_nodes_yg.push_back(nodes_yg[kg[l++]]); 
+            }
+        }
+
+        arg_kg.push_back(n);
+        arg_Xgb.push_back(move(arg_nodes_Xgb));
+        arg_yg.push_back(move(arg_nodes_yg));
+        arg_Xg.push_back(arg_ptr_Xg);
+    }
+
+    GlobalRotationLinearCombinationEnergy energy(move(arg_kg),
+                                                 move(arg_Xgb),
+                                                 move(arg_yg),
+                                                 move(arg_Xg),
+                                                 move(A),
+                                                 w,
+                                                 move(fixed),
+                                                 fixedXgb);
+
+    PyObject * py_list = PyList_New(0);
+
+    npy_intp dim(3);
+    PyArrayObject * npy_e = (PyArrayObject *)PyArray_SimpleNew(1, &dim, NPY_FLOAT64);
+    PYARRAY_AS_VECTOR(double, npy_e, e);
+
+    energy.EvaluateResidual(0, e);
+
+    PyList_Append(py_list, (PyObject *)npy_e);
+
+    // Calculate Jacobians
+    PYARRAY_AS_MATRIX(int, npy_jacDims, jacDims);
+    
+    for (int i = 0; i < jacDims.num_rows(); ++i)
+    {
+        npy_intp long_jacDims[2] = { static_cast<npy_intp>(jacDims[i][0]),
+                                     static_cast<npy_intp>(jacDims[i][1]) };
+                    
+        PyArrayObject * npy_J = (PyArrayObject *)PyArray_SimpleNew(2, long_jacDims, NPY_FLOAT64);
+        PYARRAY_AS_MATRIX(double, npy_J, J);
+        energy.EvaluateJacobian(0, i, J);
+
+        PyList_Append(py_list, (PyObject *)npy_J);
+    }
+
+    dealloc_vector(nodes_Xgb);
+    dealloc_vector(nodes_yg);
+    dealloc_vector(nodes_Xg);
+
+    return py_list;
+}
+
 #endif
 
