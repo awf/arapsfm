@@ -322,6 +322,7 @@ def main():
     core_lambdas = np.r_[args.lambdas[3],    # as-rigid-as-possible
                          args.lambdas[8],    # global rotations penalty
                          args.lambdas[9],    # global scale penalty 
+                         args.lambdas[10],   # frame-to-frame rotations regularisation
                          args.lambdas[6]]    # laplacian
 
     core_preconditioners = np.r_[args.preconditioners[0], # V
@@ -335,7 +336,8 @@ def main():
                              args.lambdas[5],    # projection
                              args.lambdas[7],    # temporal ARAP penalty
                              args.lambdas[8],    # global rotations penalty
-                             args.lambdas[9]]    # global scale penalty 
+                             args.lambdas[9],    # global scale penalty 
+                             args.lambdas[10]]   # frame-to-frame rotations regularisation
 
     instance_preconditioners = np.r_[args.preconditioners[0], # V
                                      args.preconditioners[1], # X/Xg
