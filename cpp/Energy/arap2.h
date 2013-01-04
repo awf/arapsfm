@@ -1494,7 +1494,7 @@ public:
     {
         double r = 0.;
         for (int i = 0; i < _A.size(); i++)
-            r += _A[i] * _s[i]->GetScale();
+            r += _A[i] * log(_s[i]->GetScale());
 
         r *= _w;
 
@@ -1504,7 +1504,7 @@ public:
     virtual void EvaluateJacobian(const int k, const int whichParam, Matrix<double> & J) const
     {
         int i = _paramMap[whichParam];
-        J[0][0] = _w * _A[i];
+        J[0][0] = _w * _A[i] * (1.0 / _s[i]->GetScale());
     }
 
 protected:
