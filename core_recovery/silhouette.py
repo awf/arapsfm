@@ -43,11 +43,12 @@ def solve_silhouette(V, T, S, SN,
     map(vertex_normal_inplace, xrange(V.shape[0]))
 
     # edge candidates
-    for l, (i, j) in enumerate(SilEdgeCands):
-        t = SilEdgeCandParam[l]
+    if num_edge_candidates > 0:
+        for l, (i, j) in enumerate(SilEdgeCands):
+            t = SilEdgeCandParam[l]
 
-        Q[V.shape[0] + l] = (1. - t) * V[i] + t * V[j]
-        QN[V.shape[0] + l] = normalise((1. - t) * QN[i] + t * QN[j])
+            Q[V.shape[0] + l] = (1. - t) * V[i] + t * V[j]
+            QN[V.shape[0] + l] = normalise((1. - t) * QN[i] + t * QN[j])
 
     n = S.shape[0]
     Q_2 = Q[:,:2]
