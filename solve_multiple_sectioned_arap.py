@@ -353,18 +353,15 @@ def main():
     silhouette_lambdas = np.require(args.lambdas[:3], dtype=np.float64)
 
     for l in xrange(args.outer_loops):
-
-        # update_silhouette
+        # update_silhouette immediately if `quit_after_silhouette`
         def update_silhouette(i):
             print '[%d] `update_silhouette` (%d):' % (l, i)
             
             t1 = time()
 
-            # NOTE: `instScales[i] * D` is an approximation to the true
-            # geodesic distances of points on the mesh. It is JUST a guide
             u, l_ = solve_silhouette(
                 V1[i], T, S[i], SN[i], 
-                instScales[i] * silhouette_info['SilCandDistances'],
+                silhouette_info['SilCandDistances'],
                 silhouette_info['SilEdgeCands'],
                 silhouette_info['SilEdgeCandParam'],
                 silhouette_info['SilCandAssignedFaces'],
