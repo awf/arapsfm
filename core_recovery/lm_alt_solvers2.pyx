@@ -74,6 +74,7 @@ cdef extern from "lm_alt_solvers2.h":
         int narrowBand,
         bint uniformWeights,
         bint fixedScale,
+        bint fixedGlobalRotation,
         OptimiserOptions * options)
 
     int solve_two_source_arap_proj_c 'solve_two_source_arap_proj' (
@@ -201,6 +202,7 @@ def solve_instance(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
                    np.int32_t narrowBand,
                    bint uniformWeights,
                    bint fixedScale,
+                   bint fixedGlobalRotation,
                    **kwargs):
 
     assert lambdas.shape[0] == 9
@@ -217,7 +219,8 @@ def solve_instance(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
         V1,  U,  L,  S,  SN,  Rx,  Ry, 
         C, P, 
         lambdas,  preconditioners,  piecewisePolynomial, 
-        narrowBand, uniformWeights, fixedScale, &options)
+        narrowBand, uniformWeights, fixedScale, fixedGlobalRotation, 
+        &options)
 
     return status, STATUS_CODES[status]
 
