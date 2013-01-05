@@ -30,7 +30,7 @@ def valid_file(f, extension='.npz'):
     return False
 
 # avi_visualisation
-def avi_visualisation(vis_script, input_dir, output_dir, fps, N=0,
+def avi_visualisation(vis_script, input_dir, output_dir, fps, 
                       separate_frames=False, **kwargs):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -38,8 +38,7 @@ def avi_visualisation(vis_script, input_dir, output_dir, fps, N=0,
     vis_args = kwargs.pop('vis_args')
 
     safe_cmd(*(['python', vis_script, input_dir, 
-                '--output', output_dir,
-                '--N', str(N)] +
+                '--output', output_dir] +
                vis_args))
 
     all_outputs = map(lambda f: os.path.join(output_dir, f),
@@ -124,7 +123,6 @@ def main():
     parser.add_argument('--post_args', type=str, default='None')
     parser.add_argument('--tiling', type=str, default=None)
     parser.add_argument('--fps', type=int, default=[], action='append')
-    parser.add_argument('--N', type=int, default=0)
     parser.add_argument('--separate_frames', 
                         default=False,
                         action='store_true')
@@ -138,7 +136,6 @@ def main():
                       args.input, 
                       args.output,
                       args.fps,
-                      args.N,
                       args.separate_frames,
                       vis_args=args.vis_args.split(),
                       tiling=args.tiling,
