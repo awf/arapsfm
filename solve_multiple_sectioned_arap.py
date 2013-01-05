@@ -480,6 +480,7 @@ def main():
 
             # fixed_scale = i == 0 
             fixed_scale = False
+            fixed_global_rotation = True
 
             for j in xrange(args.max_restarts):
                 print ' [%d] s[%d]: %.3f' % (j, i, instScales[i])
@@ -498,6 +499,7 @@ def main():
                                            args.narrowband,
                                            args.uniform_weights,
                                            fixed_scale,
+                                           fixed_global_rotation,
                                            **instance_solver_options)
 
 
