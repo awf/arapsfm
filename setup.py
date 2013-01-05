@@ -190,7 +190,14 @@ setup(
 
         Extension('matop.nd_blocks',
                   ['matop/nd_blocks.pyx'],
-                  include_dirs=include_dirs)
+                  include_dirs=include_dirs),
+
+        Extension('tests.units.test_rigid', 
+                  ['tests/units/test_rigid.pyx',
+                   'cpp/Solve/node.cpp'],
+                  include_dirs=include_dirs + [SSLM_ROOT],
+                  extra_compile_args=['-std=c++11', '-Wfatal-errors', '-O0'],
+                  language='c++'),
         ],
 
     cmdclass = {'build_ext' : build_ext},
