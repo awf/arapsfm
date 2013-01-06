@@ -254,7 +254,7 @@ def main():
     ki_inst, ki_basis, ki_coeff, ki_lookup = parse_k(ki)
 
     X = make_shared((len(ki_inst), 3), num_instances)
-    Xb = mparray.empty((len(ki_basis), 3), dtype=np.float64)
+    Xb = mparray.zeros((len(ki_basis), 3), dtype=np.float64)
     y = make_shared((len(ki_coeff), 1), num_instances, value=1.)
 
     # instance scales (s)
