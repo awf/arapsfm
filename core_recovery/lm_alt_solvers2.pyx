@@ -41,6 +41,7 @@ cdef extern from "lm_alt_solvers2.h":
                np.ndarray npy_lambdas,
                np.ndarray npy_preconditioners,
                bint uniformWeights,
+               bint fixedXgb,
                OptimiserOptions * options)
 
     int solve_instance_c 'solve_instance' (
@@ -157,6 +158,7 @@ def solve_core(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
                np.ndarray[np.float64_t, ndim=1] lambdas, 
                np.ndarray[np.float64_t, ndim=1] preconditioners, 
                bint uniformWeights,
+               bint fixedXgb,
                **kwargs):
 
     assert lambdas.shape[0] == 7
@@ -171,7 +173,8 @@ def solve_core(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
         k, Xb, y, X,
         V1, 
         V0, s0, xg0, d0,
-        lambdas, preconditioners, uniformWeights, &options)
+        lambdas, preconditioners, uniformWeights, fixedXgb,
+        &options)
 
     return status, STATUS_CODES[status]
 

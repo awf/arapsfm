@@ -43,6 +43,7 @@ int solve_core(PyArrayObject * npy_T,
                PyArrayObject * npy_lambdas,
                PyArrayObject * npy_preconditioners,
                bool uniformWeights,
+               bool fixedXgb,
                const OptimiserOptions * options)
 {
     PYARRAY_AS_MATRIX(int, npy_T, T);
@@ -89,7 +90,7 @@ int solve_core(PyArrayObject * npy_T,
     for (int i = 0; i < Xgb.size(); i++)
     {
         nodes_Xgb.push_back(new RotationNode(*Xgb[i]));
-        problem.AddNode(nodes_Xgb.back());
+        problem.AddNode(nodes_Xgb.back(), fixedXgb);
 
         nodes_Xgb.back()->SetPreconditioner(preconditioners[1]);
     }
@@ -184,7 +185,7 @@ int solve_core(PyArrayObject * npy_T,
             *nodes_V1[i],
             mesh, sqrt(lambdas[0]),
             uniformWeights,
-            false,  // fixedXgb
+            fixedXgb,  // fixedXgb
             false,  // fixedXb  
             false,  // fixedV
             true,   // fixedV1
@@ -299,7 +300,7 @@ int solve_core(PyArrayObject * npy_T,
                                                                     move(rotationCoefficients),
                                                                     sqrt(V.num_rows() * lambdas[2]),
                                                                     move(fixedRotations),
-                                                                    false));
+                                                                    fixedXgb));
     }
 
     vector<const ScaleNode *> s_nodes;
@@ -556,7 +557,13 @@ int solve_instance(PyArrayObject * npy_T,
 
     PYARRAY_AS_VECTOR(int, npy_C, C);
     PYARRAY_AS_MATRIX(double, npy_P, P);
-    problem.AddEnergy(new ProjectionEnergy(*node_V1, C, P, sqrt(lambdas[4])));
+
+    if (P.num_cols() == 2)
+        problem.AddEnergy(new ProjectionEnergy(*node_V1, C, P, sqrt(lambdas[4])));
+    else if (P.num_cols() == 3)
+        problem.AddEnergy(new AbsolutePositionEnergy(*node_V1, C, P, sqrt(lambdas[4])));
+    else
+        assert(false);
 
     if (V0.num_rows() > 0)
     {
@@ -803,7 +810,13 @@ int solve_two_source_arap_proj(PyArrayObject * npy_T,
     PYARRAY_AS_VECTOR(int, npy_C, C);
     PYARRAY_AS_MATRIX(double, npy_P, P);
 
-    problem.AddEnergy(new ProjectionEnergy(*node_V1, C, P, sqrt(lambdas[0])));
+    if (P.num_cols() == 2)
+        problem.AddEnergy(new ProjectionEnergy(*node_V1, C, P, sqrt(lambdas[0])));
+    else if (P.num_cols() == 3)
+        problem.AddEnergy(new AbsolutePositionEnergy(*node_V1, C, P, sqrt(lambdas[0])));
+    else
+        assert(false);
+
     problem.AddEnergy(new RigidTransformArapEnergy(
         *node_V, *node_s, *node_Xg, *node_X,
         *node_V1,
