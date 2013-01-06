@@ -63,8 +63,8 @@ class RigidRegistrationEnergy : public Energy
 public:
     RigidRegistrationEnergy(const VertexNode & V0, const VertexNode & V,
                             const ScaleNode & s, const RotationNode & Xg, const VertexNode & d, 
-                            const double w)
-        : _V0(V0), _V(V), _s(s), _Xg(Xg), _d(d), _w(w)
+                            const double w, bool fixedV)
+        : _V0(V0), _V(V), _s(s), _Xg(Xg), _d(d), _w(w), _fixedV(fixedV)
     {}
 
     virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
@@ -73,6 +73,8 @@ public:
         pUsedParamTypes->push_back(_s.GetParamId());
         pUsedParamTypes->push_back(_Xg.GetParamId());
         pUsedParamTypes->push_back(_d.GetParamId());
+        if (!_fixedV)
+            pUsedParamTypes->push_back(_V.GetParamId());
 
         costFunctions.push_back(new Energy_CostFunction(*this, pUsedParamTypes, 3));
     }
@@ -87,6 +89,8 @@ public:
             return _Xg.GetOffset();
         case 2:
             return _d.GetOffset();
+        case 3:
+            return k + _V.GetOffset();
         default:
             break;
         };
@@ -148,10 +152,20 @@ public:
         }
         case 2:
         {
+            // d
             fillVector_Static<double, 9>(0., J[0]);
             J[0][0] = -_w;
             J[1][1] = -_w;
             J[2][2] = -_w;
+            return;
+        }
+        case 3:
+        {
+            // V
+            fillVector_Static<double, 9>(0., J[0]);
+            J[0][0] = _w;
+            J[1][1] = _w;
+            J[2][2] = _w;
             return;
         }
         default:
@@ -168,6 +182,7 @@ protected:
     const RotationNode & _Xg;
     const VertexNode & _d;
     const double _w;
+    const bool _fixedV;
 };
 
 #endif
