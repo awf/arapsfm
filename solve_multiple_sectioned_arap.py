@@ -12,6 +12,8 @@ from operator import add
 from time import time
 from misc.bunch import Bunch
 from misc.numpy_ import mparray
+
+from scipy.linalg import norm
     
 # Utilities
 
@@ -196,8 +198,8 @@ def main():
     # parse argments and load data
     load_instance_variables = lambda *a: load_formatted(args.indices, *a, verbose=True)
 
-    V = load_input_geometry(args.core_initialisation, 
-                            args.use_linear_transform)
+    V0 = load_input_geometry(args.core_initialisation, 
+                             args.use_linear_transform)
     T = load_input_mesh(args.mesh)
 
     C, P = load_instance_variables(args.user_constraints, 'C', 'P')
@@ -211,10 +213,10 @@ def main():
     (R,) = load_instance_variables(args.spillage, 'R')
     Rx, Ry = map(list, izip(*R))
 
-    # transfer vertices to shared memory
-    V_flat = V.flat
-    V = mparray.empty_like(V)
-    V.flat = V_flat
+    # transfer vertices to shared memory 
+    # (`V0` is fixed, no need for shared memory)
+    V = mparray.empty_like(V0)
+    V.flat = V0.flat
 
     def make_shared(s, n, dtype=np.float64, value=0.):
         b = []
@@ -224,6 +226,17 @@ def main():
             b.append(a)
         return b
 
+    # reset `V0` to the origin and initialise `d0`
+    d0 = np.atleast_2d(np.mean(V0, axis=0))
+    d0 = np.require(d0, dtype=np.float64, 
+                    requirements='C')
+    V0 -= d0
+
+    # initialise `s0`, `xg0`
+    s0 = np.array([[1.]], dtype=np.float64)
+    xg0 = np.array([[0., 0., 0.]], dtype=np.float64)
+
+    # initialise `V1`
     V1 = make_shared(V.shape, num_instances)
     V1[0].flat = V.flat
 
@@ -323,7 +336,9 @@ def main():
                          args.lambdas[8],    # global rotations penalty
                          args.lambdas[9],    # global scale penalty 
                          args.lambdas[10],   # frame-to-frame rotations regularisation
-                         args.lambdas[6]]    # laplacian
+                         args.lambdas[6],    # laplacian (NOTE should be scaled by `len(V1)`)
+                         args.lambdas[11],   # rigid-registration of core to initialisation
+                         len(V1) * args.lambdas[12]]   # penalty of the global rotation of the registration
 
     core_preconditioners = np.r_[args.preconditioners[0], # V
                                  args.preconditioners[1], # X/Xg
@@ -344,7 +359,6 @@ def main():
                                      args.preconditioners[2], # s
                                      args.preconditioners[3], # U
                                      args.preconditioners[4]] # y
-
 
     core_solver_options = args.solver_options.copy()
     # core_solver_options['verbosenessLevel'] = 1
@@ -390,9 +404,9 @@ def main():
             status = lm.solve_core(T, V, instScales, 
                                    kg, Xgb, yg, Xg,
                                    ki, Xb, y, X, V1,
+                                   V0, s0, xg0, d0,
                                    core_lambdas,
                                    core_preconditioners,
-                                   args.narrowband,
                                    args.uniform_weights,
                                    **core_solver_options)
             print status[1]
@@ -402,6 +416,10 @@ def main():
         print '[%d] `solve_core`: %.3fs' % (l, t2 - t1)
 
         print 'scales:', np.squeeze(instScales)
+        print 's0:', np.squeeze(s0)
+        l_xg0 = norm(xg0[0][0])
+        print 'xg0 (%.3f / %.1f):' % (l_xg0, np.rad2deg(l_xg0)), np.squeeze(xg0)
+        print 'd0:', np.squeeze(d0)
 
         # don't run `solve_instance` on the last iteration
         if l >= args.outer_loops - 1:
@@ -426,22 +444,22 @@ def main():
             t1 = time()
 
             if i > 0:
-                V0 = V1[i-1]
+                Vm1 = V1[i-1]
                 sp = np.ones((1, 1), dtype=np.float64)
                 Xgp = np.zeros((1, 3), dtype=np.float64)
-                Xp = np.zeros_like(V0)
+                Xp = np.zeros_like(Vm1)
             else:
-                V0 = sp = Xgp = Xp = empty3
+                Vm1 = sp = Xgp = Xp = empty3
 
             if i > 1:
-                s0 = [instScales[i-1], instScales[i-2]]
-                y0 = [y[i-1], y[i-2]]
-                X0 = [X[i-1], X[i-2]]
+                sm1 = [instScales[i-1], instScales[i-2]]
+                ym1 = [y[i-1], y[i-2]]
+                Xm1 = [X[i-1], X[i-2]]
                 subproblem = (i, i - 1, i - 2)
             else:
-                s0 = []
-                y0 = []
-                X0 = []
+                sm1 = []
+                ym1 = []
+                Xm1 = []
                 subproblem = (i,)
 
             used_Xgb, used_yg, used_Xg = [], [], []
@@ -487,8 +505,8 @@ def main():
 
                 status = lm.solve_instance(T, V, instScales[i],
                                            kgi, Xgbi, ygi, Xgi,
-                                           ki, Xb, y[i], X[i], y0, X0,
-                                           V0, sp, Xgp, Xp, s0,
+                                           ki, Xb, y[i], X[i], ym1, Xm1,
+                                           Vm1, sp, Xgp, Xp, sm1,
                                            V1[i], U[i], L[i],
                                            S[i], SN[i],
                                            Rx[i], Ry[i], 
@@ -524,18 +542,18 @@ def main():
         scope.update(locals())
         save_state(intermediate_output, **scope)
 
-    t2_complete = time()
+        print 'instScales:'
+        pprint(instScales)
+        print 'kg:'
+        pprint(kg)
+        print 'Xgb:'
+        pprint(Xgb)
+        print 'yg:'
+        pprint(yg)
+        print 'Xg:'
+        pprint(Xg)
 
-    print 'instScales:'
-    pprint(instScales)
-    print 'kg:'
-    pprint(kg)
-    print 'Xgb:'
-    pprint(Xgb)
-    print 'yg:'
-    pprint(yg)
-    print 'Xg:'
-    pprint(Xg)
+    t2_complete = time()
 
     print '[+] time taken: %.3fs' % (t2_complete - t1_complete)
 
