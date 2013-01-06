@@ -374,6 +374,7 @@ int solve_instance(PyArrayObject * npy_T,
                    bool uniformWeights,
                    bool fixedScale,
                    bool fixedGlobalRotation,
+                   bool noSilhouetteUpdate,
                    const OptimiserOptions * options)
 {
     PYARRAY_AS_VECTOR(double, npy_preconditioners, preconditioners);
@@ -461,7 +462,8 @@ int solve_instance(PyArrayObject * npy_T,
     PYARRAY_AS_VECTOR(int, npy_L, L);
     auto node_U = new BarycentricNode(U, L, meshWalker);
     node_U->SetPreconditioner(preconditioners[3]);
-    problem.AddNode(node_U);
+    // add `node_U` as "fixed" if (noSilhouetteUpdate == True)
+    problem.AddNode(node_U, noSilhouetteUpdate);
 
     PYARRAY_AS_VECTOR(double, npy_lambdas, lambdas);
 
@@ -539,17 +541,22 @@ int solve_instance(PyArrayObject * npy_T,
         piecewisePolynomial[0], piecewisePolynomial[1]);
 
     PYARRAY_AS_MATRIX(double, npy_S, S);
-    auto silhouetteProjectionEnergy = new SilhouetteProjectionEnergy(
-        *node_V1, *node_U, S, mesh, sqrt(lambdas[1]), narrowBand, residualTransform);
-
-    problem.AddEnergy(silhouetteProjectionEnergy);
-    // meshWalker.addEnergy(silhouetteProjectionEnergy);
+    if (!noSilhouetteUpdate)
+    {
+        auto silhouetteProjectionEnergy = new SilhouetteProjectionEnergy(
+            *node_V1, *node_U, S, mesh, sqrt(lambdas[1]), narrowBand, residualTransform);
+        problem.AddEnergy(silhouetteProjectionEnergy);
+        // meshWalker.addEnergy(silhouetteProjectionEnergy);
+    }
 
     PYARRAY_AS_MATRIX(double, npy_SN, SN);
-    auto silhouetteNormalEnergy = new SilhouetteNormalEnergy(
-        *node_V1, *node_U, SN, mesh, sqrt(lambdas[2]), narrowBand);
-    problem.AddEnergy(silhouetteNormalEnergy);
-    // meshWalker.addEnergy(silhouetteNormalEnergy);
+    if (!noSilhouetteUpdate)
+    {
+        auto silhouetteNormalEnergy = new SilhouetteNormalEnergy(
+            *node_V1, *node_U, SN, mesh, sqrt(lambdas[2]), narrowBand);
+        problem.AddEnergy(silhouetteNormalEnergy);
+        // meshWalker.addEnergy(silhouetteNormalEnergy);
+    }
 
     PYARRAY_AS_MATRIX(double, npy_Rx, Rx);
     PYARRAY_AS_MATRIX(double, npy_Ry, Ry);
