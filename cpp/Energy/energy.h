@@ -23,6 +23,8 @@ public:
 
     virtual bool CanBeginIteration() const { return true; }
 
+    virtual double GetWeight() const { return _w; }
+
 protected:
     const double _w;    
 };
