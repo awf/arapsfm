@@ -86,7 +86,8 @@ public:
         for (int i=0; i < _s.size(); i++)
             sum_s += _s[i]->GetScale();
 
-        assert(sum_s > 0.);
+        // assert(sum_s > 0.);
+        sum_s = max(sum_s, 1e-6);
 
         return sum_s / _s.size();
     }
