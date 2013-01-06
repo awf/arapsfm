@@ -137,6 +137,16 @@ def main():
                         action='store_true',
                         default=False)
 
+    parser.add_argument('--use_z_components', type=str, default='None')
+    parser.add_argument('--use_z_components_for_init_only', 
+                        action='store_true',
+                        default=False)
+
+    parser.add_argument('--initial_Xgb', type=str, default='None')
+    parser.add_argument('--fixed_Xgb', 
+                        action='store_true',
+                        default=False)
+
     # parse the arguments
     args = parser.parse_args()
 
@@ -146,7 +156,10 @@ def main():
                 'preconditioners',
                 'piecewise_polynomial',
                 'solver_options',
-                'global_rotation_config']:
+                'global_rotation_config',
+                'use_z_components',
+                'initial_Xgb'
+                ]:
         setattr(args, key, eval(getattr(args, key)))
 
     # setup `solver_options`
@@ -185,6 +198,8 @@ def main():
     args.piecewise_polynomial = np.require(args.piecewise_polynomial,
                                            dtype=np.float64)
 
+    if args.initial_Xgb is not None:
+        args.initial_Xgb = np.asarray(args.initial_Xgb, dtype=np.float64)
 
     # output arguments
     pprint(args.__dict__)
@@ -213,6 +228,33 @@ def main():
     (R,) = load_instance_variables(args.spillage, 'R')
     Rx, Ry = map(list, izip(*R))
 
+    # initial projection constraints are a direct shallow copy
+    Pi = P[:]
+
+    # augment projection constraints with z-axis constraints for the required
+    # frames
+    if args.use_z_components is not None:
+        assert len(args.use_z_components) == num_instances
+
+        Vi_cache = {}
+        for i, index in enumerate(args.use_z_components):
+            if index < 0:
+                continue
+
+            if index not in Vi_cache:
+                Vi_cache[index] = load_input_geometry(
+                    args.user_constraints % args.indices[index], 
+                    args.use_linear_transform)
+            
+            Vi = Vi_cache[index]
+            pz = Vi[C[i], 2]
+            Pi[i] = np.require(np.c_[P[i], pz[:, np.newaxis]], np.float64,
+                               requirements='C')
+        del Vi_cache
+
+        if not args.use_z_components_for_init_only:
+            P = Pi
+                                
     # transfer vertices to shared memory 
     # (`V0` is fixed, no need for shared memory)
     V = mparray.empty_like(V0)
@@ -249,6 +291,11 @@ def main():
     Xgb = make_shared((1, 3), len(kg_basis))
     yg = make_shared((1, 1), len(kg_coeff), value=1.)
 
+    if args.initial_Xgb is not None:
+        assert args.initial_Xgb.shape == (len(kg_basis), 3)
+        for i, xgb in enumerate(args.initial_Xgb):
+            Xgb[i].flat = xgb.flat
+
     # parse `ki` to get the configuration of all rotations at each instance
     ki = np.require(np.load(args.arap_sections)['k2'], dtype=np.int32)
     ki_inst, ki_basis, ki_coeff, ki_lookup = parse_k(ki)
@@ -264,7 +311,12 @@ def main():
     U = [mparray.empty((s.shape[0], 2), np.float64) for s in S]
     L = [mparray.empty(s.shape[0], np.int32) for s in S]
 
-    # solve for initialisations without the basis rotations (global or local)
+    # temporary variables
+    iX = np.zeros_like(V)
+    empty3 = np.array(tuple(), dtype=np.float64).reshape(0, 3)
+    iXg = np.zeros((1, 3), dtype=np.float64)
+
+    # setup lambdas and preconditioners
     initialisation_lambdas = np.r_[
         args.lambdas[5],   # projection
         args.lambdas[3],   # as-rigid-as-possible
@@ -273,65 +325,10 @@ def main():
         args.lambdas[9],   # global scale regularisation
         args.lambdas[10]]  # frame-to-frame rotations regularisation
 
-    # initialisation preconditioners
     initialisation_preconditioners = np.r_[args.preconditioners[0], # V
                                            args.preconditioners[1], # X
                                            args.preconditioners[2]] # s
 
-    # temporary variables
-    iX = np.zeros_like(V)
-    empty3 = np.array(tuple(), dtype=np.float64).reshape(0, 3)
-    iXg = np.zeros((1, 3), dtype=np.float64)
-
-    initialisation_solver_options = args.solver_options.copy()
-    initialisation_solver_options['maxIterations'] = 50 
-
-    # start complete timing
-    t1_complete = time()
-
-    # perform initialisation
-    V1[0].flat = V.flat
-
-    # solve for V1[:]
-    def solve_initialisation(i):
-        print '[-1] `solve_initialisation` (%d):' % i
-
-        t1 = time()
-
-        if i > 0:
-            # NOTE: use iXg from previous frame
-            V1[i].flat = V1[i-1].flat
-            instScales[i][0] = instScales[i-1][0]
-
-            Vp = V1[i-1]
-            Xgp = np.zeros((1, 3), dtype=np.float64)
-            sp = np.ones((1, 1), dtype=np.float64)
-            Xp = np.zeros_like(Vp)
-        else:
-            Vp = Xgp = sp = Xp = empty3
-
-        for j in xrange(args.max_restarts):
-            status = lm.solve_two_source_arap_proj(T, 
-                                                   V, instScales[i], iXg, iX,
-                                                   Vp, sp, Xgp, Xp,
-                                                   V1[i], 
-                                                   C[i], P[i],
-                                                   initialisation_lambdas,
-                                                   initialisation_preconditioners,
-                                                   args.uniform_weights,
-                                                   **initialisation_solver_options)
-
-            print status[1]
-            if status[0] not in (0, 4):
-                break
-
-        t2 = time()
-
-        print '[-1] `solve_initialisation` (%d): %.3fs' % (i, t2 - t1)
-
-    map(solve_initialisation, xrange(num_instances))
-
-    # setup solving for V, X, ... and V1
     core_lambdas = np.r_[args.lambdas[3],    # as-rigid-as-possible
                          args.lambdas[8],    # global rotations penalty
                          args.lambdas[9],    # global scale penalty 
@@ -360,38 +357,183 @@ def main():
                                      args.preconditioners[3], # U
                                      args.preconditioners[4]] # y
 
+    silhouette_lambdas = np.require(args.lambdas[:3], dtype=np.float64)
+
     core_solver_options = args.solver_options.copy()
     # core_solver_options['verbosenessLevel'] = 1
-
     instance_solver_options = args.solver_options.copy()
     # instance_solver_options['verbosenessLevel'] = 1
+    init_solver_options = args.solver_options.copy()
+    init_solver_options['maxIterations'] = max(50, 
+        init_solver_options['maxIterations'])
 
-    silhouette_lambdas = np.require(args.lambdas[:3], dtype=np.float64)
+    # setup solving functions
+
+    # solve_initialisation
+    def solve_initialisation(i):
+        print '[-1] `solve_initialisation` (%d):' % i
+
+        t1 = time()
+
+        if i > 0:
+            # NOTE: use iXg from previous frame
+            V1[i].flat = V1[i-1].flat
+            instScales[i][0] = instScales[i-1][0]
+
+            Vp = V1[i-1]
+            Xgp = np.zeros((1, 3), dtype=np.float64)
+            sp = np.ones((1, 1), dtype=np.float64)
+            Xp = np.zeros_like(Vp)
+        else:
+            Vp = Xgp = sp = Xp = empty3
+
+        for j in xrange(args.max_restarts):
+            status = lm.solve_two_source_arap_proj(T, 
+                                                   V, instScales[i], iXg, iX,
+                                                   Vp, sp, Xgp, Xp,
+                                                   V1[i], 
+                                                   C[i], Pi[i],
+                                                   initialisation_lambdas,
+                                                   initialisation_preconditioners,
+                                                   args.uniform_weights,
+                                                   **init_solver_options)
+
+            print status[1]
+            if status[0] not in (0, 4):
+                break
+
+        t2 = time()
+
+        print '[-1] `solve_initialisation` (%d): %.3fs' % (i, t2 - t1)
+
+    # update_silhouette
+    def update_silhouette(i):
+        print '[%d] `update_silhouette` (%d):' % (l, i)
+        
+        t1 = time()
+
+        u, l_ = solve_silhouette(
+            V1[i], T, S[i], SN[i], 
+            silhouette_info['SilCandDistances'],
+            silhouette_info['SilEdgeCands'],
+            silhouette_info['SilEdgeCandParam'],
+            silhouette_info['SilCandAssignedFaces'],
+            silhouette_info['SilCandU'],
+            silhouette_lambdas,
+            radius=args.candidate_radius,
+            verbose=True)
+
+        U[i].flat = u.flat
+        L[i].flat = l_.flat
+
+        t2 = time()
+        print '[%d] `update_silhouette (%d)`: %.3fs' % (l, i, t2 - t1)
+
+    # solve_instance
+    def solve_instance(i):
+        print '[%d] `solve_instance` (%d):' % (l, i)
+
+        t1 = time()
+
+        if i > 0:
+            Vm1 = V1[i-1]
+            sp = np.ones((1, 1), dtype=np.float64)
+            Xgp = np.zeros((1, 3), dtype=np.float64)
+            Xp = np.zeros_like(Vm1)
+        else:
+            Vm1 = sp = Xgp = Xp = empty3
+
+        if i > 1:
+            sm1 = [instScales[i-1], instScales[i-2]]
+            ym1 = [y[i-1], y[i-2]]
+            Xm1 = [X[i-1], X[i-2]]
+            subproblem = (i, i - 1, i - 2)
+        else:
+            sm1 = []
+            ym1 = []
+            Xm1 = []
+            subproblem = (i,)
+
+        used_Xgb, used_yg, used_Xg = [], [], []
+        kgi = []
+
+        for ii in subproblem:
+            m = kg_lookup[ii]
+
+            n = kg[m]
+            kgi.append(n)
+
+            if n == 0:
+                # fixed global rotation
+                pass
+            elif n == -1:
+                # independent global rotation
+                # NOTE: Potential problem here if multiple
+                # instances share the same global rotation it will be changed
+                # as each instance is processed
+                kgi.append(safe_index_list(used_Xg, kg[m+1]))
+            else:
+                # n-basis rotation
+                # NOTE: Potential problem here if multiple
+                # instances share the same basis coefficient as it will be
+                # changed as each instance is processed
+                for ii in xrange(n):
+                    kgi.append(safe_index_list(used_Xgb, 
+                                               kg[m + 1 + 2*ii]))
+                    kgi.append(safe_index_list(used_yg, 
+                                               kg[m + 1 + 2*ii + 1]))
+
+        kgi = np.require(kgi, dtype=np.int32)
+        Xgbi = map(lambda i: Xgb[i], used_Xgb)
+        ygi = map(lambda i: yg[i], used_yg)
+        Xgi = map(lambda i: Xg[i], used_Xg)
+
+        # fixed_scale = i == 0 
+        fixed_scale = False
+        fixed_global_rotation = True
+
+        for j in xrange(args.max_restarts):
+            print ' [%d] s[%d]: %.3f' % (j, i, instScales[i])
+
+            status = lm.solve_instance(T, V, instScales[i],
+                                       kgi, Xgbi, ygi, Xgi,
+                                       ki, Xb, y[i], X[i], ym1, Xm1,
+                                       Vm1, sp, Xgp, Xp, sm1,
+                                       V1[i], U[i], L[i],
+                                       S[i], SN[i],
+                                       Rx[i], Ry[i], 
+                                       C[i], P[i],
+                                       instance_lambdas,
+                                       instance_preconditioners,
+                                       args.piecewise_polynomial,
+                                       args.narrowband,
+                                       args.uniform_weights,
+                                       fixed_scale,
+                                       fixed_global_rotation,
+                                       **instance_solver_options)
+
+
+            print status[1]
+
+            print ' [%d] s[%d]: %.3f' % (j, i, instScales[i])
+
+            if status[0] not in (0, 4):
+                break
+
+        t2 = time()
+
+        print '[%d] `solve_instance` (%d): %.3fs' % (l, i, t2 - t1)
+
+    # start complete timing
+    t1_complete = time()
+
+    # perform initialisation
+    V1[0].flat = V.flat
+
+    map(solve_initialisation, xrange(num_instances))
 
     for l in xrange(args.outer_loops):
         # update_silhouette immediately if `quit_after_silhouette`
-        def update_silhouette(i):
-            print '[%d] `update_silhouette` (%d):' % (l, i)
-            
-            t1 = time()
-
-            u, l_ = solve_silhouette(
-                V1[i], T, S[i], SN[i], 
-                silhouette_info['SilCandDistances'],
-                silhouette_info['SilEdgeCands'],
-                silhouette_info['SilEdgeCandParam'],
-                silhouette_info['SilCandAssignedFaces'],
-                silhouette_info['SilCandU'],
-                silhouette_lambdas,
-                radius=args.candidate_radius,
-                verbose=True)
-
-            U[i].flat = u.flat
-            L[i].flat = l_.flat
-
-            t2 = time()
-            print '[%d] `update_silhouette (%d)`: %.3fs' % (l, i, t2 - t1)
-
         if args.quit_after_silhouette:
             map(update_silhouette, xrange(num_instances))
             break
@@ -408,6 +550,7 @@ def main():
                                    core_lambdas,
                                    core_preconditioners,
                                    args.uniform_weights,
+                                   args.fixed_Xgb,
                                    **core_solver_options)
             print status[1]
             if status[0] not in (0, 4):
@@ -415,15 +558,23 @@ def main():
         t2 = time()
         print '[%d] `solve_core`: %.3fs' % (l, t2 - t1)
 
-        print 'scales:', np.squeeze(instScales)
         print 's0:', np.squeeze(s0)
         l_xg0 = norm(xg0[0][0])
         print 'xg0 (%.3f / %.1f):' % (l_xg0, np.rad2deg(l_xg0)), np.squeeze(xg0)
         print 'd0:', np.squeeze(d0)
 
-        # don't run `solve_instance` on the last iteration
-        if l >= args.outer_loops - 1:
-            break
+        print 'scales:', np.squeeze(instScales)
+
+        print 'kg:'
+        pprint(kg)
+        print 'Xgb:'
+        pprint(Xgb)
+        print 'yg:'
+        pprint(yg)
+        print 'Xg:'
+        pprint(Xg)
+        print 'Xb:'
+        pprint(Xb)
 
         # save update from the core
         intermediate_output = os.path.join(args.output, str(l) + 'A')
@@ -434,104 +585,14 @@ def main():
         scope.update(locals())
         save_state(intermediate_output, **scope)
 
+        # don't run `solve_instance` on the last iteration
+        if l >= args.outer_loops - 1:
+            break
+
         # update the silhouette
         map(update_silhouette, xrange(num_instances))
 
-        # solve_instance
-        def solve_instance(i):
-            print '[%d] `solve_instance` (%d):' % (l, i)
-
-            t1 = time()
-
-            if i > 0:
-                Vm1 = V1[i-1]
-                sp = np.ones((1, 1), dtype=np.float64)
-                Xgp = np.zeros((1, 3), dtype=np.float64)
-                Xp = np.zeros_like(Vm1)
-            else:
-                Vm1 = sp = Xgp = Xp = empty3
-
-            if i > 1:
-                sm1 = [instScales[i-1], instScales[i-2]]
-                ym1 = [y[i-1], y[i-2]]
-                Xm1 = [X[i-1], X[i-2]]
-                subproblem = (i, i - 1, i - 2)
-            else:
-                sm1 = []
-                ym1 = []
-                Xm1 = []
-                subproblem = (i,)
-
-            used_Xgb, used_yg, used_Xg = [], [], []
-            kgi = []
-
-            for ii in subproblem:
-                m = kg_lookup[ii]
-
-                n = kg[m]
-                kgi.append(n)
-
-                if n == 0:
-                    # fixed global rotation
-                    pass
-                elif n == -1:
-                    # independent global rotation
-                    # NOTE: Potential problem here if multiple
-                    # instances share the same global rotation it will be changed
-                    # as each instance is processed
-                    kgi.append(safe_index_list(used_Xg, kg[m+1]))
-                else:
-                    # n-basis rotation
-                    # NOTE: Potential problem here if multiple
-                    # instances share the same basis coefficient as it will be
-                    # changed as each instance is processed
-                    for ii in xrange(n):
-                        kgi.append(safe_index_list(used_Xgb, 
-                                                   kg[m + 1 + 2*ii]))
-                        kgi.append(safe_index_list(used_yg, 
-                                                   kg[m + 1 + 2*ii + 1]))
-
-            kgi = np.require(kgi, dtype=np.int32)
-            Xgbi = map(lambda i: Xgb[i], used_Xgb)
-            ygi = map(lambda i: yg[i], used_yg)
-            Xgi = map(lambda i: Xg[i], used_Xg)
-
-            # fixed_scale = i == 0 
-            fixed_scale = False
-            fixed_global_rotation = True
-
-            for j in xrange(args.max_restarts):
-                print ' [%d] s[%d]: %.3f' % (j, i, instScales[i])
-
-                status = lm.solve_instance(T, V, instScales[i],
-                                           kgi, Xgbi, ygi, Xgi,
-                                           ki, Xb, y[i], X[i], ym1, Xm1,
-                                           Vm1, sp, Xgp, Xp, sm1,
-                                           V1[i], U[i], L[i],
-                                           S[i], SN[i],
-                                           Rx[i], Ry[i], 
-                                           C[i], P[i],
-                                           instance_lambdas,
-                                           instance_preconditioners,
-                                           args.piecewise_polynomial,
-                                           args.narrowband,
-                                           args.uniform_weights,
-                                           fixed_scale,
-                                           fixed_global_rotation,
-                                           **instance_solver_options)
-
-
-                print status[1]
-
-                print ' [%d] s[%d]: %.3f' % (j, i, instScales[i])
-
-                if status[0] not in (0, 4):
-                    break
-
-            t2 = time()
-
-            print '[%d] `solve_instance` (%d): %.3fs' % (l, i, t2 - t1)
-
+        # update each instance
         map(solve_instance, xrange(num_instances))
 
         intermediate_output = os.path.join(args.output, str(l))
@@ -541,17 +602,6 @@ def main():
         scope = args.__dict__.copy()
         scope.update(locals())
         save_state(intermediate_output, **scope)
-
-        print 'instScales:'
-        pprint(instScales)
-        print 'kg:'
-        pprint(kg)
-        print 'Xgb:'
-        pprint(Xgb)
-        print 'yg:'
-        pprint(yg)
-        print 'Xg:'
-        pprint(Xg)
 
     t2_complete = time()
 
