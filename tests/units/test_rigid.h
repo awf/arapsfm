@@ -15,6 +15,7 @@ PyObject * EvaluateRigidRegistrationEnergy(PyArrayObject * npy_V0,
                                            PyArrayObject * npy_d,
                                            double w,
                                            int k,
+                                           bool useBackward,
                                            bool debug)
 {
     if (debug)
@@ -35,7 +36,11 @@ PyObject * EvaluateRigidRegistrationEnergy(PyArrayObject * npy_V0,
     PYARRAY_AS_MATRIX(double, npy_d, d);
     VertexNode node_d(d);
 
-    RigidRegistrationEnergy energy(node_V0, node_V, node_s, node_xg, node_d, w, false);
+    Energy * energy;
+    if (useBackward)
+        energy = new BackwardRigidRegistrationEnergy(node_V0, node_V, node_s, node_xg, node_d, w, false);
+    else
+        energy = new RigidRegistrationEnergy(node_V0, node_V, node_s, node_xg, node_d, w, false);
 
     PyObject * py_list = PyList_New(0);
 
@@ -43,7 +48,7 @@ PyObject * EvaluateRigidRegistrationEnergy(PyArrayObject * npy_V0,
     PyArrayObject * npy_e = (PyArrayObject *)PyArray_SimpleNew(1, &dim, NPY_FLOAT64);
     PYARRAY_AS_VECTOR(double, npy_e, e);
 
-    energy.EvaluateResidual(k, e);
+    energy->EvaluateResidual(k, e);
     PyList_Append(py_list, (PyObject *)npy_e);
 
     npy_intp jacDims[4][2] = { {3, 1}, {3, 3}, {3, 3}, {3, 3} };
@@ -53,10 +58,12 @@ PyObject * EvaluateRigidRegistrationEnergy(PyArrayObject * npy_V0,
         PyArrayObject * npy_J = (PyArrayObject *)PyArray_SimpleNew(2, jacDims[i], NPY_FLOAT64);
         PYARRAY_AS_MATRIX(double, npy_J, J);
 
-        energy.EvaluateJacobian(k, i, J);
+        energy->EvaluateJacobian(k, i, J);
 
         PyList_Append(py_list, (PyObject *)npy_J);
     }
+
+    delete energy;
 
     return py_list;
 }

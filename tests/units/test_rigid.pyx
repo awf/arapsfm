@@ -20,6 +20,7 @@ cdef extern from "test_rigid.h":
         np.ndarray npy_d,
         double w,
         int k,
+        bint useBackward,
         bint debug)
 
 def EvaluateRigidRegistrationEnergy(np.ndarray[DTYPE_t, ndim=2] V0,
@@ -29,7 +30,9 @@ def EvaluateRigidRegistrationEnergy(np.ndarray[DTYPE_t, ndim=2] V0,
                                     np.ndarray[DTYPE_t, ndim=2] d,
                                     DTYPE_t w,
                                     np.int32_t k,
+                                    bint useBackward=False,
                                     bint debug=False):
     
-    return EvaluateRigidRegistrationEnergy_c(V0, V, s, xg, d, w, k, debug)
+    return EvaluateRigidRegistrationEnergy_c(V0, V, s, xg, d, w, k,
+                                             useBackward, debug)
 

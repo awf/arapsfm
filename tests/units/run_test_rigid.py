@@ -53,24 +53,29 @@ def main_EvaluateRigidRegistrationEnergy():
                    [2., 0., 0.]], dtype=np.float64)
 
     V = np.array([[0., 0., 0.],
-                  [0., 1., 0.],
-                  [0., 2., 0.]], dtype=np.float64)
+                  [2., 0., 0.],
+                  [4., 0., 0.]], dtype=np.float64)
 
-    s = np.array([[1.]], dtype=np.float64)
+    s = np.array([[2.]], dtype=np.float64)
     xg = np.array([[0., 0., 0.]], dtype=np.float64)
-    d = np.array([[5., 0., 0.]], dtype=np.float64)
+    d = np.array([[1.5, 0., 0.]], dtype=np.float64)
     k = 1
     w = 1.0
+    useBackward = True
+
+    map(randomise_inplace, [V0, V, s, xg, d])
+    w = np.random.uniform(0., 1., 1)
 
     # evaluate residual and analytical Jacobians
-    r, Js, Jxg, Jd, JV = EvaluateRigidRegistrationEnergy(V0, V, s, xg, d, w, k)
+    r, Js, Jxg, Jd, JV = EvaluateRigidRegistrationEnergy(
+        V0, V, s, xg, d, w, k, useBackward)
     
     # evaluate the approximate Jacobians
     approx_Js, approx_Jxg, approx_Jd, approx_JV = approx_jacs(
         lambda *a: EvaluateRigidRegistrationEnergy(*a)[0],
         [2, 3, 4, 1],
         1e-6,
-        V0, V, s, xg, d, w, k)
+        V0, V, s, xg, d, w, k, useBackward)
 
     print 'r:', r
     print_comparison(approx_Js=approx_Js, Js=Js)
