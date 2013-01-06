@@ -201,7 +201,7 @@ class ARAPEnergy : public Energy
 public:
     ARAPEnergy(const VertexNode & V,  const RotationNode & X, const VertexNode & V1,
                const Mesh & mesh, const double w)
-        : _V(V), _X(X), _V1(V1), _mesh(mesh), _w(w)
+        : _V(V), _X(X), _V1(V1), _mesh(mesh)
     {}
 
     virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
@@ -288,7 +288,7 @@ protected:
     const VertexNode & _V1;
 
     const Mesh & _mesh;
-    const double _w;
+    
 };
 
 // RigidTransformARAPEnergy
@@ -299,7 +299,7 @@ public:
                              const RotationNode & Xg, const ScaleNode & s,
                              const VertexNode & V1, const Mesh & mesh, const double w,
                              bool uniformWeights)
-        : _V(V), _X(X), _Xg(Xg), _s(s), _V1(V1), _mesh(mesh), _w(w), _uniformWeights(uniformWeights)
+        : Energy(w), _V(V), _X(X), _Xg(Xg), _s(s), _V1(V1), _mesh(mesh), _uniformWeights(uniformWeights)
     {}
 
     virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
@@ -460,7 +460,6 @@ protected:
     const VertexNode & _V1;
 
     const Mesh & _mesh;
-    const double _w;
     bool _uniformWeights;
 };
 
@@ -471,7 +470,7 @@ public:
     RigidTransformARAPEnergy2(const VertexNode & V, const GlobalRotationNode & Xg, const ScaleNode & s,
                               const RotationNode & X, const VertexNode & V1, const Mesh & mesh, const double w,
                               bool uniformWeights, bool fixedScale)
-        : _V(V), _X(X), _Xg(Xg), _s(s), _V1(V1), _mesh(mesh), _w(w), 
+        : Energy(w), _V(V), _X(X), _Xg(Xg), _s(s), _V1(V1), _mesh(mesh), 
           _uniformWeights(uniformWeights), _fixedScale(fixedScale)
     {}
 
@@ -636,7 +635,6 @@ protected:
     const VertexNode & _V1;
 
     const Mesh & _mesh;
-    const double _w;
     bool _uniformWeights;
     bool _fixedScale;
 };
@@ -649,7 +647,7 @@ public:
     RigidTransformARAPEnergy2B(const VertexNode & V, const GlobalRotationNode & Xg, const ScaleNode & s,
                                const RotationNode & X, const VertexNode & V1, const Mesh & mesh, const double w,
                                bool uniformWeights, bool fixedScale)
-        : _V(V), _X(X), _Xg(Xg), _s(s), _V1(V1), _mesh(mesh), _w(w), 
+        : Energy(w), _V(V), _X(X), _Xg(Xg), _s(s), _V1(V1), _mesh(mesh), 
           _uniformWeights(uniformWeights), _fixedScale(fixedScale)
     {}
 
@@ -814,7 +812,6 @@ protected:
     const VertexNode & _V1;
 
     const Mesh & _mesh;
-    const double _w;
     bool _uniformWeights;
     bool _fixedScale;
 };
@@ -826,7 +823,7 @@ public:
     RigidTransformARAPEnergy3(const VertexNode & V, const GlobalRotationNode& Xg, const ScaleNode & s,
                               const RotationNode & X, const VertexNode & V1, const Mesh & mesh, const double w,
                               bool uniformWeights, bool fixedScale)
-        : _V(V), _X(X), _Xg(Xg), _s(s), _V1(V1), _mesh(mesh), _w(w), 
+        : Energy(w), _V(V), _X(X), _Xg(Xg), _s(s), _V1(V1), _mesh(mesh), 
           _uniformWeights(uniformWeights), _fixedScale(fixedScale)
     {}
 
@@ -990,7 +987,6 @@ protected:
     const VertexNode & _V1;
 
     const Mesh & _mesh;
-    const double _w;
     bool _uniformWeights;
     bool _fixedScale;
 };
@@ -1003,7 +999,7 @@ public:
     RigidTransformARAPEnergy3B(const VertexNode & V, const GlobalRotationNode& Xg, const ScaleNode & s,
                                const RotationNode & X, const VertexNode & V1, const Mesh & mesh, const double w,
                                bool uniformWeights, bool fixedScale)
-        : _V(V), _X(X), _Xg(Xg), _s(s), _V1(V1), _mesh(mesh), _w(w), 
+        : Energy(w), _V(V), _X(X), _Xg(Xg), _s(s), _V1(V1), _mesh(mesh), 
           _uniformWeights(uniformWeights), _fixedScale(fixedScale)
     {}
 
@@ -1166,7 +1162,6 @@ protected:
     const VertexNode & _V1;
 
     const Mesh & _mesh;
-    const double _w;
     bool _uniformWeights;
     bool _fixedScale;
 };
@@ -1180,7 +1175,7 @@ class DualARAPEnergy : public Energy
 public:
     DualARAPEnergy(const VertexNode & V,  const RotationNode & X, const VertexNode & V1,
                const Mesh & mesh, const double w, bool uniformWeights = true)
-        : _V(V), _X(X), _V1(V1), _mesh(mesh), _w(w), _uniformWeights(uniformWeights) 
+        : Energy(w), _V(V), _X(X), _V1(V1), _mesh(mesh), _uniformWeights(uniformWeights) 
     {}
 
     virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
@@ -1292,7 +1287,7 @@ protected:
     const VertexNode & _V1;
 
     const Mesh & _mesh;
-    const double _w;
+    
 
     bool _uniformWeights;
 };
@@ -1304,7 +1299,7 @@ public:
     DualScaledARAPEnergy(const VertexNode & V,  const RotationNode & X, const ScaleNode & s,
                          const VertexNode & V1, const Mesh & mesh, const double w, 
                          bool uniformWeights = true)
-        : _V(V), _X(X), _s(s), _V1(V1), _mesh(mesh), _w(w), _uniformWeights(uniformWeights) 
+        : Energy(w), _V(V), _X(X), _s(s), _V1(V1), _mesh(mesh), _uniformWeights(uniformWeights) 
     {}
 
     virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
@@ -1425,7 +1420,7 @@ protected:
     const VertexNode & _V1;
 
     const Mesh & _mesh;
-    const double _w;
+    
 
     bool _uniformWeights;
 };
@@ -1438,7 +1433,7 @@ public:
                                  const RotationNode & Xg, const ScaleNode & s,
                                  const VertexNode & V1, const Mesh & mesh, const double w,
                                  bool uniformWeights = true)
-        : _V(V), _X(X), _Xg(Xg), _s(s), _V1(V1), _mesh(mesh), _w(w), _uniformWeights(uniformWeights)
+        : Energy(w), _V(V), _X(X), _Xg(Xg), _s(s), _V1(V1), _mesh(mesh), _uniformWeights(uniformWeights)
     {}
 
     virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
@@ -1619,7 +1614,6 @@ protected:
     const VertexNode & _V1;
 
     const Mesh & _mesh;
-    const double _w;
     bool _uniformWeights;
 };
 
@@ -1631,8 +1625,7 @@ public:
                                  const vector<RotationNode *> & X, const CoefficientsNode & y,
                                  const VertexNode & V1, const Mesh & mesh, const double w,
                                  bool uniformWeights = true)
-        : _V(V), _Xg(Xg), _s(s), _X(X), _y(y), _V1(V1), _mesh(mesh), 
-          _w(w), _uniformWeights(uniformWeights), _n(X.size())
+        : Energy(w), _V(V), _Xg(Xg), _s(s), _X(X), _y(y), _V1(V1), _mesh(mesh), _uniformWeights(uniformWeights), _n(X.size())
     {}
 
     virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
@@ -1902,7 +1895,6 @@ protected:
     const VertexNode & _V1;
 
     const Mesh & _mesh;
-    const double _w;
     bool _uniformWeights;
     int _n;
 };
@@ -1917,7 +1909,7 @@ public:
                              const Matrix<int> & K, const Mesh & mesh, const double w,
                              bool uniformWeights, 
                              bool fixedXb, bool fixedV, bool fixedV1, bool fixedScale)
-        : _V(V), _Xg(Xg), _s(s), _Xb(Xb), _y(y), _X(X), _V1(V1), _K(K), _mesh(mesh), _w(w), 
+        : Energy(w), _V(V), _Xg(Xg), _s(s), _Xb(Xb), _y(y), _X(X), _V1(V1), _K(K), _mesh(mesh), 
           _uniformWeights(uniformWeights), 
           _fixedXb(fixedXb), _fixedV(fixedV), _fixedV1(fixedV1), _fixedScale(fixedScale)
     {}
@@ -2286,7 +2278,6 @@ protected:
     const Matrix<int> & _K;
 
     const Mesh & _mesh;
-    const double _w;
     bool _uniformWeights;
     bool _fixedXb;
     bool _fixedV;
@@ -2299,7 +2290,7 @@ class RotationRegulariseEnergy : public Energy
 {
 public:
     RotationRegulariseEnergy(const RotationNode & X, const double w)
-        : _X(X), _w(w)
+        : Energy(w), _X(X)
     {}
 
     virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
@@ -2335,7 +2326,7 @@ public:
 
 protected:
     const RotationNode & _X;
-    const double _w;
+    
 };
 
 // GlobalRotationRegulariseEnergy
@@ -2343,7 +2334,7 @@ class GlobalRotationRegulariseEnergy : public Energy
 {
 public:
     GlobalRotationRegulariseEnergy(const GlobalRotationNode & X, const double w)
-        : _X(X), _w(w)
+        : Energy(w), _X(X)
     {}
 
     virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
@@ -2379,7 +2370,7 @@ public:
 
 protected:
     const GlobalRotationNode & _X;
-    const double _w;
+    
 };
 
 // SectionedRotationsVelocityEnergy
@@ -2390,7 +2381,7 @@ public:
                                      const GlobalRotationNode & Xg, const CoefficientsNode & y, const RotationNode & X,
                                      const RotationNode & Xb, const Matrix<int> & K, const double w,
                                      bool fixed0, bool fixedXb)
-        : _Xg0(Xg0), _y0(y0), _X0(X0), _Xg(Xg), _y(y), _X(X), _Xb(Xb), _K(K), _w(w), _fixed0(fixed0), _fixedXb(fixedXb),
+        : _Energy(w), Xg0(Xg0), _y0(y0), _X0(X0), _Xg(Xg), _y(y), _X(X), _Xb(Xb), _K(K), _fixed0(fixed0), _fixedXb(fixedXb),
           _numMeasurements(0)
     {
         for (int k=0; k < _K.num_rows(); ++k)
@@ -2689,7 +2680,6 @@ protected:
     const RotationNode & _X;
     const RotationNode & _Xb;
     const Matrix<int> & _K;
-    const double _w;
     bool _fixed0;
     bool _fixedXb;
 
@@ -2702,7 +2692,7 @@ class GlobalRotationsDifferenceEnergy : public Energy
 public:
     GlobalRotationsDifferenceEnergy(const GlobalRotationNode & Xg, const GlobalRotationNode & Xg0, 
                                     const double w, bool fixed0)
-        : _Xg(Xg), _Xg0(Xg0), _w(w), _fixed0(fixed0)
+        : Energy(w), _Xg(Xg), _Xg0(Xg0), _fixed0(fixed0)
     {}
 
     virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
@@ -2766,7 +2756,6 @@ public:
 protected:
     const GlobalRotationNode & _Xg;
     const GlobalRotationNode & _Xg0;
-    const double _w;
     bool _fixed0;
 };
 
@@ -2775,7 +2764,7 @@ class GlobalScaleRegulariseEnergy : public Energy
 {
 public:
     GlobalScaleRegulariseEnergy(const ScaleNode & s, const double w)
-        : _s(s), _w(w)
+        : _Energy(w), s(s)
     {}
 
     virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
@@ -2806,7 +2795,7 @@ public:
 
 protected:
     const ScaleNode & _s;
-    const double _w;
+    
 };
 
 #endif

@@ -16,7 +16,7 @@ SilhouetteBaseEnergy::SilhouetteBaseEnergy(const VertexNode & V, const Barycentr
                                            const int measurementDim,
                                            const ResidualTransform * pResidualTransform)
     
-        : _V(V), _U(U), _mesh(mesh), _w(w), _narrowBand(narrowBand), _measurementDim(measurementDim), _pResidualTransform(pResidualTransform)
+        : Energy(w), _V(V), _U(U), _mesh(mesh), _narrowBand(narrowBand), _measurementDim(measurementDim), _pResidualTransform(pResidualTransform)
 {}
 
 SilhouetteBaseEnergy::~SilhouetteBaseEnergy()

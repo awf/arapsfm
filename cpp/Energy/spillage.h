@@ -17,7 +17,7 @@ class SpillageEnergy : public Energy
 public:
     SpillageEnergy(const VertexNode & V, const Matrix<double> & Rx, const Matrix<double> & Ry,
                    const double w)
-        : _V(V), _Rx(Rx), _Ry(Ry), _w(w)
+        : Energy(w), _V(V), _Rx(Rx), _Ry(Ry)
     {}
 
     virtual ~SpillageEnergy()
@@ -90,7 +90,7 @@ protected:
     }
 
     const VertexNode & _V;
-    const double _w;
+    
 
     const Matrix<double> & _Rx;
     const Matrix<double> & _Ry;

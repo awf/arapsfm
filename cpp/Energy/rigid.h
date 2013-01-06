@@ -64,7 +64,7 @@ public:
     RigidRegistrationEnergy(const VertexNode & V0, const VertexNode & V,
                             const ScaleNode & s, const RotationNode & Xg, const VertexNode & d, 
                             const double w, bool fixedV)
-        : _V0(V0), _V(V), _s(s), _Xg(Xg), _d(d), _w(w), _fixedV(fixedV)
+        : Energy(w), _V0(V0), _V(V), _s(s), _Xg(Xg), _d(d), _fixedV(fixedV)
     {}
 
     virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
@@ -181,7 +181,7 @@ protected:
     const ScaleNode & _s;
     const RotationNode & _Xg;
     const VertexNode & _d;
-    const double _w;
+    
     const bool _fixedV;
 };
 
@@ -192,7 +192,7 @@ public:
     BackwardRigidRegistrationEnergy(const VertexNode & V0, const VertexNode & V,
                                     const ScaleNode & s, const RotationNode & Xg, const VertexNode & d, 
                                     const double w, bool fixedV)
-        : _V0(V0), _V(V), _s(s), _Xg(Xg), _d(d), _w(w), _fixedV(fixedV)
+        : Energy(w), _V0(V0), _V(V), _s(s), _Xg(Xg), _d(d), _fixedV(fixedV)
     {}
 
     virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
@@ -305,7 +305,7 @@ protected:
     const ScaleNode & _s;
     const RotationNode & _Xg;
     const VertexNode & _d;
-    const double _w;
+    
     const bool _fixedV;
 };
 

@@ -179,10 +179,10 @@ public:
                                 const Mesh & mesh, const double w,
                                 bool uniformWeights, 
                                 bool fixedXgb, bool fixedXb, bool fixedV, bool fixedV1, bool fixedScale, bool fixedXg)
-        : _V(V), _s(s), _kg(kg), _Xgb(Xgb), _yg(yg), _Xg(Xg), 
+        : Energy(w), _V(V), _s(s), _kg(kg), _Xgb(Xgb), _yg(yg), _Xg(Xg), 
           _k(k), _Xb(Xb), _y(y), _X(X), 
           _V1(V1), 
-          _mesh(mesh), _w(w), 
+          _mesh(mesh),
           _uniformWeights(uniformWeights), 
           _fixedXgb(fixedXgb), _fixedXb(fixedXb), _fixedV(fixedV), _fixedV1(fixedV1), _fixedScale(fixedScale), _fixedXg(fixedXg),
           _kLookup(V.GetCount())
@@ -640,7 +640,7 @@ protected:
     const RotationNode & _X;
     const VertexNode & _V1;
     const Mesh & _mesh;
-    const double _w;
+    
     bool _uniformWeights;
     bool _fixedXgb;
     bool _fixedXb;
@@ -665,7 +665,7 @@ public:
                              bool uniformWeights,
                              bool fixedScale)
 
-    : _V(V), _s(s), _Xg(Xg), _X(X), _V1(V1), _mesh(mesh), _w(w), _uniformWeights(uniformWeights), _fixedScale(fixedScale)
+    : Energy(w), _V(V), _s(s), _Xg(Xg), _X(X), _V1(V1), _mesh(mesh), _uniformWeights(uniformWeights), _fixedScale(fixedScale)
     {}
 
     virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
@@ -826,7 +826,7 @@ protected:
     const RotationNode & _X;
     const VertexNode & _V1;
     const Mesh & _mesh;
-    const double _w;
+    
     bool _uniformWeights;
     bool _fixedScale;
 };
@@ -836,7 +836,7 @@ class ScaleRegulariseEnergy : public Energy
 {
 public:
     ScaleRegulariseEnergy(const ScaleNode & s, const double w)
-        : _s(s), _w(w)
+        : Energy(w), _s(s)
     {}
 
     virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
@@ -867,7 +867,7 @@ public:
 
 protected:
     const ScaleNode & _s;
-    const double _w;
+    
 };
 
 // RotationRegulariseEnergy
@@ -875,7 +875,7 @@ class RotationRegulariseEnergy : public Energy
 {
 public:
     RotationRegulariseEnergy(const RotationNode & X, const double w)
-        : _X(X), _w(w)
+        : Energy(w), _X(X)
     {}
 
     virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
@@ -911,7 +911,7 @@ public:
 
 protected:
     const RotationNode & _X;
-    const double _w;
+    
 };
 
 // SectionedArapLinearCombinationEnergy
@@ -926,7 +926,7 @@ public:
                                          const Vector<int> && fixed,
                                          bool fixedXb)
 
-    : _k(k), _Xb(Xb), _X(X), _y(y), _A(A), _w(w), _fixed(fixed), _fixedXb(fixedXb) 
+    : Energy(w), _k(k), _Xb(Xb), _X(X), _y(y), _A(A), _fixed(fixed), _fixedXb(fixedXb) 
     {
         int l = 0;
         while (l < _k.size())
@@ -1195,7 +1195,7 @@ protected:
     vector<const RotationNode *> _X;
     vector<const CoefficientsNode *> _y;
     const Vector<double> _A;
-    const double _w;
+    
     const Vector<int> _fixed;
     bool _fixedXb;
 
@@ -1215,7 +1215,7 @@ public:
                                           const double w,
                                           const Vector<int> && fixed,
                                           bool fixedXgb)
-    : _kg(kg), _Xgb(Xgb), _yg(yg), _Xg(Xg), _A(A), _w(w), _fixed(fixed), _fixedXgb(fixedXgb)
+    : Energy(w), _kg(kg), _Xgb(Xgb), _yg(yg), _Xg(Xg), _A(A), _fixed(fixed), _fixedXgb(fixedXgb)
     {
         for (int i=0; i < _fixed.size(); i++)
         {
@@ -1437,7 +1437,7 @@ protected:
     vector<vector<const CoefficientsNode *>> _yg;
     vector<const RotationNode *> _Xg;
     const Vector<double> _A;
-    const double _w;
+    
     const Vector<int> _fixed;
     bool _fixedXgb;
 
@@ -1453,7 +1453,7 @@ public:
                                         const double w,
                                         const Vector<int> && fixed)
 
-    : _s(s), _A(A), _w(w), _fixed(fixed) 
+    : Energy(w), _s(s), _A(A), _fixed(fixed) 
     {
         for (int i=0; i < _fixed.size(); i++)
         {
@@ -1510,7 +1510,7 @@ public:
 protected:
     vector<const ScaleNode *> _s;
     const Vector<double> _A;
-    const double _w;
+    
     const Vector<int> _fixed;
 
     vector<int> _paramMap;
