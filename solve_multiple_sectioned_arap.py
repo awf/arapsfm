@@ -147,6 +147,8 @@ def main():
                         action='store_true',
                         default=False)
 
+    parser.add_argument('--initial_Xb', type=str, default='None')
+
     # parse the arguments
     args = parser.parse_args()
 
@@ -158,7 +160,8 @@ def main():
                 'solver_options',
                 'global_rotation_config',
                 'use_z_components',
-                'initial_Xgb'
+                'initial_Xgb',
+                'initial_Xb',
                 ]:
         setattr(args, key, eval(getattr(args, key)))
 
@@ -200,6 +203,9 @@ def main():
 
     if args.initial_Xgb is not None:
         args.initial_Xgb = np.asarray(args.initial_Xgb, dtype=np.float64)
+
+    if args.initial_Xb is not None:
+        args.initial_Xb = np.asarray(args.initial_Xb, dtype=np.float64)
 
     # output arguments
     pprint(args.__dict__)
@@ -304,17 +310,20 @@ def main():
     Xb = mparray.zeros((len(ki_basis), 3), dtype=np.float64)
     y = make_shared((len(ki_coeff), 1), num_instances, value=1.)
 
+    if args.initial_Xb is not None:
+        assert args.initial_Xb.shape == (len(ki_basis), 3)
+        for i, xb in enumerate(args.initial_Xb):
+            Xb[i].flat = xb.flat
+
     # instance scales (s)
-    instScales = make_shared((1, 1), num_instances)
+    instScales = make_shared((1, 1), num_instances, value=1.)
 
     # initialise silhouette (U, L)
     U = [mparray.empty((s.shape[0], 2), np.float64) for s in S]
     L = [mparray.empty(s.shape[0], np.int32) for s in S]
 
     # temporary variables
-    iX = np.zeros_like(V)
     empty3 = np.array(tuple(), dtype=np.float64).reshape(0, 3)
-    iXg = np.zeros((1, 3), dtype=np.float64)
 
     # setup lambdas and preconditioners
     initialisation_lambdas = np.r_[
@@ -363,48 +372,8 @@ def main():
     # core_solver_options['verbosenessLevel'] = 1
     instance_solver_options = args.solver_options.copy()
     # instance_solver_options['verbosenessLevel'] = 1
-    init_solver_options = args.solver_options.copy()
-    init_solver_options['maxIterations'] = max(50, 
-        init_solver_options['maxIterations'])
 
     # setup solving functions
-
-    # solve_initialisation
-    def solve_initialisation(i):
-        print '[-1] `solve_initialisation` (%d):' % i
-
-        t1 = time()
-
-        if i > 0:
-            # NOTE: use iXg from previous frame
-            V1[i].flat = V1[i-1].flat
-            instScales[i][0] = instScales[i-1][0]
-
-            Vp = V1[i-1]
-            Xgp = np.zeros((1, 3), dtype=np.float64)
-            sp = np.ones((1, 1), dtype=np.float64)
-            Xp = np.zeros_like(Vp)
-        else:
-            Vp = Xgp = sp = Xp = empty3
-
-        for j in xrange(args.max_restarts):
-            status = lm.solve_two_source_arap_proj(T, 
-                                                   V, instScales[i], iXg, iX,
-                                                   Vp, sp, Xgp, Xp,
-                                                   V1[i], 
-                                                   C[i], Pi[i],
-                                                   initialisation_lambdas,
-                                                   initialisation_preconditioners,
-                                                   args.uniform_weights,
-                                                   **init_solver_options)
-
-            print status[1]
-            if status[0] not in (0, 4):
-                break
-
-        t2 = time()
-
-        print '[-1] `solve_initialisation` (%d): %.3fs' % (i, t2 - t1)
 
     # update_silhouette
     def update_silhouette(i):
@@ -430,7 +399,9 @@ def main():
         print '[%d] `update_silhouette (%d)`: %.3fs' % (l, i, t2 - t1)
 
     # solve_instance
-    def solve_instance(i):
+    def solve_instance(l, i, fixed_global_rotation=True, 
+                       fixed_scale=False,
+                       no_silhouette=False):
         print '[%d] `solve_instance` (%d):' % (l, i)
 
         t1 = time()
@@ -488,10 +459,6 @@ def main():
         ygi = map(lambda i: yg[i], used_yg)
         Xgi = map(lambda i: Xg[i], used_Xg)
 
-        # fixed_scale = i == 0 
-        fixed_scale = False
-        fixed_global_rotation = True
-
         for j in xrange(args.max_restarts):
             print ' [%d] s[%d]: %.3f' % (j, i, instScales[i])
 
@@ -510,6 +477,7 @@ def main():
                                        args.uniform_weights,
                                        fixed_scale,
                                        fixed_global_rotation,
+                                       no_silhouette,
                                        **instance_solver_options)
 
 
@@ -530,7 +498,16 @@ def main():
     # perform initialisation
     V1[0].flat = V.flat
 
-    map(solve_initialisation, xrange(num_instances))
+
+    # Improved initialisation using basis 
+    for i in xrange(num_instances):
+        if i > 0:
+            V1[i].flat = V1[i-1].flat
+
+        solve_instance(-1, i, 
+                       fixed_global_rotation=False,
+                       fixed_scale=False,
+                       no_silhouette=True)
 
     for l in xrange(args.outer_loops):
         # update_silhouette immediately if `quit_after_silhouette`
@@ -593,7 +570,11 @@ def main():
         map(update_silhouette, xrange(num_instances))
 
         # update each instance
-        map(solve_instance, xrange(num_instances))
+        map(lambda i: solve_instance(l, i, 
+                                     fixed_global_rotation=True,
+                                     fixed_scale=False,
+                                     no_silhouette=False),
+            xrange(num_instances))
 
         intermediate_output = os.path.join(args.output, str(l))
         if not os.path.exists(intermediate_output):
