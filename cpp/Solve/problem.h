@@ -16,7 +16,7 @@ class Problem
 {
 public:
     Problem();
-    virtual void AddNode(Node * node);
+    virtual void AddNode(Node * node, bool isFixed=false);
     virtual void AddFixedNode(Node * node);
     virtual void AddEnergy(Energy * energy);
 

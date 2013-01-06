@@ -9,9 +9,9 @@ Problem::Problem()
     : _maxJteStore(0)
 {}
 
-void Problem::AddNode(Node * node)
+void Problem::AddNode(Node * node, bool isFixed)
 {
-    if (node->GetCount() == 0)
+    if (isFixed || node->GetCount() == 0)
         return AddFixedNode(node);
 
     const int id = node->TypeId();
