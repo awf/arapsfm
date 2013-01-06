@@ -34,9 +34,12 @@ cdef extern from "lm_alt_solvers2.h":
                list list_y,
                list list_X,
                list list_V1,
+               np.ndarray npy_V0,
+               np.ndarray npy_s0,
+               np.ndarray npy_xg0,
+               np.ndarray npy_d0,
                np.ndarray npy_lambdas,
                np.ndarray npy_preconditioners,
-               int narrowBand,
                bint uniformWeights,
                OptimiserOptions * options)
 
@@ -147,13 +150,16 @@ def solve_core(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
                list y,
                list X,
                list V1,
+               np.ndarray[np.float64_t, ndim=2, mode='c'] V0, 
+               np.ndarray[np.float64_t, ndim=2, mode='c'] s0, 
+               np.ndarray[np.float64_t, ndim=2, mode='c'] xg0, 
+               np.ndarray[np.float64_t, ndim=2, mode='c'] d0, 
                np.ndarray[np.float64_t, ndim=1] lambdas, 
                np.ndarray[np.float64_t, ndim=1] preconditioners, 
-               int narrowBand,
                bint uniformWeights,
                **kwargs):
 
-    assert lambdas.shape[0] == 5
+    assert lambdas.shape[0] == 7
     assert preconditioners.shape[0] == 4
 
     cdef OptimiserOptions options
@@ -164,7 +170,8 @@ def solve_core(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
         kg, Xgb, yg, Xg,
         k, Xb, y, X,
         V1, 
-        lambdas, preconditioners, narrowBand, uniformWeights, &options)
+        V0, s0, xg0, d0,
+        lambdas, preconditioners, uniformWeights, &options)
 
     return status, STATUS_CODES[status]
 

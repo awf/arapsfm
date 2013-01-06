@@ -15,6 +15,7 @@ using namespace V3D;
 #include "Energy/narrow_band_silhouette.h"
 #include "Energy/laplacian.h"
 #include "Energy/spillage.h"
+#include "Energy/rigid.h"
 #include "Solve/node.h"
 #include "Solve/problem.h"
 #include "Solve/optimiser_options.h"
@@ -35,9 +36,12 @@ int solve_core(PyArrayObject * npy_T,
                PyObject * list_y,
                PyObject * list_X,
                PyObject * list_V1,
+               PyArrayObject * npy_V0,
+               PyArrayObject * npy_s0,
+               PyArrayObject * npy_xg0,
+               PyArrayObject * npy_d0,
                PyArrayObject * npy_lambdas,
                PyArrayObject * npy_preconditioners,
-               int narrowBand,
                bool uniformWeights,
                const OptimiserOptions * options)
 {
@@ -56,6 +60,11 @@ int solve_core(PyArrayObject * npy_T,
     auto X = PyList_to_vector_of_Matrix<double>(list_X);
 
     auto V1 = PyList_to_vector_of_Matrix<double>(list_V1);
+
+    PYARRAY_AS_MATRIX(double, npy_V0, V0);
+    PYARRAY_AS_MATRIX(double, npy_s0, s0);
+    PYARRAY_AS_MATRIX(double, npy_xg0, xg0);
+    PYARRAY_AS_MATRIX(double, npy_d0, d0);
 
     PYARRAY_AS_VECTOR(double, npy_preconditioners, preconditioners);
     PYARRAY_AS_VECTOR(double, npy_lambdas, lambdas);
@@ -296,6 +305,25 @@ int solve_core(PyArrayObject * npy_T,
     vector<const ScaleNode *> s_nodes;
     copy(nodes_s.begin(), nodes_s.end(), back_inserter(s_nodes));
     problem.AddEnergy(new LaplacianEnergy(*node_V, move(s_nodes), mesh, sqrt(lambdas[4])));
+
+    auto node_V0 = new VertexNode(V0);
+    problem.AddFixedNode(node_V0);
+
+    auto node_s0 = new ScaleNode(s0);
+    problem.AddNode(node_s0);
+
+    auto node_xg0 = new RotationNode(xg0);
+    problem.AddNode(node_xg0);
+
+    auto node_d0 = new VertexNode(d0);
+    problem.AddNode(node_d0);
+
+    problem.AddEnergy(new BackwardRigidRegistrationEnergy(*node_V0, *node_V, 
+                                                          *node_s0, *node_xg0, *node_d0, 
+                                                          sqrt(lambdas[5]),
+                                                          false));  // fixedV
+                                                  
+    problem.AddEnergy(new RotationRegulariseEnergy(*node_xg0, sqrt(node_V->GetCount() * lambdas[6])));
 
     int ret = problem.Minimise(*options);
 
