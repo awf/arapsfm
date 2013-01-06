@@ -45,6 +45,7 @@ protected:
     map<int, vector<Node *>> _allNodes;
     vector<Node *> _fixedNodes;
     vector<Energy *> _allEnergies;
+    vector<Energy *> _redundantEnergies;
 
     deque<Vector<double> *> _storedJte;
     int _maxJteStore;

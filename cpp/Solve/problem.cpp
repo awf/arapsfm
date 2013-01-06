@@ -38,7 +38,10 @@ void Problem::AddFixedNode(Node * node)
 
 void Problem::AddEnergy(Energy * energy)
 {
-    _allEnergies.push_back(energy);
+    if (energy->GetWeight() <= 0.)
+        _redundantEnergies.push_back(energy);
+    else
+        _allEnergies.push_back(energy);
 }
 
 void Problem::InitialiseParamDesc()
@@ -182,6 +185,9 @@ Problem::~Problem()
 {
     for (int i = 0; i < _allEnergies.size(); i++)
         delete _allEnergies[i];
+
+    for (int i = 0; i < _redundantEnergies.size(); i++)
+        delete _redundantEnergies[i];
 
     for (auto i = _allNodes.begin(); i != _allNodes.end(); i++)
         for (int j = 0; j < i->second.size(); j++)
