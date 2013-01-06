@@ -63,12 +63,12 @@ def main_EvaluateRigidRegistrationEnergy():
     w = 1.0
 
     # evaluate residual and analytical Jacobians
-    r, Js, Jxg, Jd = EvaluateRigidRegistrationEnergy(V0, V, s, xg, d, w, k)
+    r, Js, Jxg, Jd, JV = EvaluateRigidRegistrationEnergy(V0, V, s, xg, d, w, k)
     
     # evaluate the approximate Jacobians
-    approx_Js, approx_Jxg, approx_Jd = approx_jacs(
+    approx_Js, approx_Jxg, approx_Jd, approx_JV = approx_jacs(
         lambda *a: EvaluateRigidRegistrationEnergy(*a)[0],
-        [2, 3, 4],
+        [2, 3, 4, 1],
         1e-6,
         V0, V, s, xg, d, w, k)
 
@@ -76,6 +76,7 @@ def main_EvaluateRigidRegistrationEnergy():
     print_comparison(approx_Js=approx_Js, Js=Js)
     print_comparison(approx_Jxg=approx_Jxg, Jxg=Jxg)
     print_comparison(approx_Jd=approx_Jd, Jd=Jd)
+    print_comparison(approx_JV=approx_JV[:,3*k:3*(k+1)], JV=JV)
 
 if __name__ == '__main__':
     main_EvaluateRigidRegistrationEnergy()

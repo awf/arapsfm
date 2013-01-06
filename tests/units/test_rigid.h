@@ -35,7 +35,7 @@ PyObject * EvaluateRigidRegistrationEnergy(PyArrayObject * npy_V0,
     PYARRAY_AS_MATRIX(double, npy_d, d);
     VertexNode node_d(d);
 
-    RigidRegistrationEnergy energy(node_V0, node_V, node_s, node_xg, node_d, w);
+    RigidRegistrationEnergy energy(node_V0, node_V, node_s, node_xg, node_d, w, false);
 
     PyObject * py_list = PyList_New(0);
 
@@ -46,9 +46,9 @@ PyObject * EvaluateRigidRegistrationEnergy(PyArrayObject * npy_V0,
     energy.EvaluateResidual(k, e);
     PyList_Append(py_list, (PyObject *)npy_e);
 
-    npy_intp jacDims[3][2] = { {3, 1}, {3, 3}, {3, 3} };
+    npy_intp jacDims[4][2] = { {3, 1}, {3, 3}, {3, 3}, {3, 3} };
 
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 4; i++)
     {
         PyArrayObject * npy_J = (PyArrayObject *)PyArray_SimpleNew(2, jacDims[i], NPY_FLOAT64);
         PYARRAY_AS_MATRIX(double, npy_J, J);
