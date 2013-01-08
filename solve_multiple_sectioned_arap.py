@@ -149,6 +149,9 @@ def main():
 
     parser.add_argument('--initial_Xb', type=str, default='None')
 
+    parser.add_argument('--silhouette_projection_lambdas', type=str,
+                        default='None')
+
     # parse the arguments
     args = parser.parse_args()
 
@@ -162,6 +165,7 @@ def main():
                 'use_z_components',
                 'initial_Xgb',
                 'initial_Xb',
+                'silhouette_projection_lambdas',
                 ]:
         setattr(args, key, eval(getattr(args, key)))
 
@@ -384,6 +388,11 @@ def main():
     def update_silhouette(i):
         print '[%d] `update_silhouette` (%d):' % (l, i)
         
+        lambdas = silhouette_lambdas.copy()
+        if (args.silhouette_projection_lambdas is not None and
+            l < len(args.silhouette_projection_lambdas)):
+            lambdas[1] = args.silhouette_projection_lambdas[l]
+
         t1 = time()
 
         u, l_ = solve_silhouette(
@@ -393,7 +402,7 @@ def main():
             silhouette_info['SilEdgeCandParam'],
             silhouette_info['SilCandAssignedFaces'],
             silhouette_info['SilCandU'],
-            silhouette_lambdas,
+            lambdas,
             radius=args.candidate_radius,
             verbose=True)
 
@@ -464,6 +473,11 @@ def main():
         ygi = map(lambda i: yg[i], used_yg)
         Xgi = map(lambda i: Xg[i], used_Xg)
 
+        lambdas = instance_lambdas.copy()
+        if (args.silhouette_projection_lambdas is not None and
+            l < len(args.silhouette_projection_lambdas)):
+            lambdas[2] = args.silhouette_projection_lambdas[l]
+
         for j in xrange(args.max_restarts):
             print ' [%d] s[%d]: %.3f' % (j, i, instScales[i])
 
@@ -475,7 +489,7 @@ def main():
                                        S[i], SN[i],
                                        Rx[i], Ry[i], 
                                        C[i], P[i],
-                                       instance_lambdas,
+                                       lambdas,
                                        instance_preconditioners,
                                        args.piecewise_polynomial,
                                        args.narrowband,
