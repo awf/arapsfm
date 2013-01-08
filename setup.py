@@ -158,6 +158,7 @@ setup(
                   libraries=['colamd'],
                   define_macros=REMOVE_EXCEPTION_MACROS + [('NO_HELPER', 1)],
                   extra_compile_args=['-std=c++11', '-Wfatal-errors'],
+                  # extra_compile_args=['-std=c++11', '-Wfatal-errors', '-O0'],
                   language='c++'),
 
         # Extension('Test.test_mesh_walker',
@@ -213,6 +214,22 @@ setup(
                   extra_compile_args=['-std=c++11', '-Wfatal-errors', '-O0'],
                   language='c++'),
 
+        Extension('core_recovery.lm_alt_solvers_linear',
+                  ['core_recovery/lm_alt_solvers_linear.pyx',
+                   'cpp/Solve/problem.cpp',
+                   'cpp/Solve/node.cpp',
+                   'cpp/Geometry/mesh_walker.cpp',
+                   'cpp/Energy/narrow_band_silhouette.cpp',
+                  ] +
+                  SSLM_BASE_SRC + 
+                  SSLM_MATH_SRC,
+                  include_dirs=include_dirs + [SSLM_ROOT, COLAMD_INC],
+                  library_dirs=[COLAMD_LIB],
+                  libraries=['colamd'],
+                  define_macros=REMOVE_EXCEPTION_MACROS + [('NO_HELPER', 1)],
+                  extra_compile_args=['-std=c++11', '-Wfatal-errors'],
+                  # extra_compile_args=['-std=c++11', '-Wfatal-errors', '-O0'],
+                  language='c++'),
         ],
 
     cmdclass = {'build_ext' : build_ext},
