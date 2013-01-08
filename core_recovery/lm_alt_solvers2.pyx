@@ -162,7 +162,7 @@ def solve_core(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
                bint fixedXgb,
                **kwargs):
 
-    assert lambdas.shape[0] == 7
+    assert lambdas.shape[0] == 10
     assert preconditioners.shape[0] == 4
 
     cdef OptimiserOptions options
@@ -217,7 +217,7 @@ def solve_instance(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
                    bint noSilhouetteUpdate,
                    **kwargs):
 
-    assert lambdas.shape[0] == 9
+    assert lambdas.shape[0] == 12
     assert preconditioners.shape[0] == 5
     assert piecewisePolynomial.shape[0] == 2
 
