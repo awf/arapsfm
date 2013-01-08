@@ -205,6 +205,14 @@ setup(
                   include_dirs=include_dirs + [SSLM_ROOT],
                   extra_compile_args=['-std=c++11', '-Wfatal-errors', '-O0'],
                   language='c++'),
+
+        Extension('tests.units.test_linear_deformation', 
+                  ['tests/units/test_linear_deformation.pyx',
+                   'cpp/Solve/node.cpp'],
+                  include_dirs=include_dirs + [SSLM_ROOT],
+                  extra_compile_args=['-std=c++11', '-Wfatal-errors', '-O0'],
+                  language='c++'),
+
         ],
 
     cmdclass = {'build_ext' : build_ext},
