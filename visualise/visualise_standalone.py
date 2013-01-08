@@ -48,6 +48,7 @@ class StandaloneVisualisation(object):
         with_core = kwargs.pop('with_core', None)
         self.subdivide = kwargs.pop('subdivide', 0)
         self.compute_normals = kwargs.pop('compute_normals', 0)
+        self.no_colour_silhouette = kwargs.pop('no_colour_silhouette', False)
 
         self.z = np.load(filename)
 
@@ -92,17 +93,22 @@ class StandaloneVisualisation(object):
     # "_add" methods
     @requires('T', attrs=['vertices_key'])
     def _add_mesh(self):
+        special_color = ((31, 120, 180) if self.no_colour_silhouette
+                                        else (178, 223, 138))
+
         if self.subdivide == 0:
             self.vis.add_mesh(self[self.vertices_key], 
                               self['T'],
                               self['L'],
-                              compute_normals=self.compute_normals)
+                              compute_normals=self.compute_normals,
+                              special_color=special_color)
         else:
             T, V = self['T'], self[self.vertices_key]
             for i in xrange(self.subdivide):
                 T, V = loop.subdivide(T, V)
                               
-            self.vis.add_mesh(V, T, compute_normals=self.compute_normals)
+            self.vis.add_mesh(V, T, compute_normals=self.compute_normals,
+                              special_color=special_color)
 
     @requires('T', 'Xg', 's', 'X', attrs=['vertices_key'])
     def _add_regular_arap(self):
@@ -334,6 +340,9 @@ def main():
     parser.add_argument('--compute_normals', action='store_true', default=False)
     parser.add_argument('--extension', type=str, default='.npz')
     parser.add_argument('--indices', type=str, default='None')
+    parser.add_argument('--no_colour_silhouette',
+                        action='store_true', 
+                        default=False)
 
     args = parser.parse_args()
     args.indices = eval(args.indices)
@@ -389,11 +398,13 @@ def main():
         print 'Available keys:', np.load(input_path).keys()
 
         if vis is None:
-            vis = StandaloneVisualisation(input_path,
-                                          vertices_key=args.vertices_key,
-                                          with_core=args.with_core,
-                                          subdivide=args.subdivide,
-                                          compute_normals=args.compute_normals)
+            vis = StandaloneVisualisation(
+                input_path,
+                vertices_key=args.vertices_key,
+                with_core=args.with_core,
+                subdivide=args.subdivide,
+                compute_normals=args.compute_normals,
+                no_colour_silhouette=args.no_colour_silhouette)
 
             if args.ren_win_size is not None:
                 vis.ren_win.SetSize(*tuple_from_string(args.ren_win_size))
