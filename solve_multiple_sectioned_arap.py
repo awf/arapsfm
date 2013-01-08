@@ -335,25 +335,17 @@ def main():
     empty3 = np.array(tuple(), dtype=np.float64).reshape(0, 3)
 
     # setup lambdas and preconditioners
-    initialisation_lambdas = np.r_[
-        args.lambdas[5],   # projection
-        args.lambdas[3],   # as-rigid-as-possible
-        args.lambdas[7],   # temporal ARAP penalty
-        args.lambdas[8],   # global rotations regularisation
-        args.lambdas[9],   # global scale regularisation
-        args.lambdas[10]]  # frame-to-frame rotations regularisation
-
-    initialisation_preconditioners = np.r_[args.preconditioners[0], # V
-                                           args.preconditioners[1], # X
-                                           args.preconditioners[2]] # s
-
     core_lambdas = np.r_[args.lambdas[3],    # as-rigid-as-possible
-                         args.lambdas[8],    # global rotations penalty
-                         args.lambdas[9],    # global scale penalty 
-                         args.lambdas[10],   # frame-to-frame rotations regularisation
-                         args.lambdas[6],    # laplacian (NOTE should be scaled by `len(V1)`)
+                         args.lambdas[8],    # global scale acceleration penalty
+                         args.lambdas[9],    # global rotations acceleration penalty
+                         args.lambdas[10],   # frame-to-frame acceleration penalty
+                         args.lambdas[6],    # laplacian (NOTE should be scaled by `len(V1)` ?)
                          args.lambdas[11],   # rigid-registration of core to initialisation
-                         len(V1) * args.lambdas[12]]   # penalty of the global rotation of the registration
+                         args.lambdas[12],   # penalty of the global rotation of the registration
+                         args.lambdas[13],   # global scale velocity penalty
+                         args.lambdas[14],   # global rotations velocity penalty
+                         args.lambdas[15]]   # frame-to-frame velocity penalty
+
 
     core_preconditioners = np.r_[args.preconditioners[0], # V
                                  args.preconditioners[1], # X/Xg
@@ -365,9 +357,12 @@ def main():
                              args.lambdas[4],    # spillage
                              args.lambdas[5],    # projection
                              args.lambdas[7],    # temporal ARAP penalty
-                             args.lambdas[8],    # global rotations penalty
-                             args.lambdas[9],    # global scale penalty 
-                             args.lambdas[10]]   # frame-to-frame rotations regularisation
+                             args.lambdas[8],    # global scale acceleration penalty
+                             args.lambdas[9],    # global rotations acceleration penalty
+                             args.lambdas[10],   # frame-to-frame acceleration penalty
+                             args.lambdas[13],   # global scale velocity penalty
+                             args.lambdas[14],   # global rotations velocity penalty
+                             args.lambdas[15]]   # frame-to-frame velocity penalty
 
     instance_preconditioners = np.r_[args.preconditioners[0], # V
                                      args.preconditioners[1], # X/Xg
@@ -425,19 +420,24 @@ def main():
             sp = np.ones((1, 1), dtype=np.float64)
             Xgp = np.zeros((1, 3), dtype=np.float64)
             Xp = np.zeros_like(Vm1)
+
+            sm1 = [instScales[i-1]]
+            ym1 = [y[i-1]]
+            Xm1 = [X[i-1]]
+
+            subproblem = (i, i - 1)
         else:
             Vm1 = sp = Xgp = Xp = empty3
-
-        if i > 1:
-            sm1 = [instScales[i-1], instScales[i-2]]
-            ym1 = [y[i-1], y[i-2]]
-            Xm1 = [X[i-1], X[i-2]]
-            subproblem = (i, i - 1, i - 2)
-        else:
             sm1 = []
             ym1 = []
             Xm1 = []
             subproblem = (i,)
+
+        if i > 1:
+            sm1.append(instScales[i-2])
+            ym1.append(y[i-2])
+            Xm1.append(X[i-2])
+            subproblem = subproblem + (i - 2,)
 
         used_Xgb, used_yg, used_Xg = [], [], []
         kgi = []
