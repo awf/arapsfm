@@ -17,7 +17,10 @@ import os
 from os.path import splitext
 
 # Solver
-from core_recovery.lm_solvers import solve_single_arap_proj
+try:
+    from core_recovery.lm_solvers import solve_single_arap_proj
+except ImportError:
+    pass
 
 # GUI
 
