@@ -5,6 +5,7 @@
 using namespace V3D;
 
 #include "Math/static_linear.h"
+#include "Math/rotation_composition.h"
 #include "Solve/node.h"
 #include "Energy/energy.h"
 #include "Geometry/mesh.h"
@@ -17,6 +18,10 @@ using namespace V3D;
 #include <map>
 #include <iterator>
 using namespace std;
+
+// FIXME Required changes to `CompleteSectionedArapEnergy` and `SectionedArapLinearCombinationEnergy` 
+// `GetRotationAtVertex_Unsafe` under `CompleteSectionedArapEnergy` should be quaternion addition NOT vector interpolation
+// `GetRotation_Unsafe` under `SectionedArapLinearCombinationEnergy` should be quaternion addition NOT vector interpolation
 
 // arapResiduals_Unsafe
 inline void arapResiduals_Unsafe(const double * Vi, const double * Vj,
@@ -179,13 +184,14 @@ public:
                                 const Mesh & mesh, const double w,
                                 bool uniformWeights, 
                                 bool fixedXgb, bool fixedXb, bool fixedV, bool fixedV1, bool fixedScale, bool fixedXg)
-        : _V(V), _s(s), _kg(kg), _Xgb(Xgb), _yg(yg), _Xg(Xg), 
+        : Energy(w), _V(V), _s(s), _kg(kg), _Xgb(Xgb), _yg(yg), _Xg(Xg), 
           _k(k), _Xb(Xb), _y(y), _X(X), 
           _V1(V1), 
-          _mesh(mesh), _w(w), 
+          _mesh(mesh),
           _uniformWeights(uniformWeights), 
           _fixedXgb(fixedXgb), _fixedXb(fixedXb), _fixedV(fixedV), _fixedV1(fixedV1), _fixedScale(fixedScale), _fixedXg(fixedXg),
-          _kLookup(V.GetCount())
+          _kLookup(V.GetCount()),
+          _XgComp(_Xgb, _yg)
     {
         int j = 0;
         for (int i = 0; i < _V.GetCount(); i++)
@@ -375,11 +381,7 @@ public:
         }
         else
         {
-            for (int n=0; n < _kg; n++)
-                makeInterpolatedVector_Static<double, 3>(1.0, xg, 
-                                                         _yg[n]->GetCoefficient(0), 
-                                                         _Xgb[n]->GetRotation(0), 
-                                                         xg);
+            _XgComp.Rotation_Unsafe(0, xg);
         }
 
         quat_Unsafe(xg, qg);
@@ -387,6 +389,7 @@ public:
 
     virtual void GetRotationAtVertex_Unsafe(int i, double * xi, double * qi) const
     {
+        // FIXME
         fillVector_Static<double, 3>(0., xi);
 
         int m = _kLookup[i];
@@ -495,12 +498,17 @@ public:
                         double Jxg[12];
                         quatDx_Unsafe(xg, Jxg);
 
-                        // dxg/dxgb == _yg[n]->GetCoefficient(0)
-                        scaleVectorIP_Static<double, 12>(_yg[n]->GetCoefficient(0), Jxg);
+                        // dxg/dxgb
+                        double Jxgb[9];
+                        _XgComp.Jacobian_Unsafe(n, 0, true, Jxgb);
+
+                        double B[9];
+                        multiply_A_B_Static<double, 4, 3, 3>(Jxg, Jxgb, B);
 
                         double A[12];
                         multiply_A_B_Static<double, 3, 4, 4>(Jq, Jqg, A);
-                        multiply_A_B_Static<double, 3, 4, 3>(A, Jxg, J[0]);
+
+                        multiply_A_B_Static<double, 3, 4, 3>(A, B, J[0]);
                         return;
                     }
 
@@ -520,12 +528,14 @@ public:
                         double Jxg[12];
                         quatDx_Unsafe(xg, Jxg);
 
-                        // dxg/dyg == _Xgb[n]->GetRotation(0)
+                        // dxg/dyg
+                        double Jyg[3];
+                        _XgComp.Jacobian_Unsafe(n, 0, false, Jyg);
 
                         double A[12], B[9];
                         multiply_A_B_Static<double, 3, 4, 4>(Jq, Jqg, A);
                         multiply_A_B_Static<double, 3, 4, 3>(A, Jxg, B);
-                        multiply_A_v_Static<double, 3, 3>(B, _Xgb[n]->GetRotation(0), J[0]);
+                        multiply_A_v_Static<double, 3, 3>(B, Jyg, J[0]);
                         return;
                     }
                 }
@@ -640,7 +650,7 @@ protected:
     const RotationNode & _X;
     const VertexNode & _V1;
     const Mesh & _mesh;
-    const double _w;
+    
     bool _uniformWeights;
     bool _fixedXgb;
     bool _fixedXb;
@@ -650,6 +660,7 @@ protected:
     bool _fixedXg;
 
     Vector<int> _kLookup;
+    const RotationComposition _XgComp;
 };
 
 // RigidTransformArapEnergy
@@ -665,7 +676,7 @@ public:
                              bool uniformWeights,
                              bool fixedScale)
 
-    : _V(V), _s(s), _Xg(Xg), _X(X), _V1(V1), _mesh(mesh), _w(w), _uniformWeights(uniformWeights), _fixedScale(fixedScale)
+    : Energy(w), _V(V), _s(s), _Xg(Xg), _X(X), _V1(V1), _mesh(mesh), _uniformWeights(uniformWeights), _fixedScale(fixedScale)
     {}
 
     virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
@@ -826,7 +837,7 @@ protected:
     const RotationNode & _X;
     const VertexNode & _V1;
     const Mesh & _mesh;
-    const double _w;
+    
     bool _uniformWeights;
     bool _fixedScale;
 };
@@ -836,7 +847,7 @@ class ScaleRegulariseEnergy : public Energy
 {
 public:
     ScaleRegulariseEnergy(const ScaleNode & s, const double w)
-        : _s(s), _w(w)
+        : Energy(w), _s(s)
     {}
 
     virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
@@ -867,7 +878,7 @@ public:
 
 protected:
     const ScaleNode & _s;
-    const double _w;
+    
 };
 
 // RotationRegulariseEnergy
@@ -875,7 +886,7 @@ class RotationRegulariseEnergy : public Energy
 {
 public:
     RotationRegulariseEnergy(const RotationNode & X, const double w)
-        : _X(X), _w(w)
+        : Energy(w), _X(X)
     {}
 
     virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
@@ -911,7 +922,7 @@ public:
 
 protected:
     const RotationNode & _X;
-    const double _w;
+    
 };
 
 // SectionedArapLinearCombinationEnergy
@@ -926,7 +937,7 @@ public:
                                          const Vector<int> && fixed,
                                          bool fixedXb)
 
-    : _k(k), _Xb(Xb), _X(X), _y(y), _A(A), _w(w), _fixed(fixed), _fixedXb(fixedXb) 
+    : Energy(w), _k(k), _Xb(Xb), _X(X), _y(y), _A(A), _fixed(fixed), _fixedXb(fixedXb) 
     {
         int l = 0;
         while (l < _k.size())
@@ -1041,6 +1052,7 @@ public:
 
     virtual void GetRotation_Unsafe(const int i, const int k, double * x) const
     {
+        // FIXME
         int m = _kLookup[k];
         assert(_k[m] != FIXED_ROTATION);
 
@@ -1195,7 +1207,7 @@ protected:
     vector<const RotationNode *> _X;
     vector<const CoefficientsNode *> _y;
     const Vector<double> _A;
-    const double _w;
+    
     const Vector<int> _fixed;
     bool _fixedXb;
 
@@ -1215,8 +1227,22 @@ public:
                                           const double w,
                                           const Vector<int> && fixed,
                                           bool fixedXgb)
-    : _kg(kg), _Xgb(Xgb), _yg(yg), _Xg(Xg), _A(A), _w(w), _fixed(fixed), _fixedXgb(fixedXgb)
+    : Energy(w), _kg(kg), _Xgb(Xgb), _yg(yg), _Xg(Xg), _A(A), _fixed(fixed), _fixedXgb(fixedXgb)
     {
+        _XgComp.resize(_fixed.size(), nullptr);
+
+        for (int i=0; i < _fixed.size(); i++)
+        {
+            switch (_kg[i])
+            {
+            case FIXED_ROTATION:
+            case INDEPENDENT_ROTATION:
+                continue;
+            default:
+                _XgComp[i] = new RotationComposition(_Xgb[i], _yg[i]);
+            }
+        }
+
         for (int i=0; i < _fixed.size(); i++)
         {
             if (_fixed[i])
@@ -1245,6 +1271,13 @@ public:
                 _paramMap.push_back(pair<int, int>(i, l++));
             }
         }
+    }
+
+    virtual ~GlobalRotationLinearCombinationEnergy()
+    {
+        for (int i = 0; i < _XgComp.size(); i++)
+            if (_XgComp[i] != nullptr)
+                delete _XgComp[i];
     }
 
     virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
@@ -1326,11 +1359,7 @@ public:
         }
         else
         {
-            for (int n=0; n < _kg[i]; n++)
-                makeInterpolatedVector_Static<double, 3>(1.0, xgi, 
-                                                         _yg[i][n]->GetCoefficient(0), 
-                                                         _Xgb[i][n]->GetRotation(0), 
-                                                         xgi);
+            _XgComp[i]->Rotation_Unsafe(0, xgi);
         }
     }
 
@@ -1406,14 +1435,17 @@ public:
         {
             IF_PARAM_ON_CONDITION(!_fixedXgb)
             {
-                scaleVectorIP_Static<double, 9>(_yg[i][j]->GetCoefficient(0), Jq);
-                copyVector_Static<double, 9>(Jq, J[0]);
+                double Jr[9];
+                _XgComp[i]->Jacobian_Unsafe(j, 0, true, Jr);
+                multiply_A_B_Static<double, 3, 3, 3>(Jq, Jr, J[0]);
                 return;
             }
 
             IF_PARAM_ON_CONDITION(true) 
             {
-                multiply_A_v_Static<double, 3, 3>(Jq, _Xgb[i][j]->GetRotation(0), J[0]);
+                double Jr[3];
+                _XgComp[i]->Jacobian_Unsafe(j, 0, false, Jr);
+                multiply_A_v_Static<double, 3, 3>(Jq, Jr, J[0]);
                 return; 
             }
         }
@@ -1437,11 +1469,13 @@ protected:
     vector<vector<const CoefficientsNode *>> _yg;
     vector<const RotationNode *> _Xg;
     const Vector<double> _A;
-    const double _w;
+    
     const Vector<int> _fixed;
     bool _fixedXgb;
 
     vector<pair<int, int>> _paramMap;
+
+    vector<const RotationComposition *> _XgComp;
 };
 
 // GlobalScalesLinearCombinationEnergy
@@ -1453,7 +1487,7 @@ public:
                                         const double w,
                                         const Vector<int> && fixed)
 
-    : _s(s), _A(A), _w(w), _fixed(fixed) 
+    : Energy(w), _s(s), _A(A), _fixed(fixed) 
     {
         for (int i=0; i < _fixed.size(); i++)
         {
@@ -1510,7 +1544,7 @@ public:
 protected:
     vector<const ScaleNode *> _s;
     const Vector<double> _A;
-    const double _w;
+    
     const Vector<int> _fixed;
 
     vector<int> _paramMap;

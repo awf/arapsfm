@@ -11,6 +11,8 @@ using namespace std;
 class Energy
 {
 public:
+    Energy(const double w) : _w(w) {}
+
     virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions) = 0;
 
     virtual int GetCorrespondingParam(const int k, const int i) const = 0;
@@ -20,6 +22,11 @@ public:
     virtual void EvaluateJacobian(const int k, const int whichParam, Matrix<double> & J) const = 0;
 
     virtual bool CanBeginIteration() const { return true; }
+
+    virtual double GetWeight() const { return _w; }
+
+protected:
+    const double _w;    
 };
 
 // Energy_CostFunction

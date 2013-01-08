@@ -15,6 +15,7 @@ using namespace V3D;
 #include "Energy/narrow_band_silhouette.h"
 #include "Energy/laplacian.h"
 #include "Energy/spillage.h"
+#include "Energy/rigid.h"
 #include "Solve/node.h"
 #include "Solve/problem.h"
 #include "Solve/optimiser_options.h"
@@ -35,10 +36,14 @@ int solve_core(PyArrayObject * npy_T,
                PyObject * list_y,
                PyObject * list_X,
                PyObject * list_V1,
+               PyArrayObject * npy_V0,
+               PyArrayObject * npy_s0,
+               PyArrayObject * npy_xg0,
+               PyArrayObject * npy_d0,
                PyArrayObject * npy_lambdas,
                PyArrayObject * npy_preconditioners,
-               int narrowBand,
                bool uniformWeights,
+               bool fixedXgb,
                const OptimiserOptions * options)
 {
     PYARRAY_AS_MATRIX(int, npy_T, T);
@@ -56,6 +61,11 @@ int solve_core(PyArrayObject * npy_T,
     auto X = PyList_to_vector_of_Matrix<double>(list_X);
 
     auto V1 = PyList_to_vector_of_Matrix<double>(list_V1);
+
+    PYARRAY_AS_MATRIX(double, npy_V0, V0);
+    PYARRAY_AS_MATRIX(double, npy_s0, s0);
+    PYARRAY_AS_MATRIX(double, npy_xg0, xg0);
+    PYARRAY_AS_MATRIX(double, npy_d0, d0);
 
     PYARRAY_AS_VECTOR(double, npy_preconditioners, preconditioners);
     PYARRAY_AS_VECTOR(double, npy_lambdas, lambdas);
@@ -80,7 +90,7 @@ int solve_core(PyArrayObject * npy_T,
     for (int i = 0; i < Xgb.size(); i++)
     {
         nodes_Xgb.push_back(new RotationNode(*Xgb[i]));
-        problem.AddNode(nodes_Xgb.back());
+        problem.AddNode(nodes_Xgb.back(), fixedXgb);
 
         nodes_Xgb.back()->SetPreconditioner(preconditioners[1]);
     }
@@ -146,6 +156,7 @@ int solve_core(PyArrayObject * npy_T,
             j += 1 + 2 * kg[j];
     }
 
+    // CompleteSectionedArapEnergy
     for (int i = 0; i < nodes_V1.size(); i++)
     {
         vector<const RotationNode *> Xgbi;
@@ -175,7 +186,7 @@ int solve_core(PyArrayObject * npy_T,
             *nodes_V1[i],
             mesh, sqrt(lambdas[0]),
             uniformWeights,
-            false,  // fixedXgb
+            fixedXgb,  // fixedXgb
             false,  // fixedXb  
             false,  // fixedV
             true,   // fixedV1
@@ -184,15 +195,16 @@ int solve_core(PyArrayObject * npy_T,
             ));
     }
 
+    // SectionedArapLinearCombinationEnergy (acceleration)
     for (int i = 1; i < nodes_V1.size() - 1; i++)
     {
         vector<const RotationNode *> X_nodes;
-        for (int j = i - 1; j <= i + 1; j ++)
+        for (int j = i + 1; j >= i - 1; j--)
             if (j < nodes_X.size())
                 X_nodes.push_back(nodes_X[j]);
 
         vector<const CoefficientsNode *> y_nodes;
-        for (int j = i - 1; j <= i + 1; j ++)
+        for (int j = i + 1; j >= i - 1; j--)
             if (j < nodes_y.size())
                 y_nodes.push_back(nodes_y[j]);
 
@@ -214,6 +226,7 @@ int solve_core(PyArrayObject * npy_T,
             false));
     }
 
+    // GlobalScalesLinearCombinationEnergy (acceleration)
     for (int i = 1; i < nodes_V1.size() - 1; i++)
     {
         vector<const ScaleNode *> s_nodes;
@@ -238,6 +251,7 @@ int solve_core(PyArrayObject * npy_T,
             move(fixedScales)));
     }
 
+    // GlobalRotationLinearCombinationEnergy (acceleration)
     for (int i = 1; i < nodes_V1.size() - 1; i++)
     {
         Vector<double> rotationCoefficients(3);
@@ -270,7 +284,7 @@ int solve_core(PyArrayObject * npy_T,
             }
             else
             {
-                for (int j = 0; j < n; j++)
+                for (int jj = 0; jj < n; jj++)
                 {
                     arg_nodes_Xgb.push_back(nodes_Xgb[kg[l++]]); 
                     arg_nodes_yg.push_back(nodes_yg[kg[l++]]);
@@ -290,12 +304,138 @@ int solve_core(PyArrayObject * npy_T,
                                                                     move(rotationCoefficients),
                                                                     sqrt(V.num_rows() * lambdas[2]),
                                                                     move(fixedRotations),
-                                                                    false));
+                                                                    fixedXgb));
+    }
+
+    // GlobalScalesLinearCombinationEnergy (speed)
+    for (int i = 1; i < nodes_V1.size(); i++)
+    {
+        vector<const ScaleNode *> s_nodes;
+        s_nodes.push_back(nodes_s[i]);
+        s_nodes.push_back(nodes_s[i - 1]);
+
+        Vector<double> scaleCoefficients(2);
+        scaleCoefficients[0] = 1.0;
+        scaleCoefficients[1] = -1.0;
+
+        Vector<int> fixedScales(2);
+        fixedScales[0] = 0;
+        fixedScales[1] = 0;
+
+        problem.AddEnergy(new GlobalScalesLinearCombinationEnergy(
+            move(s_nodes), 
+            move(scaleCoefficients), 
+            sqrt(V.num_rows() * lambdas[7]),
+            move(fixedScales)));
+    }
+
+    // GlobalRotationLinearCombinationEnergy (speed)
+    for (int i = 1; i < nodes_V1.size(); i++)
+    {
+        Vector<double> rotationCoefficients(2);
+        rotationCoefficients[0] = 1.0;
+        rotationCoefficients[1] = -1.0;
+
+        Vector<int> fixedRotations(2);
+        fillVector(0, fixedRotations);
+
+        vector<int> arg_kg;
+        vector<vector<const RotationNode *>> arg_Xgb; 
+        vector<vector<const CoefficientsNode *>> arg_yg; 
+        vector<const RotationNode *> arg_Xg;
+
+        for (int j = 0; j < 2; j++)
+        {
+            vector<const RotationNode *> arg_nodes_Xgb;
+            vector<const CoefficientsNode *> arg_nodes_yg;
+            const RotationNode * arg_ptr_Xg = nullptr;
+
+            int l = kgLookup[i - j];
+            int n = kg[l++];
+
+            if (n == GlobalRotationLinearCombinationEnergy::FIXED_ROTATION)
+            { }
+            else if (n == GlobalRotationLinearCombinationEnergy::INDEPENDENT_ROTATION)
+            {
+                arg_ptr_Xg = nodes_Xg[kg[l++]];
+            }
+            else
+            {
+                for (int jj = 0; jj < n; j++)
+                {
+                    arg_nodes_Xgb.push_back(nodes_Xgb[kg[l++]]); 
+                    arg_nodes_yg.push_back(nodes_yg[kg[l++]]);
+                }
+            }
+
+            arg_kg.push_back(n);
+            arg_Xgb.push_back(move(arg_nodes_Xgb));
+            arg_yg.push_back(move(arg_nodes_yg));
+            arg_Xg.push_back(arg_ptr_Xg);
+        }
+
+        problem.AddEnergy(new GlobalRotationLinearCombinationEnergy(move(arg_kg),
+                                                                    move(arg_Xgb),
+                                                                    move(arg_yg),
+                                                                    move(arg_Xg),
+                                                                    move(rotationCoefficients),
+                                                                    sqrt(V.num_rows() * lambdas[8]),
+                                                                    move(fixedRotations),
+                                                                    fixedXgb));
+    }
+
+    // SectionedArapLinearCombinationEnergy (acceleration)
+    for (int i = 1; i < nodes_V1.size() - 1; i++)
+    {
+        vector<const RotationNode *> X_nodes;
+        for (int j = i; j >= i - 1; j--)
+            if (j < nodes_X.size())
+                X_nodes.push_back(nodes_X[j]);
+
+        vector<const CoefficientsNode *> y_nodes;
+        for (int j = i; j >= i - 1; j--)
+            if (j < nodes_y.size())
+                y_nodes.push_back(nodes_y[j]);
+
+        Vector<double> rotationCoefficients(2);
+        rotationCoefficients[0] = 1.0;
+        rotationCoefficients[1] = -1.0;
+
+        Vector<int> fixed(2);
+        fillVector(0, fixed);
+
+        problem.AddEnergy(new SectionedArapLinearCombinationEnergy(
+            k, *node_Xb,
+            move(X_nodes),
+            move(y_nodes),
+            move(rotationCoefficients),
+            sqrt(lambdas[9]),
+            move(fixed),
+            false));
     }
 
     vector<const ScaleNode *> s_nodes;
     copy(nodes_s.begin(), nodes_s.end(), back_inserter(s_nodes));
     problem.AddEnergy(new LaplacianEnergy(*node_V, move(s_nodes), mesh, sqrt(lambdas[4])));
+
+    auto node_V0 = new VertexNode(V0);
+    problem.AddFixedNode(node_V0);
+
+    auto node_s0 = new ScaleNode(s0);
+    problem.AddNode(node_s0);
+
+    auto node_xg0 = new RotationNode(xg0);
+    problem.AddNode(node_xg0);
+
+    auto node_d0 = new VertexNode(d0);
+    problem.AddNode(node_d0);
+
+    problem.AddEnergy(new BackwardRigidRegistrationEnergy(*node_V0, *node_V, 
+                                                          *node_s0, *node_xg0, *node_d0, 
+                                                          sqrt(lambdas[5]),
+                                                          false));  // fixedV
+                                                  
+    problem.AddEnergy(new RotationRegulariseEnergy(*node_xg0, sqrt(node_V->GetCount() * lambdas[6])));
 
     int ret = problem.Minimise(*options);
 
@@ -344,6 +484,8 @@ int solve_instance(PyArrayObject * npy_T,
                    int narrowBand,
                    bool uniformWeights,
                    bool fixedScale,
+                   bool fixedGlobalRotation,
+                   bool noSilhouetteUpdate,
                    const OptimiserOptions * options)
 {
     PYARRAY_AS_VECTOR(double, npy_preconditioners, preconditioners);
@@ -431,7 +573,8 @@ int solve_instance(PyArrayObject * npy_T,
     PYARRAY_AS_VECTOR(int, npy_L, L);
     auto node_U = new BarycentricNode(U, L, meshWalker);
     node_U->SetPreconditioner(preconditioners[3]);
-    problem.AddNode(node_U);
+    // add `node_U` as "fixed" if (noSilhouetteUpdate == True)
+    problem.AddNode(node_U, noSilhouetteUpdate);
 
     PYARRAY_AS_VECTOR(double, npy_lambdas, lambdas);
 
@@ -448,9 +591,6 @@ int solve_instance(PyArrayObject * npy_T,
 
     int l = 0;
     int n = kg[l++];
-
-    // bool fixedGlobalRotation = s0.size() < 2;
-    bool fixedGlobalRotation = false;
 
     if (n == CompleteSectionedArapEnergy::FIXED_ROTATION ) {}
     else if (n == CompleteSectionedArapEnergy::INDEPENDENT_ROTATION)
@@ -512,17 +652,22 @@ int solve_instance(PyArrayObject * npy_T,
         piecewisePolynomial[0], piecewisePolynomial[1]);
 
     PYARRAY_AS_MATRIX(double, npy_S, S);
-    auto silhouetteProjectionEnergy = new SilhouetteProjectionEnergy(
-        *node_V1, *node_U, S, mesh, sqrt(lambdas[1]), narrowBand, residualTransform);
-
-    problem.AddEnergy(silhouetteProjectionEnergy);
-    // meshWalker.addEnergy(silhouetteProjectionEnergy);
+    if (!noSilhouetteUpdate)
+    {
+        auto silhouetteProjectionEnergy = new SilhouetteProjectionEnergy(
+            *node_V1, *node_U, S, mesh, sqrt(lambdas[1]), narrowBand, residualTransform);
+        problem.AddEnergy(silhouetteProjectionEnergy);
+        // meshWalker.addEnergy(silhouetteProjectionEnergy);
+    }
 
     PYARRAY_AS_MATRIX(double, npy_SN, SN);
-    auto silhouetteNormalEnergy = new SilhouetteNormalEnergy(
-        *node_V1, *node_U, SN, mesh, sqrt(lambdas[2]), narrowBand);
-    problem.AddEnergy(silhouetteNormalEnergy);
-    // meshWalker.addEnergy(silhouetteNormalEnergy);
+    if (!noSilhouetteUpdate)
+    {
+        auto silhouetteNormalEnergy = new SilhouetteNormalEnergy(
+            *node_V1, *node_U, SN, mesh, sqrt(lambdas[2]), narrowBand);
+        problem.AddEnergy(silhouetteNormalEnergy);
+        // meshWalker.addEnergy(silhouetteNormalEnergy);
+    }
 
     PYARRAY_AS_MATRIX(double, npy_Rx, Rx);
     PYARRAY_AS_MATRIX(double, npy_Ry, Ry);
@@ -530,7 +675,13 @@ int solve_instance(PyArrayObject * npy_T,
 
     PYARRAY_AS_VECTOR(int, npy_C, C);
     PYARRAY_AS_MATRIX(double, npy_P, P);
-    problem.AddEnergy(new ProjectionEnergy(*node_V1, C, P, sqrt(lambdas[4])));
+
+    if (P.num_cols() == 2)
+        problem.AddEnergy(new ProjectionEnergy(*node_V1, C, P, sqrt(lambdas[4])));
+    else if (P.num_cols() == 3)
+        problem.AddEnergy(new AbsolutePositionEnergy(*node_V1, C, P, sqrt(lambdas[4])));
+    else
+        assert(false);
 
     if (V0.num_rows() > 0)
     {
@@ -552,19 +703,40 @@ int solve_instance(PyArrayObject * npy_T,
             mesh, sqrt(lambdas[5]), uniformWeights, false));
     }
 
-    if (s0.size() == 2)
+    vector<ScaleNode *> nodes_s0;
+    for (int i = 0; i < s0.size(); i++)
     {
-        vector<ScaleNode *> nodes_s0;
-        for (int i = 0; i < s0.size(); i++)
-        {
-            nodes_s0.push_back(new ScaleNode(*s0[i]));
-            problem.AddFixedNode(nodes_s0.back());
-        }
+        nodes_s0.push_back(new ScaleNode(*s0[i]));
+        problem.AddFixedNode(nodes_s0.back());
+    }
 
+    if (s0.size() > 0)
+    {
         vector<const ScaleNode *> s_nodes;
         s_nodes.push_back(node_s);
-        for (int i = 0; i < nodes_s0.size(); i++)
-            s_nodes.push_back(nodes_s0[i]);
+        s_nodes.push_back(nodes_s0[0]);
+
+        Vector<double> scaleCoefficients(2);
+        scaleCoefficients[0] = 1.0;
+        scaleCoefficients[1] = -1.0;
+
+        Vector<int> fixedScales(2);
+        fixedScales[0] = 0;
+        fixedScales[1] = 1;
+
+        problem.AddEnergy(new GlobalScalesLinearCombinationEnergy(
+            move(s_nodes), 
+            move(scaleCoefficients), 
+            sqrt(V0.num_rows() * lambdas[9]),
+            move(fixedScales)));
+    }
+
+    if (s0.size() > 1)
+    {
+        vector<const ScaleNode *> s_nodes;
+        s_nodes.push_back(node_s);
+        s_nodes.push_back(nodes_s0[0]);
+        s_nodes.push_back(nodes_s0[1]);
 
         Vector<double> scaleCoefficients(3);
         scaleCoefficients[0] = 1.0;
@@ -581,103 +753,212 @@ int solve_instance(PyArrayObject * npy_T,
             move(scaleCoefficients), 
             sqrt(V0.num_rows() * lambdas[6]),
             move(fixedScales)));
-
-        Vector<double> globalRotationCoefficients(3);
-        globalRotationCoefficients[0] = 1.0;
-        globalRotationCoefficients[1] = -2.0;
-        globalRotationCoefficients[2] = 1.0;
-
-        Vector<int> fixedRotations(3);
-
-        vector<int> arg_kg;
-        vector<vector<const RotationNode *>> arg_Xgb; 
-        vector<vector<const CoefficientsNode *>> arg_yg; 
-        vector<const RotationNode *> arg_Xg;
-
-        int l = 0;
-        for (int i = 0; i < globalRotationCoefficients.size(); i++)
-        {
-            vector<const RotationNode *> arg_nodes_Xgb;
-            vector<const CoefficientsNode *> arg_nodes_yg;
-            const RotationNode * arg_ptr_Xg = nullptr;
-
-            int isFixed = 1;
-            int n = kg[l++];
-
-            if (n == GlobalRotationLinearCombinationEnergy::FIXED_ROTATION)
-            { }
-            else if (n == GlobalRotationLinearCombinationEnergy::INDEPENDENT_ROTATION)
-            {
-                int m = kg[l++];
-                arg_ptr_Xg = nodes_Xg[m];
-
-                if (!XgAdded[m])
-                {
-                    problem.AddFixedNode(nodes_Xg[m]);
-                    XgAdded[m] = 2;
-                }
-
-                isFixed &= XgAdded[m] != 1;
-            }
-            else
-            {
-                for (int j = 0; j < n; j++)
-                {
-                    arg_nodes_Xgb.push_back(nodes_Xgb[kg[l++]]); 
-
-                    int m = kg[l++];
-
-                    if (!ygAdded[m])
-                    {
-                        problem.AddFixedNode(nodes_yg[m]);
-                        ygAdded[m] = 2;
-                    }
-
-                    isFixed &= ygAdded[m] != 1;
-
-                    arg_nodes_yg.push_back(nodes_yg[m]);
-                }
-            }
-
-            fixedRotations[i] = isFixed;
-
-            arg_kg.push_back(n);
-            arg_Xgb.push_back(move(arg_nodes_Xgb));
-            arg_yg.push_back(move(arg_nodes_yg));
-            arg_Xg.push_back(arg_ptr_Xg);
-        }
-
-        problem.AddEnergy(new GlobalRotationLinearCombinationEnergy(move(arg_kg),
-                                                                    move(arg_Xgb),
-                                                                    move(arg_yg),
-                                                                    move(arg_Xg),
-                                                                    move(globalRotationCoefficients),
-                                                                    sqrt(V0.num_rows() * lambdas[7]),
-                                                                    move(fixedRotations),
-                                                                    true));
-
     }
 
-    if (y0.size() == 2)
+    if (!fixedGlobalRotation)
     {
-        vector<RotationNode *> nodes_X0;
-        for (int i = 0; i < X0.size(); i++)
+        if (s0.size() > 0)
         {
-            nodes_X0.push_back(new RotationNode(*X0[i]));
-            problem.AddFixedNode(nodes_X0.back());
+            Vector<double> globalRotationCoefficients(2);
+            globalRotationCoefficients[0] = 1.0;
+            globalRotationCoefficients[1] = -1.0;
+
+            Vector<int> fixedRotations(2);
+
+            vector<int> arg_kg;
+            vector<vector<const RotationNode *>> arg_Xgb; 
+            vector<vector<const CoefficientsNode *>> arg_yg; 
+            vector<const RotationNode *> arg_Xg;
+
+            int l = 0;
+            for (int i = 0; i < globalRotationCoefficients.size(); i++)
+            {
+                vector<const RotationNode *> arg_nodes_Xgb;
+                vector<const CoefficientsNode *> arg_nodes_yg;
+                const RotationNode * arg_ptr_Xg = nullptr;
+
+                int isFixed = 1;
+                int n = kg[l++];
+
+                if (n == GlobalRotationLinearCombinationEnergy::FIXED_ROTATION)
+                { }
+                else if (n == GlobalRotationLinearCombinationEnergy::INDEPENDENT_ROTATION)
+                {
+                    int m = kg[l++];
+                    arg_ptr_Xg = nodes_Xg[m];
+
+                    if (!XgAdded[m])
+                    {
+                        problem.AddFixedNode(nodes_Xg[m]);
+                        XgAdded[m] = 2;
+                    }
+
+                    isFixed &= XgAdded[m] != 1;
+                }
+                else
+                {
+                    for (int j = 0; j < n; j++)
+                    {
+                        arg_nodes_Xgb.push_back(nodes_Xgb[kg[l++]]); 
+
+                        int m = kg[l++];
+
+                        if (!ygAdded[m])
+                        {
+                            problem.AddFixedNode(nodes_yg[m]);
+                            ygAdded[m] = 2;
+                        }
+
+                        isFixed &= ygAdded[m] != 1;
+
+                        arg_nodes_yg.push_back(nodes_yg[m]);
+                    }
+                }
+
+                fixedRotations[i] = isFixed;
+
+                arg_kg.push_back(n);
+                arg_Xgb.push_back(move(arg_nodes_Xgb));
+                arg_yg.push_back(move(arg_nodes_yg));
+                arg_Xg.push_back(arg_ptr_Xg);
+            }
+
+            problem.AddEnergy(new GlobalRotationLinearCombinationEnergy(move(arg_kg),
+                                                                        move(arg_Xgb),
+                                                                        move(arg_yg),
+                                                                        move(arg_Xg),
+                                                                        move(globalRotationCoefficients),
+                                                                        sqrt(V0.num_rows() * lambdas[10]),
+                                                                        move(fixedRotations),
+                                                                        true));
         }
 
+        if (s0.size() > 1)
+        {
+            Vector<double> globalRotationCoefficients(3);
+            globalRotationCoefficients[0] = 1.0;
+            globalRotationCoefficients[1] = -2.0;
+            globalRotationCoefficients[2] = 1.0;
+
+            Vector<int> fixedRotations(3);
+
+            vector<int> arg_kg;
+            vector<vector<const RotationNode *>> arg_Xgb; 
+            vector<vector<const CoefficientsNode *>> arg_yg; 
+            vector<const RotationNode *> arg_Xg;
+
+            int l = 0;
+            for (int i = 0; i < globalRotationCoefficients.size(); i++)
+            {
+                vector<const RotationNode *> arg_nodes_Xgb;
+                vector<const CoefficientsNode *> arg_nodes_yg;
+                const RotationNode * arg_ptr_Xg = nullptr;
+
+                int isFixed = 1;
+                int n = kg[l++];
+
+                if (n == GlobalRotationLinearCombinationEnergy::FIXED_ROTATION)
+                { }
+                else if (n == GlobalRotationLinearCombinationEnergy::INDEPENDENT_ROTATION)
+                {
+                    int m = kg[l++];
+                    arg_ptr_Xg = nodes_Xg[m];
+
+                    if (!XgAdded[m])
+                    {
+                        problem.AddFixedNode(nodes_Xg[m]);
+                        XgAdded[m] = 2;
+                    }
+
+                    isFixed &= XgAdded[m] != 1;
+                }
+                else
+                {
+                    for (int j = 0; j < n; j++)
+                    {
+                        arg_nodes_Xgb.push_back(nodes_Xgb[kg[l++]]); 
+
+                        int m = kg[l++];
+
+                        if (!ygAdded[m])
+                        {
+                            problem.AddFixedNode(nodes_yg[m]);
+                            ygAdded[m] = 2;
+                        }
+
+                        isFixed &= ygAdded[m] != 1;
+
+                        arg_nodes_yg.push_back(nodes_yg[m]);
+                    }
+                }
+
+                fixedRotations[i] = isFixed;
+
+                arg_kg.push_back(n);
+                arg_Xgb.push_back(move(arg_nodes_Xgb));
+                arg_yg.push_back(move(arg_nodes_yg));
+                arg_Xg.push_back(arg_ptr_Xg);
+            }
+
+            problem.AddEnergy(new GlobalRotationLinearCombinationEnergy(move(arg_kg),
+                                                                        move(arg_Xgb),
+                                                                        move(arg_yg),
+                                                                        move(arg_Xg),
+                                                                        move(globalRotationCoefficients),
+                                                                        sqrt(V0.num_rows() * lambdas[7]),
+                                                                        move(fixedRotations),
+                                                                        true));
+        }
+    }
+
+    vector<RotationNode *> nodes_X0;
+    for (int i = 0; i < X0.size(); i++)
+    {
+        nodes_X0.push_back(new RotationNode(*X0[i]));
+        problem.AddFixedNode(nodes_X0.back());
+    }
+
+    vector<CoefficientsNode *> nodes_y0;
+    for (int i = 0; i < y0.size(); i++)
+    {
+        nodes_y0.push_back(new CoefficientsNode(*y0[i]));
+        problem.AddFixedNode(nodes_y0.back());
+    }
+
+    if (y0.size() > 0)
+    {
+        vector<const RotationNode *> X_nodes;
+        X_nodes.push_back(node_X);
+        X_nodes.push_back(nodes_X0[0]);
+
+        vector<const CoefficientsNode *> y_nodes;
+        y_nodes.push_back(node_y);
+        y_nodes.push_back(nodes_y0[0]);
+
+        Vector<double> rotationCoefficients(2);
+        rotationCoefficients[0] = 1.0;
+        rotationCoefficients[1] = -1.0;
+
+        Vector<int> fixed(2);
+        fixed[0] = 0;
+        fixed[1] = 1;
+
+        problem.AddEnergy(new SectionedArapLinearCombinationEnergy(
+            k, *node_Xb,
+            move(X_nodes),
+            move(y_nodes),
+            move(rotationCoefficients),
+            sqrt(lambdas[11]),
+            move(fixed),
+            true));
+    }
+
+    if (y0.size() > 1)
+    {
         vector<const RotationNode *> X_nodes;
         X_nodes.push_back(node_X);
         for (int i = 0; i < nodes_X0.size(); i++)
             X_nodes.push_back(nodes_X0[i]);
-
-        vector<CoefficientsNode *> nodes_y0;
-        for (int i = 0; i < y0.size(); i++)
-        {
-            nodes_y0.push_back(new CoefficientsNode(*y0[i]));
-            problem.AddFixedNode(nodes_y0.back());
-        }
 
         vector<const CoefficientsNode *> y_nodes;
         y_nodes.push_back(node_y);
@@ -774,7 +1055,13 @@ int solve_two_source_arap_proj(PyArrayObject * npy_T,
     PYARRAY_AS_VECTOR(int, npy_C, C);
     PYARRAY_AS_MATRIX(double, npy_P, P);
 
-    problem.AddEnergy(new ProjectionEnergy(*node_V1, C, P, sqrt(lambdas[0])));
+    if (P.num_cols() == 2)
+        problem.AddEnergy(new ProjectionEnergy(*node_V1, C, P, sqrt(lambdas[0])));
+    else if (P.num_cols() == 3)
+        problem.AddEnergy(new AbsolutePositionEnergy(*node_V1, C, P, sqrt(lambdas[0])));
+    else
+        assert(false);
+
     problem.AddEnergy(new RigidTransformArapEnergy(
         *node_V, *node_s, *node_Xg, *node_X,
         *node_V1,

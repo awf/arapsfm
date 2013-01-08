@@ -32,7 +32,7 @@ class ProjectionEnergy : public Energy
 public:
     ProjectionEnergy(const VertexNode & V, const Vector<int> & C, const Matrix<double> & P,
                      const double w)
-        : _V(V), _C(C), _P(P), _w(w)
+        : Energy(w), _V(V), _C(C), _P(P) 
     {}
 
     virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
@@ -69,7 +69,7 @@ protected:
     const Vector<int> & _C;
     const Matrix<double> & _P;
 
-    const double _w;
+    
 };
 
 // absPosResiduals_Unsafe
@@ -100,7 +100,7 @@ class AbsolutePositionEnergy : public Energy
 public:
     AbsolutePositionEnergy(const VertexNode & V, const Vector<int> & C, const Matrix<double> & P,
                            const double w)
-        : _V(V), _C(C), _P(P), _w(w)
+        : Energy(w), _V(V), _C(C), _P(P)
     {}
 
     virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
@@ -137,7 +137,7 @@ protected:
     const Vector<int> & _C;
     const Matrix<double> & _P;
 
-    const double _w;
+    
 };
 
 

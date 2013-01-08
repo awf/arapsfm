@@ -28,7 +28,7 @@ public:
 protected:
     const VertexNode & _V;
     const BarycentricNode & _U;
-    const double _w;
+    
     const int _narrowBand;
 
     const Mesh & _mesh;

@@ -17,7 +17,7 @@ class LaplacianEnergy : public Energy
 {
 public:
     LaplacianEnergy(const VertexNode & V, const vector<const ScaleNode *> && s, const Mesh & mesh, const double w)
-        : _V(V), _s(s), _mesh(mesh), _w(w)
+        : Energy(w), _V(V), _s(s), _mesh(mesh)
     {
         assert(_s.size() > 0);
     }
@@ -86,7 +86,8 @@ public:
         for (int i=0; i < _s.size(); i++)
             sum_s += _s[i]->GetScale();
 
-        assert(sum_s > 0.);
+        // assert(sum_s > 0.);
+        sum_s = max(sum_s, 1e-6);
 
         return sum_s / _s.size();
     }
@@ -147,7 +148,7 @@ protected:
     const VertexNode & _V;
     const vector<const ScaleNode *> _s;
     const Mesh & _mesh;
-    const double _w;
+    
 
     vector<vector<int> *> _allOneRings;
 };

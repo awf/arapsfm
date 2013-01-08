@@ -34,10 +34,14 @@ cdef extern from "lm_alt_solvers2.h":
                list list_y,
                list list_X,
                list list_V1,
+               np.ndarray npy_V0,
+               np.ndarray npy_s0,
+               np.ndarray npy_xg0,
+               np.ndarray npy_d0,
                np.ndarray npy_lambdas,
                np.ndarray npy_preconditioners,
-               int narrowBand,
                bint uniformWeights,
+               bint fixedXgb,
                OptimiserOptions * options)
 
     int solve_instance_c 'solve_instance' (
@@ -74,6 +78,8 @@ cdef extern from "lm_alt_solvers2.h":
         int narrowBand,
         bint uniformWeights,
         bint fixedScale,
+        bint fixedGlobalRotation,
+        bint noSilhouetteUpdate,
         OptimiserOptions * options)
 
     int solve_two_source_arap_proj_c 'solve_two_source_arap_proj' (
@@ -146,13 +152,17 @@ def solve_core(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
                list y,
                list X,
                list V1,
+               np.ndarray[np.float64_t, ndim=2, mode='c'] V0, 
+               np.ndarray[np.float64_t, ndim=2, mode='c'] s0, 
+               np.ndarray[np.float64_t, ndim=2, mode='c'] xg0, 
+               np.ndarray[np.float64_t, ndim=2, mode='c'] d0, 
                np.ndarray[np.float64_t, ndim=1] lambdas, 
                np.ndarray[np.float64_t, ndim=1] preconditioners, 
-               int narrowBand,
                bint uniformWeights,
+               bint fixedXgb,
                **kwargs):
 
-    assert lambdas.shape[0] == 5
+    assert lambdas.shape[0] == 10
     assert preconditioners.shape[0] == 4
 
     cdef OptimiserOptions options
@@ -163,7 +173,9 @@ def solve_core(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
         kg, Xgb, yg, Xg,
         k, Xb, y, X,
         V1, 
-        lambdas, preconditioners, narrowBand, uniformWeights, &options)
+        V0, s0, xg0, d0,
+        lambdas, preconditioners, uniformWeights, fixedXgb,
+        &options)
 
     return status, STATUS_CODES[status]
 
@@ -201,9 +213,11 @@ def solve_instance(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
                    np.int32_t narrowBand,
                    bint uniformWeights,
                    bint fixedScale,
+                   bint fixedGlobalRotation,
+                   bint noSilhouetteUpdate,
                    **kwargs):
 
-    assert lambdas.shape[0] == 9
+    assert lambdas.shape[0] == 12
     assert preconditioners.shape[0] == 5
     assert piecewisePolynomial.shape[0] == 2
 
@@ -217,7 +231,9 @@ def solve_instance(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
         V1,  U,  L,  S,  SN,  Rx,  Ry, 
         C, P, 
         lambdas,  preconditioners,  piecewisePolynomial, 
-        narrowBand, uniformWeights, fixedScale, &options)
+        narrowBand, uniformWeights, fixedScale, fixedGlobalRotation,
+        noSilhouetteUpdate,
+        &options)
 
     return status, STATUS_CODES[status]
 

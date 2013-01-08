@@ -16,7 +16,7 @@ class Problem
 {
 public:
     Problem();
-    virtual void AddNode(Node * node);
+    virtual void AddNode(Node * node, bool isFixed=false);
     virtual void AddFixedNode(Node * node);
     virtual void AddEnergy(Energy * energy);
 
@@ -45,6 +45,7 @@ protected:
     map<int, vector<Node *>> _allNodes;
     vector<Node *> _fixedNodes;
     vector<Energy *> _allEnergies;
+    vector<Energy *> _redundantEnergies;
 
     deque<Vector<double> *> _storedJte;
     int _maxJteStore;

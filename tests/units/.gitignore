@@ -5,3 +5,6 @@ test_shortest_path.cpp
 test_residuals.cpp
 test_arap.cpp
 test_arap2.cpp
+test_rigid.cpp
+test_rotation_composition.cpp
+test_linear_deformation.cpp
