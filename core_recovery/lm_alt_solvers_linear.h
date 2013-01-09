@@ -45,7 +45,8 @@ int solve_instance(PyArrayObject * npy_T,
                    bool fixedGlobalRotation,
                    bool fixedTranslation,
                    bool noSilhouetteUpdate,
-                   const OptimiserOptions * options)
+                   const OptimiserOptions * options,
+                   PyObject * callback)
 {
     PYARRAY_AS_VECTOR(double, npy_preconditioners, preconditioners);
 
@@ -206,6 +207,9 @@ int solve_instance(PyArrayObject * npy_T,
         problem.AddEnergy(new AbsolutePositionEnergy(*node_V1, C, P, sqrt(lambdas[3])));
     else
         assert(false);
+
+    if (callback != Py_None)
+        problem.SetCallback(callback);
 
     int ret = problem.Minimise(*options);
 

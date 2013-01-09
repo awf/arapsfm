@@ -45,7 +45,8 @@ cdef extern from "lm_alt_solvers_linear.h":
         bint fixedGlobalRotation,
         bint fixedTranslation,
         bint noSilhouetteUpdate,
-        OptimiserOptions * options)
+        OptimiserOptions * options,
+        object callback)
 
 # additional_optimiser_options
 DEFAULT_OPTIMISER_OPTIONS = {
@@ -114,6 +115,8 @@ def solve_instance(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
     assert lambdas.shape[0] == 4
     assert preconditioners.shape[0] == 5
 
+    callback = kwargs.pop('callback', None)
+
     cdef OptimiserOptions options
     additional_optimiser_options(&options, kwargs)
 
@@ -125,7 +128,7 @@ def solve_instance(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
         narrowBand, uniformWeights, fixedScale, fixedGlobalRotation,
         fixedTranslation,
         noSilhouetteUpdate,
-        &options)
+        &options, callback)
 
     return status, STATUS_CODES[status]
 
