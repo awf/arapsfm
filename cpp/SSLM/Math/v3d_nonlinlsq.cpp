@@ -512,7 +512,7 @@ namespace V3D
          cout << "NLSQ_LM_Optimizer: Nonzeros in LDL decomposition: " << _JtJ_Lp[JtJ_size] << endl;
       }
 
-      if (!beginIteration(-1))
+      if (!beginIteration(-1, computeDerivatives))
       {
          // Can't begin the iteration 
          status = LEVENBERG_OPTIMIZER_CANT_BEGIN_ITERATION;
@@ -532,7 +532,7 @@ namespace V3D
 
       for (currentIteration = 0; currentIteration < maxIterations; ++currentIteration)
       {
-         if(!beginIteration(currentIteration))
+         if(!beginIteration(currentIteration, computeDerivatives))
          {
              // Can't begin the iteration 
              status = LEVENBERG_OPTIMIZER_CANT_BEGIN_ITERATION;

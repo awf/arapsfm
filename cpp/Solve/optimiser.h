@@ -21,9 +21,9 @@ public:
           _problem(problem)
     {}
 
-    virtual bool beginIteration(const int currentIteration)
+    virtual bool beginIteration(const int currentIteration, bool computeDerivatives)
     {
-        return _problem.BeginIteration(currentIteration);
+        return _problem.BeginIteration(currentIteration, computeDerivatives);
     }
 
     virtual void updateParameters(const int paramType, const VectorArrayAdapter<double> & delta)

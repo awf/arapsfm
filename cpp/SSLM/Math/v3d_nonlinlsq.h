@@ -195,7 +195,7 @@ namespace V3D
          virtual void saveAllParameters() = 0;
          virtual void restoreAllParameters() = 0;
 
-         virtual bool beginIteration(const int currentIteration) { return true; }
+         virtual bool beginIteration(const int currentIteration, bool computeDerivatives) { return true; }
 
          CCS_Matrix<double> const& JtJ() const { return _JtJ; }
 
