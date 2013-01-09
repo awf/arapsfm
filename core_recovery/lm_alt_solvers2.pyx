@@ -80,7 +80,8 @@ cdef extern from "lm_alt_solvers2.h":
         bint fixedScale,
         bint fixedGlobalRotation,
         bint noSilhouetteUpdate,
-        OptimiserOptions * options)
+        OptimiserOptions * options,
+        object callback)
 
     int solve_two_source_arap_proj_c 'solve_two_source_arap_proj' (
         np.ndarray npy_T,
@@ -221,6 +222,8 @@ def solve_instance(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
     assert preconditioners.shape[0] == 5
     assert piecewisePolynomial.shape[0] == 2
 
+    callback = kwargs.pop('callback', None)
+
     cdef OptimiserOptions options
     additional_optimiser_options(&options, kwargs)
 
@@ -233,7 +236,7 @@ def solve_instance(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
         lambdas,  preconditioners,  piecewisePolynomial, 
         narrowBand, uniformWeights, fixedScale, fixedGlobalRotation,
         noSilhouetteUpdate,
-        &options)
+        &options, callback)
 
     return status, STATUS_CODES[status]
 
