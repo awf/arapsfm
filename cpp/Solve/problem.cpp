@@ -6,7 +6,7 @@
 using namespace std;
 
 Problem::Problem()
-    : _maxJteStore(0)
+    : _maxJteStore(0), _pyCallback(nullptr)
 {}
 
 void Problem::AddNode(Node * node, bool isFixed)
@@ -75,11 +75,20 @@ void Problem::InitialiseCostFunctions()
         (*i)->GetCostFunctions(_costFunctions);
 }
 
-bool Problem::BeginIteration(const int currentIteration)
+bool Problem::BeginIteration(const int currentIteration, bool computeDerivatives)
 {
     for (auto energy = _allEnergies.begin(); energy != _allEnergies.end(); energy++)
         if (!(*energy)->CanBeginIteration()) 
             return false;
+
+    if (_pyCallback != nullptr)
+    {
+        PyObject * args = PyTuple_New(2);
+        PyTuple_SET_ITEM(args, 0, PyInt_FromLong(currentIteration));
+        PyTuple_SET_ITEM(args, 1, PyBool_FromLong(static_cast<int>(computeDerivatives)));
+
+        PyObject_CallObject(_pyCallback, args);
+    }
 
     return true;
 }

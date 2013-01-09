@@ -1,6 +1,7 @@
 #ifndef __PROBLEM_H__
 #define __PROBLEM_H__
 
+#include <Python.h>
 #include <vector>
 #include <map>
 #include <utility>
@@ -25,7 +26,7 @@ public:
 
     virtual int Minimise(const OptimiserOptions & options);
 
-    virtual bool BeginIteration(const int currentIteration);
+    virtual bool BeginIteration(const int currentIteration, bool computeDerivatives);
 
     virtual void UpdateParameter(const int paramType, const VectorArrayAdapter<double> & delta);
 
@@ -40,6 +41,8 @@ public:
     virtual void EvaluateJteCallback(const Vector<double> & Jt_e);
     virtual ~Problem();
 
+    void SetCallback(PyObject * pyCallback) { _pyCallback = pyCallback; }
+
 protected:
     vector<int> _usedParameters;
     map<int, vector<Node *>> _allNodes;
@@ -53,6 +56,8 @@ protected:
     // NLSQ
     NLSQ_ParamDesc _NLSQ_paramDesc;
     vector<NLSQ_CostFunction *> _costFunctions;
+
+    PyObject * _pyCallback;
 };
 
 
