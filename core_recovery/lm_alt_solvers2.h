@@ -14,7 +14,6 @@ using namespace V3D;
 #include "Energy/projection.h"
 #include "Energy/narrow_band_silhouette.h"
 #include "Energy/laplacian.h"
-#include "Energy/spillage.h"
 #include "Energy/rigid.h"
 #include "Solve/node.h"
 #include "Solve/problem.h"
@@ -477,8 +476,6 @@ int solve_instance(PyArrayObject * npy_T,
                    PyArrayObject * npy_L, 
                    PyArrayObject * npy_S, 
                    PyArrayObject * npy_SN, 
-                   PyArrayObject * npy_Rx, 
-                   PyArrayObject * npy_Ry,
                    PyArrayObject * npy_C,
                    PyArrayObject * npy_P,
                    PyArrayObject * npy_lambdas,
@@ -672,10 +669,6 @@ int solve_instance(PyArrayObject * npy_T,
         problem.AddEnergy(silhouetteNormalEnergy);
         // meshWalker.addEnergy(silhouetteNormalEnergy);
     }
-
-    PYARRAY_AS_MATRIX(double, npy_Rx, Rx);
-    PYARRAY_AS_MATRIX(double, npy_Ry, Ry);
-    problem.AddEnergy(new SpillageEnergy(*node_V1, Rx, Ry, sqrt(lambdas[3])));
 
     PYARRAY_AS_VECTOR(int, npy_C, C);
     PYARRAY_AS_MATRIX(double, npy_P, P);
