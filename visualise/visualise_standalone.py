@@ -5,7 +5,7 @@ import os
 import inspect
 import argparse
 from visualise import *
-from itertools import ifilter, count, izip
+from itertools import ifilter, count, izip, imap, cycle
 from functools import wraps
 from operator import add, mul
 from pprint import pprint
@@ -44,18 +44,17 @@ def requires(*keys, **kwargs):
         
 # StandaloneVisualisation
 class StandaloneVisualisation(object):
-    def __init__(self, filename, **kwargs):
-        with_core = kwargs.pop('with_core', None)
+    def __init__(self, z, **kwargs):
+        self.z = z
+        self.core_V = kwargs.pop('core_V', None)
         self.subdivide = kwargs.pop('subdivide', 0)
         self.compute_normals = kwargs.pop('compute_normals', 0)
         self.no_colour_silhouette = kwargs.pop('no_colour_silhouette', False)
 
-        self.z = np.load(filename)
-
-        if with_core is not None:
-            self.core_V = np.load(with_core)['V']
-        else:
-            self.core_V = None
+        # overwrite image string from the file
+        image = kwargs.pop('image', None)
+        if image is not None:
+            self.image = image
 
         self.vis = VisualiseMesh()
 
@@ -93,14 +92,22 @@ class StandaloneVisualisation(object):
     # "_add" methods
     @requires('T', attrs=['vertices_key'])
     def _add_mesh(self):
-        special_color = ((31, 120, 180) if self.no_colour_silhouette
-                                        else (178, 223, 138))
+        # color = (31, 120, 180)  # blue
+        # color = (128, 177, 211) # light blue
+        color=(179, 179, 179) # gray (from Set2)
+
+        # special_color = (178, 223, 138) 
+        special_color = (225, 127, 0) # (from Set1)
+
+        if self.no_colour_silhouette:
+            special_color = color
 
         if self.subdivide == 0:
             self.vis.add_mesh(self[self.vertices_key], 
                               self['T'],
                               self['L'],
                               compute_normals=self.compute_normals,
+                              color=color,
                               special_color=special_color)
         else:
             T, V = self['T'], self[self.vertices_key]
@@ -108,6 +115,7 @@ class StandaloneVisualisation(object):
                 T, V = loop.subdivide(T, V)
                               
             self.vis.add_mesh(V, T, compute_normals=self.compute_normals,
+                              color=color,
                               special_color=special_color)
 
     @requires('T', 'Xg', 's', 'X', attrs=['vertices_key'])
@@ -271,6 +279,7 @@ class StandaloneVisualisation(object):
         # add as orange actor
         self.vis.add_mesh(V1, T, actor_name='arap', 
                           is_base=False, 
+                          compute_normals=self.compute_normals, 
                           color=(255, 170, 0))
 
     @requires('image')
@@ -343,6 +352,7 @@ def main():
     parser.add_argument('--no_colour_silhouette',
                         action='store_true', 
                         default=False)
+    parser.add_argument('--image', type=str, default='None')
 
     args = parser.parse_args()
     args.indices = eval(args.indices)
@@ -384,63 +394,91 @@ def main():
     # is visualisation interface or to file?
     interactive_session = args.output_directory is None
 
-    # setup output directory
-    if not interactive_session:
-        paths_to_make = filter(lambda p: not os.path.exists(p),
-                               output_paths)
-        map(os.makedirs, paths_to_make)
-
     vis = None
+
+    if args.with_core is not None:
+        core_V = np.load(args.with_core)['V']
+    else:
+        core_V = None
 
     for i, input_path in enumerate(input_paths):
         # setup visualisation
         print 'Source file: %s' % input_path
-        print 'Available keys:', np.load(input_path).keys()
 
-        if vis is None:
-            vis = StandaloneVisualisation(
-                input_path,
-                vertices_key=args.vertices_key,
-                with_core=args.with_core,
-                subdivide=args.subdivide,
-                compute_normals=args.compute_normals,
-                no_colour_silhouette=args.no_colour_silhouette)
+        Z = np.load(input_path)
+        print 'Available keys:', Z.keys()
 
-            if args.ren_win_size is not None:
-                vis.ren_win.SetSize(*tuple_from_string(args.ren_win_size))
+        if 'has_states' in Z:
+            Z = Z['states']
+            iter_output_path = imap(
+                lambda n: os.path.join(output_paths[i], '%d' % n),
+                count(0))
         else:
-            # re-initialise the visualisation with-out closing the renderer
-            vis.z = np.load(input_path)
-            map(vis.remove_actor, vis.actors.keys())
-            vis.setup()
+            Z = [Z]
+            iter_output_path = cycle([output_paths[i]])
+            
+        for j, z in enumerate(Z):
+            print z['s']
+            print z['Xg'], np.rad2deg(np.sqrt(np.sum(z['Xg'] * z['Xg'])))
 
-        n = count(0)
+            if not interactive_session:
+                output_dir = next(iter_output_path)
+                if not os.path.exists(output_dir):
+                    os.makedirs(output_dir)
 
-        # peform camera actions and save outputs as required
-        for action in args.camera_actions:
-            # parse the action
-            method, tup, save_after = parse_camera_action(action)
-            print '%s(*%s), save_after=%s' % (method, tup, save_after)
+            if vis is None:
+                vis = StandaloneVisualisation(
+                    z,
+                    vertices_key=args.vertices_key,
+                    core_V=core_V,
+                    subdivide=args.subdivide,
+                    compute_normals=args.compute_normals,
+                    no_colour_silhouette=args.no_colour_silhouette,
+                    image=args.image)
 
-            if ':' in method:
-                name, method = method.split(':')
-                vis.actor_properties(name, (method, tup))
+                if args.ren_win_size is not None:
+                    vis.ren_win.SetSize(*tuple_from_string(args.ren_win_size))
             else:
-                # execute the camera action
-                vis.camera_actions((method, tup))
+                # re-initialise the visualisation with-out closing the renderer
+                vis.z = z
+                map(vis.remove_actor, vis.actors.keys())
+                vis.setup()
 
-            # save if required
-            if not interactive_session and save_after:
-                full_path = os.path.join(output_paths[i], '%d.png' % next(n))
-                print 'Output: ', full_path
-                vis.write(full_path, magnification=args.magnification)
+            n = count(0)
 
-        # show if interactive
-        if interactive_session:
-            print 'Interactive'
+            # peform camera actions and save outputs as required
+            for action in args.camera_actions:
+                # parse the action
+                method, tup, save_after = parse_camera_action(action)
 
-            vis.ren_win.Render()
-            vis.execute(magnification=args.magnification)
+                if method.startswith('*'):
+                    N, method = method[1:].split('*')
+                    N = int(N)
+                else:
+                    N = 1
+
+                print '%s(*%s), save_after=%s' % (method, tup, save_after)
+
+                for ii in xrange(N):
+                    if ':' in method:
+                        name, method = method.split(':')
+                        vis.actor_properties(name, (method, tup))
+                    else:
+                        # execute the camera action
+                        vis.camera_actions((method, tup))
+
+                    # save if required
+                    if not interactive_session and save_after:
+                        full_path = os.path.join(output_dir, '%d.png' % next(n))
+                        print 'Output: ', full_path
+                        vis.write(full_path, magnification=args.magnification)
+
+            # show if interactive
+            if interactive_session:
+                print 'Interactive'
+
+                vis.ren_win.Render()
+                vis.execute(magnification=args.magnification)
 
 # test_tuple_from_string
 def test_tuple_from_string():
