@@ -155,6 +155,8 @@ def main():
     parser.add_argument('--silhouette_projection_lambdas', type=str,
                         default='None')
 
+    parser.add_argument('--save_optimisation_progress', type=str, default=None)
+
     # parse the arguments
     args = parser.parse_args()
 
@@ -363,6 +365,88 @@ def main():
     instance_solver_options = args.solver_options.copy()
     # instance_solver_options['verbosenessLevel'] = 1
 
+    if args.save_optimisation_progress is not None:
+        save_optimisation_root = os.path.join(
+            args.output, args.save_optimisation_progress)
+
+        if not os.path.exists(save_optimisation_root):
+            os.makedirs(save_optimisation_root)
+
+    # make_solve_instance_callback
+    def make_solve_instance_callback(l, output_path):
+        all_states = []
+
+        # solve_instance_callback
+        def solve_instance_callback(solver_iteration, computeDerivatives):
+            if not computeDerivatives:
+                return
+
+            m = kg_lookup[l]
+            n = kg[m]
+
+            if n == 0:
+                _Xg = np.r_[0., 0., 0.].reshape(1, 3)
+            elif n == -1:
+                _Xg = Xg[kg[m + 1]]
+            else:
+                _Xg = reduce(safe_ax_add,
+                            (yg[kg[m + 1 + 2*ii + 1]] * 
+                             Xgb[kg[m + 1 + 2*ii]] for ii in xrange(n))).reshape(1, 3)
+
+            # NOTE copies are required because it is not written to disk
+            # immediately
+            # NOTE assuming `Xb` is not being updated (true in the alternation
+            # scheme)
+            output_dict = dict(T=T, V=V1[l].copy(), C=C[l], P=P[l],
+                               s=instScales[l].copy(), Xg=_Xg.copy(),
+                               ki=ki, Xb=Xb, y=y[l].copy(), X=X[l].copy(),
+                               solver_iteration=solver_iteration)
+
+            if args.frames[l] is not None:
+                output_dict['image'] = args.frames[l]
+
+            if l >= 0:
+                Q = geometry.path2pos(V1[l], T, L[l], U[l])
+                output_dict.update(S=S[l], Q=Q, L=L[l].copy(), U=U[l].copy())
+
+            all_states.append(output_dict)
+
+        # save_solve_instance_states
+        def save_solve_instance_states():
+            print '-> %s' % output_path
+            pickle_.dump(output_path, 
+                         {'has_states' : True, 'states' : all_states})
+
+        return solve_instance_callback, save_solve_instance_states
+
+    # make_solve_core_callback
+    def make_solve_core_callback(output_path):
+        all_states = []
+
+        # solve_core_callback
+        def solve_core_callback(solver_iteration, computeDerivatives):
+            if not computeDerivatives:
+                return
+
+            copyl = lambda l: map(np.copy, l)
+
+            core_dictionary = dict(T=T, V=V.copy(), 
+                                   s=copyl(instScales), 
+                                   kg=kg, Xgb=copyl(Xgb), 
+                                   yg=copyl(yg), Xg=copyl(Xg),
+                                   ki=ki, Xb=Xb.copy(), y=copyl(y), X=copyl(X),
+                                   solver_iteration=solver_iteration)
+
+            all_states.append(core_dictionary)
+            
+        # save_solve_core_states
+        def save_solve_core_states():
+            print '-> %s' % output_path
+            pickle_.dump(output_path, 
+                         {'has_states' : True, 'states' : all_states})
+
+        return solve_core_callback, save_solve_core_states
+
     # setup solving functions
 
     # update_silhouette
@@ -458,6 +542,19 @@ def main():
             l < len(args.silhouette_projection_lambdas)):
             lambdas[2] = args.silhouette_projection_lambdas[l]
 
+        if args.save_optimisation_progress is not None:
+            output_path = os.path.join(
+                args.output, 
+                args.save_optimisation_progress, 
+                str(l), 
+                '%d.dat' % i)
+
+            callback, write_states = make_solve_instance_callback(
+                i, output_path)
+
+        else:
+            callback = None
+
         for j in xrange(args.max_restarts):
             print ' [%d] s[%d]: %.3f' % (j, i, instScales[i])
 
@@ -475,6 +572,7 @@ def main():
                                        fixed_scale,
                                        fixed_global_rotation,
                                        no_silhouette,
+                                       callback=callback,
                                        **instance_solver_options)
 
 
@@ -487,14 +585,26 @@ def main():
 
         t2 = time()
 
+        if callback is not None:
+            write_states()
+
         print '[%d] `solve_instance` (%d): %.3fs' % (l, i, t2 - t1)
 
     # start complete timing
     t1_complete = time()
 
     # perform initialisation
+        
     V1[0].flat = V.flat
 
+    if args.save_optimisation_progress is not None:
+        output_dir = os.path.join(
+            args.output, 
+            args.save_optimisation_progress, 
+            '-1')
+
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
 
     # Improved initialisation using basis 
     for i in xrange(num_instances):
@@ -512,6 +622,22 @@ def main():
             map(update_silhouette, xrange(num_instances))
             break
 
+        if args.save_optimisation_progress is not None:
+            output_dir = os.path.join(
+                args.output, 
+                args.save_optimisation_progress, 
+                str(l))
+
+            if not os.path.exists(output_dir):
+                os.makedirs(output_dir)
+
+            output_path = os.path.join(output_dir, 'core.dat')
+
+            callback, write_states = make_solve_core_callback(output_path)
+
+        else:
+            callback = None
+
         # solve_core
         print '[%d] `solve_core`:' % l
 
@@ -524,6 +650,7 @@ def main():
                                    core_preconditioners,
                                    args.uniform_weights,
                                    args.fixed_Xgb,
+                                   callback=callback,
                                    **core_solver_options)
             print status[1]
             if status[0] not in (0, 4):
@@ -531,6 +658,8 @@ def main():
 
         t2 = time()
 
+        if callback is not None:
+            write_states()
 
         print '[%d] `solve_core`: %.3fs' % (l, t2 - t1)
         print 'scales:', np.squeeze(instScales)
