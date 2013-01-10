@@ -611,6 +611,16 @@ def main():
         if i > 0:
             V1[i].flat = V1[i-1].flat
 
+        # NOTE Because global rotations are initialised at 0., allowing the
+        # scale to change at the same time can cause the scale to want to pass
+        # through 0., causing a degenerate solution. This is only a problem on
+        # motion with large changes in speed, but it is good to fix the scale 
+        # BEFORE solving with the scale free as well
+        solve_instance(-1, i, 
+                       fixed_global_rotation=False,
+                       fixed_scale=True,
+                       no_silhouette=True)
+
         solve_instance(-1, i, 
                        fixed_global_rotation=False,
                        fixed_scale=False,
