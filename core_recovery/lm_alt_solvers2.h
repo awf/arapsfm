@@ -352,7 +352,7 @@ int solve_core(PyArrayObject * npy_T,
             }
             else
             {
-                for (int jj = 0; jj < n; j++)
+                for (int jj = 0; jj < n; jj++)
                 {
                     arg_nodes_Xgb.push_back(nodes_Xgb[kg[l++]]); 
                     arg_nodes_yg.push_back(nodes_yg[kg[l++]]);
