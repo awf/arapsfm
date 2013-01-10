@@ -107,6 +107,15 @@ public:
     virtual void SetPreconditioner(const double & preconditioner) { _preconditioner = preconditioner; }
     virtual const double & GetPreconditioner () const { return _preconditioner; }
 
+    virtual void Update(const VectorArrayAdapter<double> & delta)
+    {
+        for (int i=0; i < _X.num_rows(); i++)
+        {
+            for (int j=0; j < _X.num_cols(); j++)
+                _X[i][j] += delta[i][j];
+        }
+    }
+
 protected:
     static double _preconditioner;
 };
