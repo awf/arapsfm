@@ -44,7 +44,8 @@ int solve_core(PyArrayObject * npy_T,
                PyArrayObject * npy_preconditioners,
                bool uniformWeights,
                bool fixedXgb,
-               const OptimiserOptions * options)
+               const OptimiserOptions * options,
+               PyObject * callback)
 {
     PYARRAY_AS_MATRIX(int, npy_T, T);
     PYARRAY_AS_MATRIX(double, npy_V, V);
@@ -436,6 +437,8 @@ int solve_core(PyArrayObject * npy_T,
                                                           false));  // fixedV
                                                   
     problem.AddEnergy(new RotationRegulariseEnergy(*node_xg0, sqrt(node_V->GetCount() * lambdas[6])));
+    if (callback != Py_None)
+        problem.SetCallback(callback);
 
     int ret = problem.Minimise(*options);
 

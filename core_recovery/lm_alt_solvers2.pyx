@@ -43,6 +43,8 @@ cdef extern from "lm_alt_solvers2.h":
                bint uniformWeights,
                bint fixedXgb,
                OptimiserOptions * options)
+               OptimiserOptions * options,
+               object callback)
 
     int solve_instance_c 'solve_instance' (
         np.ndarray npy_T,
@@ -166,6 +168,8 @@ def solve_core(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
     assert lambdas.shape[0] == 10
     assert preconditioners.shape[0] == 4
 
+    callback = kwargs.pop('callback', None)
+
     cdef OptimiserOptions options
     additional_optimiser_options(&options, kwargs)
 
@@ -176,7 +180,7 @@ def solve_core(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
         V1, 
         V0, s0, xg0, d0,
         lambdas, preconditioners, uniformWeights, fixedXgb,
-        &options)
+        &options, callback)
 
     return status, STATUS_CODES[status]
 
