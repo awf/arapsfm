@@ -651,7 +651,7 @@ int solve_instance(PyArrayObject * npy_T,
         problem.AddFixedNode(nodes_s0.back());
     }
 
-    if (s0.size() > 0)
+    if (!fixedScale && s0.size() > 0)
     {
         vector<const ScaleNode *> s_nodes;
         s_nodes.push_back(node_s);
@@ -668,11 +668,11 @@ int solve_instance(PyArrayObject * npy_T,
         problem.AddEnergy(new GlobalScalesLinearCombinationEnergy(
             move(s_nodes), 
             move(scaleCoefficients), 
-            sqrt(V0.num_rows() * lambdas[9]),
+            sqrt(V.num_rows() * lambdas[7]),
             move(fixedScales)));
     }
 
-    if (s0.size() > 1)
+    if (!fixedScale && s0.size() > 1)
     {
         vector<const ScaleNode *> s_nodes;
         s_nodes.push_back(node_s);
