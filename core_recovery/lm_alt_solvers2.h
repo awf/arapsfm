@@ -316,7 +316,7 @@ int solve_core(PyArrayObject * npy_T,
         problem.AddEnergy(new GlobalScalesLinearCombinationEnergy(
             move(s_nodes), 
             move(scaleCoefficients), 
-            sqrt(V.num_rows() * lambdas[7]),
+            sqrt(V.num_rows() * lambdas[5]),
             move(fixedScales)));
     }
 
@@ -370,12 +370,12 @@ int solve_core(PyArrayObject * npy_T,
                                                                     move(arg_yg),
                                                                     move(arg_Xg),
                                                                     move(rotationCoefficients),
-                                                                    sqrt(V.num_rows() * lambdas[8]),
+                                                                    sqrt(V.num_rows() * lambdas[6]),
                                                                     move(fixedRotations),
                                                                     fixedXgb));
     }
 
-    // SectionedArapLinearCombinationEnergy (acceleration)
+    // SectionedArapLinearCombinationEnergy (speed)
     for (int i = 1; i < nodes_V1.size() - 1; i++)
     {
         vector<const RotationNode *> X_nodes;
@@ -400,7 +400,7 @@ int solve_core(PyArrayObject * npy_T,
             move(X_nodes),
             move(y_nodes),
             move(rotationCoefficients),
-            sqrt(lambdas[9]),
+            sqrt(lambdas[7]),
             move(fixed),
             false));
     }
@@ -638,9 +638,9 @@ int solve_instance(PyArrayObject * npy_T,
     PYARRAY_AS_MATRIX(double, npy_P, P);
 
     if (P.num_cols() == 2)
-        problem.AddEnergy(new ProjectionEnergy(*node_V1, C, P, sqrt(lambdas[4])));
+        problem.AddEnergy(new ProjectionEnergy(*node_V1, C, P, sqrt(lambdas[3])));
     else if (P.num_cols() == 3)
-        problem.AddEnergy(new AbsolutePositionEnergy(*node_V1, C, P, sqrt(lambdas[4])));
+        problem.AddEnergy(new AbsolutePositionEnergy(*node_V1, C, P, sqrt(lambdas[3])));
     else
         assert(false);
 
@@ -692,7 +692,7 @@ int solve_instance(PyArrayObject * npy_T,
         problem.AddEnergy(new GlobalScalesLinearCombinationEnergy(
             move(s_nodes), 
             move(scaleCoefficients), 
-            sqrt(V0.num_rows() * lambdas[6]),
+            sqrt(V.num_rows() * lambdas[4]),
             move(fixedScales)));
     }
 
@@ -769,7 +769,7 @@ int solve_instance(PyArrayObject * npy_T,
                                                                         move(arg_yg),
                                                                         move(arg_Xg),
                                                                         move(globalRotationCoefficients),
-                                                                        sqrt(V0.num_rows() * lambdas[10]),
+                                                                        sqrt(V.num_rows() * lambdas[8]),
                                                                         move(fixedRotations),
                                                                         true));
         }
@@ -846,7 +846,7 @@ int solve_instance(PyArrayObject * npy_T,
                                                                         move(arg_yg),
                                                                         move(arg_Xg),
                                                                         move(globalRotationCoefficients),
-                                                                        sqrt(V0.num_rows() * lambdas[7]),
+                                                                        sqrt(V.num_rows() * lambdas[5]),
                                                                         move(fixedRotations),
                                                                         true));
         }
@@ -889,7 +889,7 @@ int solve_instance(PyArrayObject * npy_T,
             move(X_nodes),
             move(y_nodes),
             move(rotationCoefficients),
-            sqrt(lambdas[11]),
+            sqrt(lambdas[9]),
             move(fixed),
             true));
     }
@@ -921,7 +921,7 @@ int solve_instance(PyArrayObject * npy_T,
             move(X_nodes),
             move(y_nodes),
             move(rotationCoefficients),
-            sqrt(lambdas[8]),
+            sqrt(lambdas[6]),
             move(fixed),
             true));
     }
