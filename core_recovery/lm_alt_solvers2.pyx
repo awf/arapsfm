@@ -42,7 +42,6 @@ cdef extern from "lm_alt_solvers2.h":
                np.ndarray npy_preconditioners,
                bint uniformWeights,
                bint fixedXgb,
-               OptimiserOptions * options)
                OptimiserOptions * options,
                object callback)
 
