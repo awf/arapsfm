@@ -291,7 +291,7 @@ def main():
     # allocate global basis rotations
     Xg = make_shared((1, 3), len(kg_inst))
     Xgb = make_shared((1, 3), len(kg_basis))
-    yg = make_shared((1, 1), len(kg_coeff), value=1.)
+    yg = make_shared((1, 1), len(kg_coeff), value=0.)
     
     if args.initial_Xgb is not None:
         if args.initial_Xgb.shape != (len(kg_basis), 3):
@@ -306,7 +306,7 @@ def main():
 
     X = make_shared((len(ki_inst), 3), num_instances)
     Xb = mparray.zeros((len(ki_basis), 3), dtype=np.float64)
-    y = make_shared((len(ki_coeff), 1), num_instances, value=1.)
+    y = make_shared((len(ki_coeff), 1), num_instances, value=0.)
 
     if args.initial_Xb is not None:
         if args.initial_Xb.shape != (len(ki_basis), 3):
