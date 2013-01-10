@@ -272,16 +272,6 @@ def main():
             b.append(a)
         return b
 
-    # reset `V0` to the origin and initialise `d0`
-    d0 = np.atleast_2d(np.mean(V0, axis=0))
-    d0 = np.require(d0, dtype=np.float64, 
-                    requirements='C')
-    V0 -= d0
-
-    # initialise `s0`, `xg0`
-    s0 = np.array([[1.]], dtype=np.float64)
-    xg0 = np.array([[0., 0., 0.]], dtype=np.float64)
-
     # initialise `V1`
     V1 = make_shared(V.shape, num_instances)
     V1[0].flat = V.flat
@@ -330,15 +320,13 @@ def main():
 
     # setup lambdas and preconditioners
     core_lambdas = np.r_[args.lambdas[3],    # as-rigid-as-possible
-                         args.lambdas[8],    # global scale acceleration penalty
-                         args.lambdas[9],    # global rotations acceleration penalty
-                         args.lambdas[10],   # frame-to-frame acceleration penalty
-                         args.lambdas[6],    # laplacian (NOTE should be scaled by `len(V1)` ?)
-                         args.lambdas[11],   # rigid-registration of core to initialisation
-                         args.lambdas[12],   # penalty of the global rotation of the registration
-                         args.lambdas[13],   # global scale velocity penalty
-                         args.lambdas[14],   # global rotations velocity penalty
-                         args.lambdas[15]]   # frame-to-frame velocity penalty
+                         args.lambdas[6],    # global scale acceleration penalty
+                         args.lambdas[7],    # global rotations acceleration penalty
+                         args.lambdas[8],    # frame-to-frame acceleration penalty
+                         args.lambdas[5],    # laplacian 
+                         args.lambdas[9],    # global scale velocity penalty
+                         args.lambdas[10],   # global rotations velocity penalty
+                         args.lambdas[11]]   # frame-to-frame velocity penalty
 
 
     core_preconditioners = np.r_[args.preconditioners[0], # V
@@ -348,15 +336,13 @@ def main():
 
     instance_lambdas = np.r_[args.lambdas[3],    # as-rigid-as-possible
                              args.lambdas[1:3],  # silhouette
-                             args.lambdas[4],    # spillage
-                             args.lambdas[5],    # projection
-                             args.lambdas[7],    # temporal ARAP penalty
-                             args.lambdas[8],    # global scale acceleration penalty
-                             args.lambdas[9],    # global rotations acceleration penalty
-                             args.lambdas[10],   # frame-to-frame acceleration penalty
-                             args.lambdas[13],   # global scale velocity penalty
-                             args.lambdas[14],   # global rotations velocity penalty
-                             args.lambdas[15]]   # frame-to-frame velocity penalty
+                             args.lambdas[4],    # projection
+                             args.lambdas[6],    # global scale acceleration penalty
+                             args.lambdas[7],    # global rotations acceleration penalty
+                             args.lambdas[8],    # frame-to-frame acceleration penalty
+                             args.lambdas[9],    # global scale velocity penalty
+                             args.lambdas[10],   # global rotations velocity penalty
+                             args.lambdas[11]]   # frame-to-frame velocity penalty
 
     instance_preconditioners = np.r_[args.preconditioners[0], # V
                                      args.preconditioners[1], # X/Xg
@@ -410,18 +396,12 @@ def main():
         t1 = time()
 
         if i > 0:
-            Vm1 = V1[i-1]
-            sp = np.ones((1, 1), dtype=np.float64)
-            Xgp = np.zeros((1, 3), dtype=np.float64)
-            Xp = np.zeros_like(Vm1)
-
             sm1 = [instScales[i-1]]
             ym1 = [y[i-1]]
             Xm1 = [X[i-1]]
 
             subproblem = (i, i - 1)
         else:
-            Vm1 = sp = Xgp = Xp = empty3
             sm1 = []
             ym1 = []
             Xm1 = []
@@ -477,8 +457,7 @@ def main():
 
             status = lm.solve_instance(T, V, instScales[i],
                                        kgi, Xgbi, ygi, Xgi,
-                                       ki, Xb, y[i], X[i], ym1, Xm1,
-                                       Vm1, sp, Xgp, Xp, sm1,
+                                       ki, Xb, y[i], X[i], ym1, Xm1, sm1,
                                        V1[i], U[i], L[i],
                                        S[i], SN[i],
                                        C[i], P[i],
@@ -535,7 +514,6 @@ def main():
             status = lm.solve_core(T, V, instScales, 
                                    kg, Xgb, yg, Xg,
                                    ki, Xb, y, X, V1,
-                                   V0, s0, xg0, d0,
                                    core_lambdas,
                                    core_preconditioners,
                                    args.uniform_weights,
@@ -544,14 +522,11 @@ def main():
             print status[1]
             if status[0] not in (0, 4):
                 break
+
         t2 = time()
+
+
         print '[%d] `solve_core`: %.3fs' % (l, t2 - t1)
-
-        print 's0:', np.squeeze(s0)
-        l_xg0 = norm(xg0[0][0])
-        print 'xg0 (%.3f / %.1f):' % (l_xg0, np.rad2deg(l_xg0)), np.squeeze(xg0)
-        print 'd0:', np.squeeze(d0)
-
         print 'scales:', np.squeeze(instScales)
 
         print 'kg:'
