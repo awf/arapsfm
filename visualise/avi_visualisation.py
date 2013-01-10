@@ -43,44 +43,46 @@ def avi_visualisation(vis_script, input_dir, output_dir, fps,
 
     all_outputs = map(lambda f: os.path.join(output_dir, f),
                       os.listdir(output_dir))
+
     output_dirs = filter(os.path.isdir, all_outputs)
     sorted_output_dirs = sorted(output_dirs, 
         key=lambda p: int(os.path.split(p)[-1]))
                         
-    output_paths = map(lambda d: make_figures(d, **kwargs), 
-                       sorted_output_dirs)
-    output_paths = reduce(operator.add, output_paths)
+    r = map(lambda d: make_figures(d, **kwargs), 
+            sorted_output_dirs)
+    all_output_paths = zip(*r)
 
-    listing_path = os.path.join(output_dir, '_LISTING.txt')
-    with open(listing_path, 'w') as fp:
-        fp.write('\n'.join(output_paths))
+    for i, output_paths in enumerate(all_output_paths):
+        listing_path = os.path.join(output_dir, '_LISTING_%d.txt' % i)
+        with open(listing_path, 'w') as fp:
+            fp.write('\n'.join(output_paths))
 
-    h, w = imread(output_paths[0]).shape[:2]
+        h, w = imread(output_paths[0]).shape[:2]
 
-    vbitrate = 15000
+        vbitrate = 15000
 
-    for f in fps:
-        safe_cmd('mencoder', 
-                 'mf://@%s' % listing_path,
-                 '-mf', 
-                 'w=%d:h=%d:fps=%s:type=png' % (w, h, f),
-                 '-ovc', 
-                 'lavc', '-lavcopts', 'vcodec=mpeg4:vbitrate=%d:mbd=2' % (vbitrate,),
-                 '-oac', 'copy',
-                 '-o', os.path.join(output_dir, 'OUTPUT_%d.avi' % f))
+        for f in fps:
+            safe_cmd('mencoder', 
+                     'mf://@%s' % listing_path,
+                     '-mf', 
+                     'w=%d:h=%d:fps=%s:type=png' % (w, h, f),
+                     '-ovc', 
+                     'lavc', '-lavcopts', 'vcodec=mpeg4:vbitrate=%d:mbd=2' % (vbitrate,),
+                     '-oac', 'copy',
+                     '-o', os.path.join(output_dir, '%d-%d.avi' % (i, f)))
 
-    if separate_frames:
-        frames_dir = os.path.join(output_dir, 'frames')
-        if not os.path.exists(frames_dir):
-            os.makedirs(frames_dir)
+        if separate_frames:
+            frames_dir = os.path.join(output_dir, 'frames_%d' % i)
+            if not os.path.exists(frames_dir):
+                os.makedirs(frames_dir)
 
-        frame_paths = map(lambda i: os.path.join(frames_dir, '%d.png' % i),
-                          xrange(len(output_paths)))
+            frame_paths = map(lambda i: os.path.join(frames_dir, '%d.png' % i),
+                              xrange(len(output_paths)))
 
-        map(lambda src, dst: safe_cmd('cp', src, dst), output_paths, frame_paths)
+            map(lambda src, dst: safe_cmd('cp', src, dst), output_paths, frame_paths)
 
 # make_figures
-def make_figures(output_dir, tiling=None, post_args=None):
+def make_figures(output_dir, tiling=None, post_args=None, keep_separate=False):
     # create initial visualistaions by calling `vis_script`
     files = filter(lambda f: valid_file(f, '.png'), os.listdir(output_dir))
     sorted_files = sorted(files, key=lambda f: int(os.path.splitext(f)[0]))
@@ -98,20 +100,21 @@ def make_figures(output_dir, tiling=None, post_args=None):
 
     # join the images
     if len(full_paths) > 1:
-        joined_path = os.path.join(output_dir, 'JOINED.png')
+        if not keep_separate:
+            joined_path = os.path.join(output_dir, 'JOINED.png')
 
-        if tiling is None:
-            tiling = '%dx' % len(full_paths)
+            if tiling is None:
+                tiling = '%dx' % len(full_paths)
 
-        safe_cmd(*(['montage', 
-                    '-depth', '8',
-                    '-mode', 'concatenate', 
-                    '-tile', tiling] +
-                   full_paths + [joined_path]))
+            safe_cmd(*(['montage', 
+                        '-depth', '8',
+                        '-mode', 'concatenate', 
+                        '-tile', tiling] +
+                       full_paths + [joined_path]))
 
-        return [joined_path]
-    else:
-        return [full_paths[0]]
+            return [joined_path]
+
+    return full_paths
 
 # main
 def main():
@@ -124,6 +127,9 @@ def main():
     parser.add_argument('--tiling', type=str, default=None)
     parser.add_argument('--fps', type=int, default=[], action='append')
     parser.add_argument('--separate_frames', 
+                        default=False,
+                        action='store_true')
+    parser.add_argument('--keep_separate',
                         default=False,
                         action='store_true')
 
@@ -139,6 +145,7 @@ def main():
                       args.separate_frames,
                       vis_args=args.vis_args.split(),
                       tiling=args.tiling,
+                      keep_separate=args.keep_separate,
                       post_args=eval(args.post_args))
 
 if __name__ == '__main__':
