@@ -109,9 +109,6 @@ def main():
     # silhouette energy
     parser.add_argument('silhouette', type=str)
 
-    # spillage 
-    parser.add_argument('spillage', type=str)
-
     # general
     parser.add_argument('lambdas', type=str)
     parser.add_argument('preconditioners', type=str)
@@ -234,9 +231,6 @@ def main():
 
     silhouette_info = np.load(args.core_silhouette_info)
     print '<- %s' % args.core_silhouette_info
-
-    (R,) = load_instance_variables(args.spillage, 'R')
-    Rx, Ry = map(list, izip(*R))
 
     # initial projection constraints are a direct shallow copy
     Pi = P[:]
@@ -487,7 +481,6 @@ def main():
                                        Vm1, sp, Xgp, Xp, sm1,
                                        V1[i], U[i], L[i],
                                        S[i], SN[i],
-                                       Rx[i], Ry[i], 
                                        C[i], P[i],
                                        lambdas,
                                        instance_preconditioners,
