@@ -217,6 +217,13 @@ if HAS_VTK:
             self.actors['laplacian'] = laplacian_actor
             self.ren.AddActor(laplacian_actor)
 
+        def add_quick_silhouette(self, Q, S):
+            n = Q.shape[0]
+            return self.add_silhouette(Q,
+                                       np.arange(n),
+                                       [0, n-1],
+                                       S)
+            
         def add_silhouette(self, Q, path, bounds, S):
             path_length = path.shape[0]
 
