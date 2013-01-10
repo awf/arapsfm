@@ -14,19 +14,21 @@ from misc.bunch import Bunch
 from misc.numpy_ import mparray
 
 from scipy.linalg import norm
-    
+
+from geometry import axis_angle
+
 # Utilities
 
 # Main
 
 # save_state
-def save_state(output_dir, **kwargs):
+def save_state(_output_dir, **kwargs):
     # TODO: Ensure that enough state is saved for each output so that
     # EVERYTHING is recoverable
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    if not os.path.exists(_output_dir):
+        os.makedirs(_output_dir)
 
-    make_path = lambda f: os.path.join(output_dir, f)
+    make_path = lambda f: os.path.join(_output_dir, f)
     output_file = make_path('core.npz')
 
     b = Bunch(kwargs)
@@ -52,7 +54,7 @@ def save_state(output_dir, **kwargs):
         elif n == -1:
             Xg = b.Xg[b.kg[m + 1]]
         else:
-            Xg = reduce(add, 
+            Xg = reduce(safe_ax_add,
                         (b.yg[b.kg[m + 1 + 2*ii + 1]] * 
                          b.Xgb[b.kg[m + 1 + 2*ii]] for ii in xrange(n))).reshape(1, 3)
 
@@ -77,6 +79,10 @@ def safe_index_list(l, i):
         l.append(i)
 
     return l.index(i)
+
+# safe_ax_add
+def safe_ax_add(x, y):
+    return axis_angle.axAdd(x.ravel(), y.ravel())
 
 # main
 def main():
