@@ -439,10 +439,6 @@ int solve_instance(PyArrayObject * npy_T,
                    PyArrayObject * npy_X, 
                    PyObject * list_y0,
                    PyObject * list_X0,
-                   PyArrayObject * npy_V0,
-                   PyArrayObject * npy_sp,
-                   PyArrayObject * npy_Xgp,
-                   PyArrayObject * npy_Xp,
                    PyObject * list_s0,
                    PyArrayObject * npy_V1, 
                    PyArrayObject * npy_U, 
@@ -528,15 +524,10 @@ int solve_instance(PyArrayObject * npy_T,
     auto node_X = new RotationNode(X);
     problem.AddNode(node_X);
 
-    PYARRAY_AS_MATRIX(double, npy_V0, V0);
-
     auto s0 = PyList_to_vector_of_Matrix<double>(list_s0);
     auto y0 = PyList_to_vector_of_Matrix<double>(list_y0);
     auto X0 = PyList_to_vector_of_Matrix<double>(list_X0);
 
-    PYARRAY_AS_MATRIX(double, npy_sp, sp);
-    PYARRAY_AS_MATRIX(double, npy_Xgp, Xgp);
-    PYARRAY_AS_MATRIX(double, npy_Xp, Xp);
     PYARRAY_AS_MATRIX(double, npy_V1, V1);
 
     auto node_V1 = new VertexNode(V1);
@@ -652,26 +643,6 @@ int solve_instance(PyArrayObject * npy_T,
         problem.AddEnergy(new AbsolutePositionEnergy(*node_V1, C, P, sqrt(lambdas[4])));
     else
         assert(false);
-
-    if (V0.num_rows() > 0)
-    {
-        auto node_V0 = new VertexNode(V0);
-        problem.AddFixedNode(node_V0);
-
-        auto node_sp = new ScaleNode(sp);
-        problem.AddNode(node_sp);
-
-        auto node_Xgp = new RotationNode(Xgp);
-        problem.AddNode(node_Xgp);
-
-        auto node_Xp = new RotationNode(Xp);
-        problem.AddNode(node_Xp);
-
-        problem.AddEnergy(new RigidTransformArapEnergy(
-            *node_V0, *node_sp, *node_Xgp, *node_Xp,
-            *node_V1,
-            mesh, sqrt(lambdas[5]), uniformWeights, false));
-    }
 
     vector<ScaleNode *> nodes_s0;
     for (int i = 0; i < s0.size(); i++)
