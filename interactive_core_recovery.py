@@ -415,11 +415,15 @@ class MainWindow(QMainWindow):
             control_layout.addWidget(line)
 
         control_layout_add_separator()
+        self.lambdas_line_edit = QLineEdit('')
+        font = QFont('Monospace', 10, QFont.Normal, False)
+        self.lambdas_line_edit.setFont(font)
+        control_layout.addWidget(self.lambdas_line_edit)
 
+        control_layout_add_separator()
         self.save_button = QPushButton('&Save')
         self.save_button.clicked.connect(self.save_solver)
         control_layout.addWidget(self.save_button)
-
         control_layout.addStretch(1)
 
         self.mesh_view = InteractiveMeshView()
@@ -448,7 +452,22 @@ class MainWindow(QMainWindow):
         self.mesh_view.set_initial_geometry(self.solver._s.V1[i], update=True)
         self.mesh_view.refresh()
 
+    def _update_lambdas(self):
+        lambdas = map(float, self.lambdas_line_edit.text().split(','))
+        lambdas = np.asarray(lambdas, dtype=np.float64)
+
+        if lambdas.shape[0] != self.required_lambdas:
+            print 'lambdas.shape[0] != %d' % self.required_lambdas
+            return False
+
+        self.solver.lambdas = lambdas
+        self.solver._setup_lambdas()
+        return True
+        
     def solve_instance(self):
+        if not self._update_lambdas():
+            return
+
         i = self.instance_slider.value()
         enable_silhouette = self.enable_silhouette.isChecked()
 
@@ -478,6 +497,9 @@ class MainWindow(QMainWindow):
             callback=callback)
 
     def solve_silhouette(self):
+        if not self._update_lambdas():
+            return
+
         i = self.instance_slider.value()
         self.solver.solve_silhouette(i)
 
@@ -543,6 +565,11 @@ class MainWindow(QMainWindow):
 
         self.instance_slider.setMaximum(max_index)
         self.instance_slider.setValue(0)
+
+        lambda_string = ','.join(map(lambda f: '%g' % f, self.solver.lambdas))
+        self.required_lambdas = self.solver.lambdas.shape[0]
+        self.lambdas_line_edit.setText(lambda_string)
+
         self.set_instance(0)
         self.mesh_view.reset_camera()
 
