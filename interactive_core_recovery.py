@@ -555,13 +555,13 @@ class MainWindow(QMainWindow):
             setattr(self.solver, k, v)
 
     def save_solver(self):
-        head, tail = os.path.split(self.solver_path)
-        path = QtGui.QFileDialog.getSaveFileName(self, 'Save', path, '*.dat') 
+        path = QFileDialog.getSaveFileName(self, 'Save', self.solver_path, 
+                                           '*.dat') 
 
         if path.isEmpty():
             return
 
-        pickle_.dump(str(path), self.solver)
+        dump(str(path), self.solver)
         self.solver_path = path
 
 # main
