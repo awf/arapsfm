@@ -418,8 +418,9 @@ def main():
             iter_output_path = cycle([output_paths[i]])
             
         for j, z in enumerate(Z):
-            print z['s']
-            print z['Xg'], np.rad2deg(np.sqrt(np.sum(z['Xg'] * z['Xg'])))
+            if not isinstance(z['s'], list):
+                print z['s']
+                print z['Xg'], np.rad2deg(np.sqrt(np.sum(z['Xg'] * z['Xg'])))
 
             if not interactive_session:
                 output_dir = next(iter_output_path)
