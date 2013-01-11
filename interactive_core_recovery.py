@@ -523,6 +523,7 @@ class MainWindow(QMainWindow):
                              self.mesh_view._selected_V)
 
         self._update_count += I.shape[0]
+        print '_update_count:', self._update_count
 
         i = self.instance_slider.value()
         self.solver._s.L[i][I] = l
