@@ -13,6 +13,9 @@ from mesh import faces, geometry
 
 from time import time
 
+from util import mp
+from misc.numpy_ import mparray
+
 # DEFAULT_SOLVER_OPTIONS 
 DEFAULT_SOLVER_OPTIONS = dict(maxIterations=100, 
                               gradientThreshold=1e-6,
@@ -37,6 +40,18 @@ def safe_index_list(l, i):
         l.append(i)
 
     return l.index(i)
+
+# copy_to_shared
+def copy_to_shared(A):
+    L = []
+
+    for a in A:
+        arr = mparray.empty_like(a)
+        arr.flat = a.flat
+
+        L.append(arra)
+
+    return L
     
 # CoreRecoverySolver
 class CoreRecoverySolver(object):
@@ -199,6 +214,13 @@ class CoreRecoverySolver(object):
         self._s.L[i].flat = l.flat
 
         return t2 - t1
+
+    def parallel_solve_silhouettes(self, lambdas=None, **kwargs):
+        self._s.U = copy_to_shared(self._s.U)
+        self._s.L = copy_to_shared(self._s.L)
+
+        async_exec(lambda i: self.solve_silhouette(i, lambdas=lambdas),
+                   **kwargs)
 
     def silhouette_preimages(self, i):
         return geometry.path2pos(self._s.V1[i], 
@@ -403,10 +425,4 @@ class CoreRecoverySolver(object):
                     Xb=self._s.Xb.copy(),
                     y=cp(self._s.y),
                     X=cp(self._s.X))
-
-    # def __getstate__(self):
-    #     return (self.__dict__,)
-
-    # def __setstate__(self, state):
-    #     self.__dict__.update(**state)
 
