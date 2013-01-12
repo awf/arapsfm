@@ -222,8 +222,9 @@ class CoreRecoverySolver(object):
         self._s.U = copy_to_shared(self._s.U)
         self._s.L = copy_to_shared(self._s.L)
 
-        async_exec(lambda i: self.solve_silhouette(i, lambdas=lambdas),
-                   **kwargs)
+        mp.async_exec(lambda i: self.solve_silhouette(i, lambdas=lambdas),
+                      ((i,) for i in xrange(self.n)),
+                      **kwargs)
 
     def silhouette_preimages(self, i):
         return geometry.path2pos(self._s.V1[i], 
