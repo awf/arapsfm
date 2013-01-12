@@ -59,6 +59,10 @@ cdef extern from "lm_alt_solvers2.h":
         list list_y0,
         list list_X0,
         list list_s0,
+        np.ndarray npy_V0,
+        np.ndarray npy_sp,
+        np.ndarray npy_Xgp,
+        np.ndarray npy_Xp,
         np.ndarray npy_V1, 
         np.ndarray npy_U, 
         np.ndarray npy_L, 
@@ -171,6 +175,10 @@ def solve_instance(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
                    list y0,
                    list X0,
                    list s0,
+                   np.ndarray[np.float64_t, ndim=2, mode='c'] V0,
+                   np.ndarray[np.float64_t, ndim=2, mode='c'] sp,
+                   np.ndarray[np.float64_t, ndim=2, mode='c'] Xgp,
+                   np.ndarray[np.float64_t, ndim=2, mode='c'] Xp,
                    np.ndarray[np.float64_t, ndim=2, mode='c'] V1,
                    np.ndarray[np.float64_t, ndim=2, mode='c'] U,
                    np.ndarray[np.int32_t, ndim=1, mode='c'] L,
@@ -188,7 +196,7 @@ def solve_instance(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
                    bint noSilhouetteUpdate,
                    **kwargs):
 
-    assert lambdas.shape[0] == 10
+    assert lambdas.shape[0] == 11
     assert preconditioners.shape[0] == 5
     assert piecewisePolynomial.shape[0] == 2
 
@@ -199,7 +207,8 @@ def solve_instance(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
 
     cdef int status = solve_instance_c(T, V, s,
         kg,  Xgb,  yg,  Xg,  
-        k,  Xb,  y,  X,  y0, X0, s0, 
+        k,  Xb,  y,  X,  y0, X0, s0,
+        V0,  sp,  Xgp,  Xp,
         V1,  U,  L,  S,  SN,  
         C, P, 
         lambdas,  preconditioners,  piecewisePolynomial, 
