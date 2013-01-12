@@ -288,9 +288,8 @@ class CoreRecoverySolver(object):
             Vp = self._s.V1[i-1]
             sp = np.ones((1, 1), dtype=np.float64)
             Xgp = np.zeros((1, 3), dtype=np.float64)
-            Xp = np.zeros_like(Vm1)
+            Xp = np.zeros_like(Vp)
             
-            sp = Xgp = Xp = np.zeros((0,3), dtype=np.float64)
             sm1 = [self._s.s[i-1]]
             ym1 = [self._s.y[i-1]]
             Xm1 = [self._s.X[i-1]]
