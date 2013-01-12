@@ -622,7 +622,7 @@ int solve_instance(PyArrayObject * npy_T,
         auto silhouetteProjectionEnergy = new SilhouetteProjectionEnergy(
             *node_V1, *node_U, S, mesh, sqrt(lambdas[1]), narrowBand, residualTransform);
         problem.AddEnergy(silhouetteProjectionEnergy);
-        // meshWalker.addEnergy(silhouetteProjectionEnergy);
+        meshWalker.addEnergy(silhouetteProjectionEnergy);
     }
 
     PYARRAY_AS_MATRIX(double, npy_SN, SN);
@@ -631,7 +631,7 @@ int solve_instance(PyArrayObject * npy_T,
         auto silhouetteNormalEnergy = new SilhouetteNormalEnergy(
             *node_V1, *node_U, SN, mesh, sqrt(lambdas[2]), narrowBand);
         problem.AddEnergy(silhouetteNormalEnergy);
-        // meshWalker.addEnergy(silhouetteNormalEnergy);
+        meshWalker.addEnergy(silhouetteNormalEnergy);
     }
 
     PYARRAY_AS_VECTOR(int, npy_C, C);
