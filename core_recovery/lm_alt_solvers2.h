@@ -954,7 +954,7 @@ int solve_instance(PyArrayObject * npy_T,
             true));
     }
 
-    if (V0.num_rows() > 0)
+    if (V0.num_rows() > 0 && lambdas[10] > 0.)
     {
         auto node_V0 = new VertexNode(V0);
         problem.AddFixedNode(node_V0);
@@ -973,8 +973,6 @@ int solve_instance(PyArrayObject * npy_T,
             *node_V1,
             mesh, sqrt(lambdas[10]), uniformWeights, false));
     }
-
-
 
     if (callback != Py_None)
         problem.SetCallback(callback);
