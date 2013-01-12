@@ -13,14 +13,15 @@ import mesh.geometry
 import mesh.faces
 
 from core_recovery2.problem import CoreRecoverySolver
-
 from misc.pickle_ import dump, load
+import matplotlib.pyplot as plt
+from time import time
 
 # Constants
-WORKING_SOLVER_OPTIONS = dict(maxIterations=50, 
-                              gradientThreshold=1e-5,
-                              updateThreshold=1e-5,
-                              improvementThreshold=1e-5,
+WORKING_SOLVER_OPTIONS = dict(maxIterations=100, 
+                              gradientThreshold=1e-6,
+                              updateThreshold=1e-6,
+                              improvementThreshold=1e-6,
                               verbosenessLevel=1)
 
 WORKING_CONFIGURATION = dict(max_restarts=3)
@@ -182,10 +183,14 @@ class InteractiveMeshView(QVTKWidget):
         tube = vtk.vtkTubeFilter()
         tube.SetInput(poly_data)
         tube.SetRadius(radius)
-        tube.SetNumberOfSides(16)
+        tube.SetNumberOfSides(32)
+
+        normals = vtk.vtkPolyDataNormals()
+        normals.ComputeCellNormalsOn()
+        normals.SetInputConnection(tube.GetOutputPort())
 
         mapper = vtk.vtkPolyDataMapper()
-        mapper.SetInputConnection(tube.GetOutputPort())
+        mapper.SetInputConnection(normals.GetOutputPort())
 
         actor = vtk.vtkActor()
         actor.SetMapper(mapper)
@@ -195,6 +200,7 @@ class InteractiveMeshView(QVTKWidget):
         self._p.ren.AddActor(actor)
         setattr(self._actors, attr_name, actor)
         setattr(self._data, attr_name, poly_data)
+        setattr(self._p, attr_name + '_tube', tube)
 
     def _add_points(self, color, attr_name, radius):
         points = vtk.vtkPoints()
@@ -221,6 +227,7 @@ class InteractiveMeshView(QVTKWidget):
         self._p.ren.AddActor(actor)
         setattr(self._actors, attr_name, actor)
         setattr(self._data, attr_name, poly_data)
+        setattr(self._p, attr_name + '_sphere', sphere)
 
     def set_mesh(self, N, T):
         self.T = T
@@ -235,6 +242,14 @@ class InteractiveMeshView(QVTKWidget):
 
     def set_image(self, filename):
         self._reader.SetFileName(filename)
+
+        if not hasattr(self, 'image_dim'):
+            self.image_dim = plt.imread(filename).shape[:2]
+            max_dim = np.amax(self.image_dim)
+            self._p.user_tube.SetRadius(0.005 * max_dim)
+            self._p.silhouette_tube.SetRadius(0.002 * max_dim)
+            self._p.silhouette_points_sphere.SetRadius(0.005 * max_dim)
+            self._p.preimage_points_sphere.SetRadius(0.005 * max_dim)
 
     def _set_constraints(self, attr_name, P):
         data = getattr(self._data, attr_name)
@@ -379,19 +394,19 @@ class MainWindow(QMainWindow):
         self.enable_silhouette = QCheckBox('&Enable Silhouette')
         control_layout.addWidget(self.enable_silhouette)
 
-        self.fixed_scale = QCheckBox('&Fixed Scale')
+        self.fixed_scale = QCheckBox('Fixed Scale')
         self.fixed_scale.setChecked(True)
         control_layout.addWidget(self.fixed_scale)
 
-        self.fixed_global_rotation = QCheckBox('Fixed &Global Rotation')
+        self.fixed_global_rotation = QCheckBox('Fixed Global Rotation')
         self.fixed_global_rotation.setChecked(True)
         control_layout.addWidget(self.fixed_global_rotation)
 
-        self.refresh = QCheckBox('&Refresh')
+        self.refresh = QCheckBox('Refresh')
         self.refresh.setChecked(True)
         control_layout.addWidget(self.refresh)
 
-        self.solve_instance_button = QPushButton('Solve &Instance')
+        self.solve_instance_button = QPushButton('&Solve Instance')
         self.solve_instance_button.clicked.connect(self.solve_instance)
         control_layout.addWidget(self.solve_instance_button)
 
@@ -404,9 +419,13 @@ class MainWindow(QMainWindow):
             self.update_from_selection)
         control_layout.addWidget(self.update_from_selection_button)
 
-        self.clear_selection_button = QPushButton('&Clear Selection')
+        self.clear_selection_button = QPushButton('Clear Selection')
         self.clear_selection_button.clicked.connect(self.clear_selection)
         control_layout.addWidget(self.clear_selection_button)
+
+        self.propagate_button = QPushButton('&Propagate')
+        self.propagate_button.clicked.connect(self.propagate)
+        control_layout.addWidget(self.propagate_button)
 
         def control_layout_add_separator():
             line = QFrame()
@@ -415,10 +434,34 @@ class MainWindow(QMainWindow):
             control_layout.addWidget(line)
 
         control_layout_add_separator()
-        self.lambdas_line_edit = QLineEdit('')
+        self.reset_geometry_button = QPushButton('Reset All Geometry')
+        self.reset_geometry_button.clicked.connect(self.reset_geometry)
+        control_layout.addWidget(self.reset_geometry_button)
+
+        control_layout_add_separator()
+        self.initialise_all_button = QPushButton('In&itialise All')
+        self.initialise_all_button.clicked.connect(self.initialise_all)
+        self.initialise_all_button.setCheckable(True)
+        control_layout.addWidget(self.initialise_all_button)
+
+        self.solve_all_button = QPushButton('Solve &All')
+        self.solve_all_button.clicked.connect(self.solve_all)
+        control_layout.addWidget(self.solve_all_button)
+
+        control_layout_add_separator()
         font = QFont('Monospace', 10, QFont.Normal, False)
+        self.lambdas_line_edit = QLineEdit('')
         self.lambdas_line_edit.setFont(font)
         control_layout.addWidget(self.lambdas_line_edit)
+
+        control_layout_add_separator()
+        self.preconditioners_line_edit = QLineEdit('')
+        self.preconditioners_line_edit.setFont(font)
+        control_layout.addWidget(self.preconditioners_line_edit)
+
+        self.candidate_radius_line_edit = QLineEdit('')
+        self.candidate_radius_line_edit.setFont(font)
+        control_layout.addWidget(self.candidate_radius_line_edit)
 
         control_layout_add_separator()
         self.save_button = QPushButton('&Save')
@@ -453,46 +496,70 @@ class MainWindow(QMainWindow):
         self.mesh_view.refresh()
 
     def _update_lambdas(self):
-        lambdas = map(float, self.lambdas_line_edit.text().split(','))
-        lambdas = np.asarray(lambdas, dtype=np.float64)
-
+        def get_array(line_edit):
+            l = map(float, line_edit.text().split(','))
+            return np.asarray(l, dtype=np.float64)
+           
+        lambdas = get_array(self.lambdas_line_edit)
         if lambdas.shape[0] != self.required_lambdas:
             print 'lambdas.shape[0] != %d' % self.required_lambdas
             return False
-
         self.solver.lambdas = lambdas
+
+        preconditioners = get_array(self.preconditioners_line_edit)
+        if preconditioners.shape[0] != self.required_preconditioners:
+            print 'preconditioners.shape[0] != %d' % self.required_preconditioners
+            return False
+        self.solver.preconditioners = preconditioners
+
         self.solver._setup_lambdas()
         return True
         
-    def solve_instance(self):
+    def solve_instance(self, fixed_scale=None, fixed_global_rotation=None):
         if not self._update_lambdas():
             return
+
+        if fixed_scale is None:
+            fixed_scale = self.fixed_scale.isChecked()
+
+        if fixed_global_rotation is None:
+            fixed_global_rotation = self.fixed_global_rotation.isChecked()
 
         i = self.instance_slider.value()
         enable_silhouette = self.enable_silhouette.isChecked()
 
+        last_update = []
+
         def update_instance(iteration, computeDerivatives):
+            # NOTE actually thread this properly some day ...
+            t = time()
+            if t - last_update[0] > 1.0:
+                qapp.processEvents()
+                last_update[0] = t
+
             if not computeDerivatives:
                 return
 
-            if enable_silhouette:
-                self.mesh_view.set_silhouette_preimage(self.solver._s.L[i],
-                                                       self.solver._s.U[i],
-                                                       update=False)
+            if self.refresh.isChecked():
+                if enable_silhouette:
+                    self.mesh_view.set_silhouette_preimage(self.solver._s.L[i],
+                                                           self.solver._s.U[i],
+                                                           update=False)
 
-            self.mesh_view.set_initial_geometry(self.solver._s.V1[i], update=True)
-
-            self.mesh_view.refresh()
+                self.mesh_view.set_initial_geometry(self.solver._s.V1[i], update=True)
+                self.mesh_view.refresh()
 
         if self.refresh.isChecked():
             callback = update_instance
         else:
             callback = None
 
+        last_update.append(time())
+
         self.solver.solve_instance(
             i, 
-            fixed_global_rotation=self.fixed_global_rotation.isChecked(),
-            fixed_scale=self.fixed_scale.isChecked(),
+            fixed_scale=fixed_scale,
+            fixed_global_rotation=fixed_global_rotation,
             no_silhouette=not enable_silhouette,
             callback=callback)
 
@@ -500,8 +567,11 @@ class MainWindow(QMainWindow):
         if not self._update_lambdas():
             return
 
+        candidate_radius_string = str(self.candidate_radius_line_edit.text())
+        candidate_radius = float(candidate_radius_string)
+
         i = self.instance_slider.value()
-        self.solver.solve_silhouette(i)
+        self.solver.solve_silhouette(i, candidate_radius=candidate_radius)
 
         self.mesh_view.set_silhouette_preimage(self.solver._s.L[i],
                                                self.solver._s.U[i],
@@ -515,6 +585,48 @@ class MainWindow(QMainWindow):
     def clear_selection(self):
         self.mesh_view.clear_selection()
         self.mesh_view.refresh()
+
+    def reset_geometry(self):
+        self.solver._setup_global_rotations(kg=self.solver.kg,
+                                            initial_Xgb=self.solver.initial_Xgb)
+        self.solver._setup_rotations(ki=self.solver.ki,
+                                     initial_Xb=self.solver.initial_Xb)
+        map(lambda s: s.fill(1.), self.solver._s.s)
+        for v in self.solver._s.V1:
+            v.flat = self.solver._s.V.flat
+
+        self.mesh_view.clear_selection()
+        self.mesh_view.refresh()
+
+    def propagate(self):
+        i = self.instance_slider.value()
+        if (i + 1) >= len(self.solver._s.V1):
+            return
+
+        self.solver._s.V1[i+1].flat = self.solver._s.V1[i].flat 
+
+    def initialise_all(self):
+        start = self.instance_slider.value()
+
+        for i in xrange(start, len(self.solver._s.V1)):
+            self.instance_slider.setValue(i)
+            qapp.processEvents()
+
+            self.solve_instance(fixed_scale=True, fixed_global_rotation=False)
+            self.solve_instance(fixed_scale=False, fixed_global_rotation=True)
+            self.solve_silhouette()
+
+            self.propagate()
+
+            if not self.initialise_all_button.isChecked():
+                break
+
+    def solve_all(self):
+        start = self.instance_slider.value()
+        for i in xrange(start, len(self.solver._s.V1)):
+            self.instance_slider.setValue(i)
+            self.solve_instance()
+            qapp.processEvents()
 
     def update_from_selection(self):
         if self.mesh_view._selected_V < 0:
@@ -566,9 +678,16 @@ class MainWindow(QMainWindow):
         self.instance_slider.setMaximum(max_index)
         self.instance_slider.setValue(0)
 
-        lambda_string = ','.join(map(lambda f: '%g' % f, self.solver.lambdas))
+        make_string = lambda l: ','.join(map(lambda f: '%g' % f, l))
+        lambda_string = make_string(self.solver.lambdas)
         self.required_lambdas = self.solver.lambdas.shape[0]
         self.lambdas_line_edit.setText(lambda_string)
+        self.candidate_radius_line_edit.setText(
+            '%g' % self.solver.candidate_radius)
+
+        lambda_string = make_string(self.solver.preconditioners)
+        self.required_preconditioners = self.solver.preconditioners.shape[0]
+        self.preconditioners_line_edit.setText(lambda_string)
 
         self.set_instance(0)
         self.mesh_view.reset_camera()
@@ -591,12 +710,20 @@ class MainWindow(QMainWindow):
         dump(str(path), self.solver)
         self.solver_path = path
 
+    def export_solver(self):
+        path = QFileDialog.getExistingDirectory(
+            self, 'Export', self.solver_path)
+
+        if path.isEmpty():
+            return
+
 # main
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('solver_path')
     args = parser.parse_args()
 
+    global qapp
     qapp = QApplication([])
     main_window = MainWindow()
     main_window.load_solver(args.solver_path)
