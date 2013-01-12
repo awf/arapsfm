@@ -107,6 +107,9 @@ class CoreRecoverySolver(object):
             self._s.U.append(np.zeros((s.shape[0], 2), dtype=np.float64))
             self._s.L.append(np.zeros(s.shape[0], dtype=np.int32))
 
+        self._s.Xg0 = np.zeros((1, 3), dtype=np.float64)
+        self._s.X0 = np.zeros((self.V0.shape[0], 3), dtype=np.float64)
+
         self._setup_lambdas()
 
     def _setup_global_rotations(self, **kwargs):
@@ -379,6 +382,12 @@ class CoreRecoverySolver(object):
         return solve_instance_callback, r
             
     def solve_core(self, fixed_Xgb=False, callback=None):
+        if 'Xg0' not in self._s:
+            self._s.Xg0 = np.zeros((1, 3), dtype=np.float64)
+
+        if 'X0' not in self._s:
+            self._s.X0 = np.zeros((self.V0.shape[0], 3), dtype=np.float64)
+
         t1 = time()
 
         for j in xrange(self.max_restarts):
@@ -386,6 +395,7 @@ class CoreRecoverySolver(object):
                 self.T, self._s.V, self._s.s,
                 self.kg, self._s.Xgb, self._s.yg, self._s.Xg,
                 self.ki, self._s.Xb, self._s.y, self._s.X, self._s.V1,
+                self.V0, self._s.Xg0, self._s.X0,
                 self.core_lambdas,
                 self.core_preconditioners,
                 self.uniform_weights,
