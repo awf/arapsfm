@@ -19,8 +19,9 @@ FINAL_SOLVER_OPTIONS = dict(maxIterations=100,
 def parse_args():
     parser = argparse.ArgumentParser() 
 
+    parser.add_argument('action', choices=['update_silhouette',
+                                           'solve_continuous'])
     parser.add_argument('solver')
-    parser.add_argument('action', choices=['update_silhouette', 'continous'])
     parser.add_argument('working')
     parser.add_argument('outer_loops', type=str, default='range(20)')
     parser.add_argument('--lambdas', type=str, default='None')
@@ -37,6 +38,13 @@ def parse_args():
                 'lambdas',
                 'preconditioners']:
         setattr(args, key, eval(getattr(args, key)))
+
+    for key, dtype in [
+        ('lambdas', np.float64),
+        ('preconditioners', np.float64)]:
+        a = getattr(args, key)
+        if a is not None:
+            setattr(args, key, np.asarray(a, dtype=dtype))
 
     if not args.outer_loops:
         raise ValueError('empty "outer_loops"')
@@ -95,9 +103,9 @@ def main():
     solver = pickle_.load(args.solver)
 
     to_swap = dict(solver_options=args.solver_options,
-                   max_restarts=max_restarts,
-                   lambdas=lambdas,
-                   preconditioners=preconditioners)
+                   max_restarts=args.max_restarts,
+                   lambdas=args.lambdas,
+                   preconditioners=args.preconditioners)
                   
     def swap_solver_options():
         for key, arr in to_swap.iteritems():
@@ -108,12 +116,12 @@ def main():
             setattr(solver, key, arr)
     swap_solver_options()
 
-    save_states = partial(save_states, args.working, verbose=True)
+    save_solver_states = partial(save_states, args.working, verbose=True)
     overall_time = Timer()
 
     if args.action == 'update_silhouette':
         solver.parallel_solve_silhouettes(n=args.num_processes,
-                                          chunksize=solve.n /
+                                          chunksize=solver.n /
                                           args.num_processes,
                                           verbose=True)
     else:
@@ -121,6 +129,9 @@ def main():
         if args.outer_loops[0] == -1:
             print '[# -1]'
             for i in xrange(solver.n):
+                if i > 0:
+                    solver._s.V1[i].flat = solver._s.V1[i-1].flat
+
                 callback, states = solver.solve_instance_callback(i)
 
                 solver.solve_instance(i, fixed_global_rotation=False,
@@ -133,12 +144,12 @@ def main():
                                no_silhouette=True,
                                callback=callback)
 
-                save_state(-1, i, states)
+                save_solver_states(-1, i, states)
 
             args.outer_loops.pop(0)
 
         for l in args.outer_loops:
-            print '[# %d] Complete:' % i
+            print '[# %d] Complete:' % l
             outer_timer = Timer()
 
             # solve for the core geometry
@@ -148,21 +159,22 @@ def main():
             t = solver.solve_core(callback=callback)
             print '[# %d] Core: %.3fs' % (l, t)
 
-            save_states(l, 'core', core_states)
+            save_solver_states(l, 'core', core_states)
 
             # solve for each instance
             for i in xrange(solver.n):
                 callback, states = solver.solve_instance_callback(i)
 
                 print '[# %d] Instance: %d' % (l, i)
-                t = solve_instance(i, fixed_global_rotation=False,
-                                   fixed_scale=False,
-                                   no_silhouette=False,
-                                   callback=callback)
+                t = solver.solve_instance(
+                    i, fixed_global_rotation=False,
+                    fixed_scale=False,
+                    no_silhouette=False,
+                    callback=callback)
                 print '[# %d] Instance: %d, %.3fs' % (l, i, t)
-                save_state(l, i, states)
+                save_solver_states(l, i, states)
 
-            print '[# %d] Complete: %.3fs' % outer_timer()
+            print '[# %d] Complete: %.3fs' % (l, outer_timer())
 
     print 'Complete time taken: %.3fs' % overall_time()
 
@@ -171,17 +183,17 @@ def main():
     head, tail = os.path.split(args.solver)
     root, ext = os.path.splitext(tail)
 
-    split = root.split('_')[-1]
+    split = root.split('_')
     try:
-        n = int(split) + 1
+        n = int(split[-1]) + 1
     except ValueError:
         n = 0
 
-    output_path = os.path.join(head, root + '_%d.dat' % n)
+    output_path = os.path.join(head, '_'.join(split[:-1]) + '_%d.dat' % n)
     print '-> %s' % output_path
     pickle_.dump(output_path, solver)
 
-    args_path = os.path.join(head, root + '_%d_ARGS.dat' % n)
+    args_path = os.path.join(head, root + '_ARGS.dat')
     print '-> %s' % args_path
     pickle_.dump(args_path, args.__dict__)
     
