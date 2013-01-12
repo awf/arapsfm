@@ -35,6 +35,9 @@ int solve_core(PyArrayObject * npy_T,
                PyObject * list_y,
                PyObject * list_X,
                PyObject * list_V1,
+               PyArrayObject * npy_V0,
+               PyArrayObject * npy_Xg0,
+               PyArrayObject * npy_X0,
                PyArrayObject * npy_lambdas,
                PyArrayObject * npy_preconditioners,
                bool uniformWeights,
@@ -405,9 +408,25 @@ int solve_core(PyArrayObject * npy_T,
             false));
     }
 
-    vector<const ScaleNode *> s_nodes;
-    copy(nodes_s.begin(), nodes_s.end(), back_inserter(s_nodes));
-    problem.AddEnergy(new LaplacianEnergy(*node_V, move(s_nodes), mesh, sqrt(lambdas[4])));
+    Matrix<double> s0(1, 1);
+    s0[0][0] = 1.0;
+    auto node_s0 = new ScaleNode(s0);
+    problem.AddFixedNode(node_s0);
+
+    PYARRAY_AS_MATRIX(double, npy_V0, V0);
+    auto node_V0 = new VertexNode(V0);
+    problem.AddFixedNode(node_V0);
+
+    PYARRAY_AS_MATRIX(double, npy_Xg0, Xg0);
+    auto node_Xg0 = new RotationNode(Xg0);
+    problem.AddNode(node_Xg0);
+
+    PYARRAY_AS_MATRIX(double, npy_X0, X0);
+    auto node_X0 = new RotationNode(X0);
+    problem.AddNode(node_X0);
+
+    problem.AddEnergy(new RigidTransformArapEnergy(*node_V0, *node_s0,
+        *node_Xg0, *node_X0, *node_V, mesh, sqrt(lambdas[4]), false, true));
 
     if (callback != Py_None)
         problem.SetCallback(callback);
