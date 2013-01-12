@@ -49,7 +49,7 @@ def copy_to_shared(A):
         arr = mparray.empty_like(a)
         arr.flat = a.flat
 
-        L.append(arra)
+        L.append(arr)
 
     return L
     
