@@ -145,7 +145,7 @@ class CoreRecoverySolver(object):
                                   self.lambdas[6],    # global scale acceleration penalty            
                                   self.lambdas[7],    # global rotations acceleration penalty
                                   self.lambdas[8],    # frame-to-frame acceleration penalty
-                                  self.lambdas[5],    # laplacian 
+                                  self.lambdas[5],    # rigid-arap to template 
                                   self.lambdas[9],    # global scale velocity penalty
                                   self.lambdas[10],   # global rotations velocity penalty
                                   self.lambdas[11]]   # frame-to-frame velocity penalty
