@@ -123,6 +123,9 @@ def main():
 
             to_swap[key] = getattr(solver, key)
             setattr(solver, key, arr)
+
+        solver._setup_lambdas()
+
     swap_solver_options()
 
     save_solver_states = partial(save_states, args.working, verbose=True)
