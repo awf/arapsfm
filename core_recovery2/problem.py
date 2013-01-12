@@ -96,7 +96,7 @@ class CoreRecoverySolver(object):
 
     def _setup_global_rotations(self, **kwargs):
         self.kg = kwargs.pop('kg')
-        initial_Xgb = kwargs.pop('initial_Xgb', None)
+        self.initial_Xgb = kwargs.pop('initial_Xgb', None)
 
         kg_inst, kg_basis, kg_coeff, kg_lookup = parse_k(self.kg)
 
@@ -110,16 +110,16 @@ class CoreRecoverySolver(object):
         self._s.Xgb = make_list_of_arrays((1, 3), len(kg_basis))
         self._s.yg = make_list_of_arrays((1, 1), len(kg_coeff))
 
-        if initial_Xgb is not None:
-            if initial_Xgb.shape != (len(kg_basis), 3):
+        if self.initial_Xgb is not None:
+            if self.initial_Xgb.shape != (len(kg_basis), 3):
                 raise ValueError
 
-            for i, xgb in enumerate(initial_Xgb):
+            for i, xgb in enumerate(self.initial_Xgb):
                 self._s.Xgb[i].flat = xgb.flat
 
     def _setup_rotations(self, **kwargs):
         self.ki = kwargs.pop('ki')
-        initial_Xb = kwargs.pop('initial_Xb', None)
+        self.initial_Xb = kwargs.pop('initial_Xb', None)
 
         ki_inst, ki_basis, ki_coeff, ki_lookup = parse_k(self.ki)
 
@@ -133,11 +133,11 @@ class CoreRecoverySolver(object):
         self._s.Xb = np.zeros((len(ki_basis), 3), dtype=np.float64)
         self._s.y = make_list_of_arrays((len(ki_coeff), 1), self.n)
         
-        if initial_Xb is not None:
-            if initial_Xb.shape != (len(ki_basis), 3):
+        if self.initial_Xb is not None:
+            if self.initial_Xb.shape != (len(ki_basis), 3):
                 raise ValueError
 
-            for i, xb in enumerate(initial_Xb):
+            for i, xb in enumerate(self.initial_Xb):
                 self._s.Xb[i].flat = xb.flat
 
     def _setup_lambdas(self):
