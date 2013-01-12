@@ -129,12 +129,8 @@ def main():
     args = parse_args()
     solver = setup_solver(args)
 
-    if not os.path.exists(args.output):
-        os.makedirs(args.output)
-        
-    solver_path = os.path.join(args.output, 'solver.dat')
-    print '-> %s' % solver_path
-    pickle_.dump(solver_path, solver)
+    print '-> %s' % args.output
+    pickle_.dump(args.output, solver)
  
 if __name__ == '__main__':
     main()
