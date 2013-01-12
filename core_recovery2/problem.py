@@ -181,7 +181,8 @@ class CoreRecoverySolver(object):
                                       self.lambdas[8],    # frame-to-frame acceleration penalty
                                       self.lambdas[9],    # global scale velocity penalty
                                       self.lambdas[10],   # global rotations velocity penalty
-                                      self.lambdas[11]]   # frame-to-frame velocity penalty
+                                      self.lambdas[11],   # frame-to-frame velocity penalty
+                                      self.lambdas[12]]   # temporal arap penalty
 
         self.instance_preconditioners = np.r_[self.preconditioners[0], # V
                                               self.preconditioners[1], # X/Xg
@@ -240,7 +241,9 @@ class CoreRecoverySolver(object):
 
         t1 = time()
 
-        kgi, Xgbi, ygi, Xgi, sm1, ym1, Xm1 = self._setup_subproblem(i)
+        (kgi, Xgbi, ygi, Xgi, 
+         sm1, ym1, Xm1,
+         Vp, sp, Xgp, Xp) = self._setup_subproblem(i)
 
         if lambdas is None:
             lambdas = self.instance_lambdas
@@ -254,7 +257,9 @@ class CoreRecoverySolver(object):
                 self._s.s[i],
                 kgi, Xgbi, ygi, Xgi,
                 self.ki, self._s.Xb, self._s.y[i], self._s.X[i], ym1, Xm1, sm1,
-                self._s.V1[i], self._s.U[i], self._s.L[i],
+                Vp, sp, Xgp, Xp,
+                self._s.V1[i], 
+                self._s.U[i], self._s.L[i],
                 self.S[i], self.SN[i],
                 self.C[i], self.P[i],
                 lambdas,
@@ -280,11 +285,18 @@ class CoreRecoverySolver(object):
 
     def _setup_subproblem(self, i):
         if i > 0:
+            Vp = self._s.V1[i-1]
+            sp = np.ones((1, 1), dtype=np.float64)
+            Xgp = np.zeros((1, 3), dtype=np.float64)
+            Xp = np.zeros_like(Vm1)
+            
+            sp = Xgp = Xp = np.zeros((0,3), dtype=np.float64)
             sm1 = [self._s.s[i-1]]
             ym1 = [self._s.y[i-1]]
             Xm1 = [self._s.X[i-1]]
             subproblem = (i, i - 1)
         else:
+            Vp = sp = Xgp = Xp = np.zeros((0,3), dtype=np.float64)
             sm1 = []
             ym1 = []
             Xm1 = []
@@ -329,7 +341,7 @@ class CoreRecoverySolver(object):
         ygi = map(lambda i: self._s.yg[i], used_yg)
         Xgi = map(lambda i: self._s.Xg[i], used_Xg)
 
-        return kgi, Xgbi, ygi, Xgi, sm1, ym1, Xm1
+        return kgi, Xgbi, ygi, Xgi, sm1, ym1, Xm1, Vp, sp, Xgp, Xp
 
     def get_instance(self, i):
         m = self.kg_info.lookup[i]
