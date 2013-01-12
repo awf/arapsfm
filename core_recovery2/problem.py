@@ -173,9 +173,12 @@ class CoreRecoverySolver(object):
 
         self.silhouette_lambdas = self.lambdas[:3]
 
-    def solve_silhouette(self, i, lambdas=None):
+    def solve_silhouette(self, i, lambdas=None, candidate_radius=None):
         if lambdas is None:
             lambdas = self.silhouette_lambdas
+
+        if candidate_radius is None:
+            candidate_radius = self.candidate_radius
 
         t1 = time()
         u, l = solve_silhouette(
@@ -188,7 +191,7 @@ class CoreRecoverySolver(object):
             self.silhouette_info['SilCandAssignedFaces'],
             self.silhouette_info['SilCandU'],
             lambdas,
-            radius=self.candidate_radius,
+            radius=candidate_radius,
             verbose=True)
         t2 = time()
 
