@@ -96,6 +96,15 @@ def save_states(working, iteration, index, states, verbose=True):
 
     pickle_.dump(full_path, states)
 
+# save_solver
+def save_solver(working, iteration, solver, verbose=True):
+    full_path = os.path.join(working, str(iteration) + '.dat')
+
+    if verbose:
+        print '-> %s' % full_path
+
+    pickle_.dump(full_path, solver)
+
 # main
 def main():
     args = parse_args()
@@ -117,6 +126,8 @@ def main():
     swap_solver_options()
 
     save_solver_states = partial(save_states, args.working, verbose=True)
+    save_intermediate_solver = partial(save_solver, args.working, verbose=True)
+
     overall_time = Timer()
 
     if args.action == 'update_silhouette':
@@ -145,6 +156,8 @@ def main():
                                callback=callback)
 
                 save_solver_states(-1, i, states)
+
+            save_intermediate_solver(-1, solver)
 
             args.outer_loops.pop(0)
 
@@ -175,6 +188,8 @@ def main():
                 save_solver_states(l, i, states)
 
             print '[# %d] Complete: %.3fs' % (l, outer_timer())
+
+            save_intermediate_solver(l, solver)
 
     print 'Complete time taken: %.3fs' % overall_time()
 
