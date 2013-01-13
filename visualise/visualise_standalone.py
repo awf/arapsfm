@@ -397,7 +397,11 @@ def main():
     vis = None
 
     if args.with_core is not None:
-        core_V = np.load(args.with_core)['V']
+        z = np.load(args.with_core)
+        try:
+            core_V = z['V']
+        except KeyError:
+            core_V = z['states'][-1]['V']
     else:
         core_V = None
 
