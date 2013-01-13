@@ -73,4 +73,20 @@ protected:
     const Matrix<double> & _SN;
 };
 
+// SilhouetteNormalEnergy2
+class SilhouetteNormalEnergy2 : public SilhouetteBaseEnergy
+{
+public:
+    SilhouetteNormalEnergy2(const VertexNode & V, const BarycentricNode & U, 
+                            const Matrix<double> & SN, const Mesh & mesh, 
+                            const double w, const int narrowBand,
+                            const ResidualTransform * pResidualTransform = nullptr);
+
+    virtual void EvaluateResidual(const int k, Vector<double> & e) const;
+    virtual void EvaluateJacobian(const int k, const int whichParam, Matrix<double> & J) const;
+
+protected:
+    const Matrix<double> & _SN;
+};
+
 #endif
