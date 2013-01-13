@@ -63,7 +63,7 @@ def main_EvaluateSilhouetteNormal2():
     sn = np.r_[0., 0.5, 0.]
     w = 1.0
 
-    u = randomise(u)
+    # u = randomise(u)
     V = randomise(V)
 
     print EvaluateSilhouetteNormal2(T, V, 
@@ -88,6 +88,15 @@ def main_EvaluateSilhouetteNormal2():
 
     approx_JV0, = approx_jacs(fn, [0], 1e-6, V[vertex_id])
     print_comparison(approx_JV0=approx_JV0, JV0=JV0)
+
+    Ju = EvaluateSilhouette2Jac_u(T, V, l, u, sn, w, debug=False)
+    print Ju
+
+    def fn(u0):
+        return EvaluateSilhouetteNormal2(T, V, l, u0, sn, w, debug=False)
+
+    approx_Ju, = approx_jacs(fn, [0], 1e-6, u)
+    print_comparison(approx_Ju=approx_Ju, Ju=Ju)
 
 if __name__ == '__main__':
     main_EvaluateSilhouetteNormal2()

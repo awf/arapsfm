@@ -31,6 +31,15 @@ cdef extern from "test_silhouette.h":
         double w,
         bint debug)
 
+    object EvaluateSilhouette2Jac_u_c 'EvaluateSilhouette2Jac_u' (
+        np.ndarray npy_T,
+        np.ndarray npy_V,
+        int faceIndex,
+        np.ndarray npy_u,
+        np.ndarray npy_sn,
+        double w,
+        bint debug)
+
 def EvaluateSilhouetteNormal2(np.ndarray[np.int32_t, ndim=2] T,
                               np.ndarray[DTYPE_t, ndim=2] V,
                               np.int32_t faceIndex,
@@ -51,3 +60,13 @@ def EvaluateSilhouette2Jac_V1(np.ndarray[np.int32_t, ndim=2] T,
                               bint debug=False):
 
     return EvaluateSilhouette2Jac_V1_c(T, V, faceIndex, u, sn, vertexIndex, w, debug)
+
+def EvaluateSilhouette2Jac_u(np.ndarray[np.int32_t, ndim=2] T,
+                              np.ndarray[DTYPE_t, ndim=2] V,
+                              np.int32_t faceIndex,
+                              np.ndarray[DTYPE_t, ndim=1] u,
+                              np.ndarray[DTYPE_t, ndim=1] sn,
+                              DTYPE_t w,
+                              bint debug=False):
+
+    return EvaluateSilhouette2Jac_u_c(T, V, faceIndex, u, sn, w, debug)

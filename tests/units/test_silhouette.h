@@ -217,6 +217,72 @@ void silhouetteNormalResiduals2Jac_V1_Unsafe(const Mesh & mesh, const Matrix<dou
     copyMatrixSlice(finalJ, 0, 3*desiredIndex, 3, 3, outJ, 0, 0);
 }
 
+void silhouetteNormalResiduals2Jac_u_Unsafe(const Mesh & mesh, const Matrix<double> & V1, 
+                                            int faceIndex, const double * u_, const double * SN, const double & w, double * J_)
+{
+    const int * Ti = mesh.GetTriangle(faceIndex);
+
+    // get the normalised vertex normals and the vertex normal lengths
+    double vertexNormals[3][3];
+    double vertexNormalLengths[3];
+
+    for (int i=0; i < 3; i++)
+    {
+        double * vertexNormal = vertexNormals[i];
+        vertexNormal_Unsafe(mesh, V1, Ti[i], vertexNormal);
+
+        vertexNormalLengths[i] = norm_L2_Static<double, 3>(vertexNormal);
+        scaleVectorIP_Static<double, 3>(1.0 / vertexNormalLengths[i], vertexNormal);
+    }
+
+    // get the weighted lengths
+    double u[3] = { u_[0], u_[1], 1.0 - u_[0] - u_[1] };
+    double weightedLengths = (u[0] * vertexNormalLengths[0] +
+                              u[1] * vertexNormalLengths[1] +
+                              u[2] * vertexNormalLengths[2]);
+
+    double unJ[3][2];
+    for (int i=0; i < 3; i++)
+        for (int j=0; j < 2; j++)
+            unJ[i][j] = vertexNormals[j][i] - vertexNormals[2][i];
+
+    double unJ1[2];
+    unJ1[0] = vertexNormalLengths[0] - vertexNormalLengths[2];
+    unJ1[1] = vertexNormalLengths[1] - vertexNormalLengths[2];
+
+    // get the blended normal
+    double normal[3];
+
+    makeTriInterpolatedVector_Static<double, 3>(u, 
+            vertexNormals[0],  
+            vertexNormals[1], 
+            vertexNormals[2], normal);
+
+    // get the normalisation Jacobian
+    double normalizationJac[9];
+    normalizationJac_Unsafe(normal, normalizationJac);
+
+    // get the p2 Jacobian
+    Matrix<double> Jp2(3, 2);
+    multiply_A_B_Static<double, 3, 3, 2>(normalizationJac, unJ[0], Jp2[0]);
+    scaleVectorIP_Static<double, 6>(-1.0 , Jp2[0]);
+
+    // construct the normal vector
+    normalizeVector_Static<double, 3>(normal);
+
+    // construct the residual
+    double residual[3];
+    residual[0] = SN[0] - normal[0];
+    residual[1] = SN[1] - normal[1];
+    residual[2] =  - normal[2];
+
+    // construct the final Jacobian
+    Matrix<double> J(3, 2, J_);
+
+    for (int r = 0; r < 3; r++)
+        for (int c = 0; c < 2; c++)
+            J[r][c] = w * (unJ1[c] * residual[r] + Jp2[r][c] * weightedLengths);
+}
 
 PyObject * EvaluateSilhouetteNormal2(PyArrayObject * npy_T,
                                      PyArrayObject * npy_V,
@@ -275,6 +341,36 @@ PyObject * EvaluateSilhouette2Jac_V1(PyArrayObject * npy_T,
 
     return (PyObject *)npy_J;
 }
+
+PyObject * EvaluateSilhouette2Jac_u(PyArrayObject * npy_T,
+                                    PyArrayObject * npy_V,
+                                    int faceIndex,
+                                    PyArrayObject * npy_u,
+                                    PyArrayObject * npy_sn,
+                                    double w,
+                                    bool debug)
+{
+    PYARRAY_AS_MATRIX(int, npy_T, T);
+    PYARRAY_AS_MATRIX(double, npy_V, V);
+
+    Mesh mesh(V.num_rows(), T); 
+
+    PYARRAY_AS_VECTOR(double, npy_u, u);
+    PYARRAY_AS_VECTOR(double, npy_sn, sn);
+
+    if (debug)
+        asm("int $0x3");
+
+    npy_intp dim[2] = {3,2};
+    PyArrayObject * npy_J = (PyArrayObject *)PyArray_SimpleNew(2, dim, NPY_FLOAT64);
+    PYARRAY_AS_MATRIX(double, npy_J, J);
+
+    silhouetteNormalResiduals2Jac_u_Unsafe(mesh, V, faceIndex, &u[0], &sn[0], w, J[0]);
+
+    return (PyObject *)npy_J;
+}
+
+
 
 #endif
 
