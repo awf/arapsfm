@@ -502,7 +502,7 @@ public:
                         double Jxgb[9];
                         _XgComp.Jacobian_Unsafe(n, 0, true, Jxgb);
 
-                        double B[9];
+                        double B[12];
                         multiply_A_B_Static<double, 4, 3, 3>(Jxg, Jxgb, B);
 
                         double A[12];
