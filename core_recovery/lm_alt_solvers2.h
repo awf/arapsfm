@@ -426,7 +426,7 @@ int solve_core(PyArrayObject * npy_T,
     problem.AddNode(node_X0);
 
     problem.AddEnergy(new RigidTransformArapEnergy(*node_V0, *node_s0,
-        *node_Xg0, *node_X0, *node_V, mesh, sqrt(lambdas[4]), false, true));
+        *node_Xg0, *node_X0, *node_V, mesh, sqrt(lambdas[4]), true, true));
 
     if (callback != Py_None)
         problem.SetCallback(callback);
