@@ -33,6 +33,7 @@ def parse_args():
     parser.add_argument('--initialise_silhouette',
                         default=False,
                         action='store_true')
+    parser.add_argument('--solve_silhouette_after', type=int, default=-1)
 
     args = parser.parse_args()
 
@@ -168,12 +169,12 @@ def main():
 
             args.outer_loops.pop(0)
 
-        if args.initialise_silhouette:
-            solver.parallel_solve_silhouettes(n=args.num_processes,
-                                              chunksize=max(
-                                                solver.n / args.num_processes, 
-                                                1),
-                                              verbose=True)
+            if args.initialise_silhouette:
+                solver.parallel_solve_silhouettes(n=args.num_processes,
+                                                  chunksize=max(
+                                                    solver.n / args.num_processes, 
+                                                    1),
+                                                  verbose=True)
 
         for l in args.outer_loops:
             print '[# %d] Complete:' % l
@@ -183,14 +184,21 @@ def main():
             # solve for the core geometry
             callback, core_states = solver.solve_core_callback()
 
-            # solver.solver_options['verbosenessLevel'] = 2
             print '[# %d] Core:' % l
             t = solver.solve_core(callback=callback)
+
             # print '[# %d] Core: %.3fs' % (l, t)
             solver.solver_options['verbosenessLevel'] = 1
 
             save_solver_states(l, 'core', core_states)
 
+            if l > args.solve_silhouette_after:
+                solver.parallel_solve_silhouettes(n=args.num_processes,
+                                                  chunksize=max(
+                                                    solver.n / args.num_processes, 
+                                                    1),
+                                                  verbose=True)
+                
             # solve for each instance
             for i in xrange(solver.n):
                 callback, states = solver.solve_instance_callback(i)
@@ -215,19 +223,6 @@ def main():
 
     head, tail = os.path.split(args.solver)
     root, ext = os.path.splitext(tail)
-
-    split = root.split('_')
-    try:
-        n = int(split[-1]) + 1
-    except ValueError:
-        n = 0
-
-    output_path = os.path.join(args.working, root + '-' + 
-                               '_'.join(split[:-1]) + '_%d.dat' % n)
-
-    print '-> %s' % output_path
-    pickle_.dump(output_path, solver)
-
     args_path = os.path.join(args.working, root + '_ARGS.dat')
 
     print '-> %s' % args_path
