@@ -410,23 +410,27 @@ int solve_core(PyArrayObject * npy_T,
 
     Matrix<double> s0(1, 1);
     s0[0][0] = 1.0;
-    auto node_s0 = new ScaleNode(s0);
-    problem.AddFixedNode(node_s0);
 
-    PYARRAY_AS_MATRIX(double, npy_V0, V0);
-    auto node_V0 = new VertexNode(V0);
-    problem.AddFixedNode(node_V0);
+    if (lambdas[4] > 0.)
+    {
+        auto node_s0 = new ScaleNode(s0);
+        problem.AddFixedNode(node_s0);
 
-    PYARRAY_AS_MATRIX(double, npy_Xg0, Xg0);
-    auto node_Xg0 = new RotationNode(Xg0);
-    problem.AddNode(node_Xg0);
+        PYARRAY_AS_MATRIX(double, npy_V0, V0);
+        auto node_V0 = new VertexNode(V0);
+        problem.AddFixedNode(node_V0);
 
-    PYARRAY_AS_MATRIX(double, npy_X0, X0);
-    auto node_X0 = new RotationNode(X0);
-    problem.AddNode(node_X0);
+        PYARRAY_AS_MATRIX(double, npy_Xg0, Xg0);
+        auto node_Xg0 = new RotationNode(Xg0);
+        problem.AddNode(node_Xg0);
 
-    problem.AddEnergy(new RigidTransformArapEnergy(*node_V0, *node_s0,
-        *node_Xg0, *node_X0, *node_V, mesh, sqrt(lambdas[4]), true, true));
+        PYARRAY_AS_MATRIX(double, npy_X0, X0);
+        auto node_X0 = new RotationNode(X0);
+        problem.AddNode(node_X0);
+
+        problem.AddEnergy(new RigidTransformArapEnergy(*node_V0, *node_s0,
+            *node_Xg0, *node_X0, *node_V, mesh, sqrt(lambdas[4]), true, true));
+    }
 
     if (callback != Py_None)
         problem.SetCallback(callback);
