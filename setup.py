@@ -231,6 +231,12 @@ setup(
                   extra_compile_args=['-std=c++11', '-Wfatal-errors'],
                   # extra_compile_args=['-std=c++11', '-Wfatal-errors', '-O0'],
                   language='c++'),
+
+        Extension('tests.units.test_silhouette', 
+                  ['tests/units/test_silhouette.pyx'],
+                  include_dirs=include_dirs + [SSLM_ROOT],
+                  extra_compile_args=['-std=c++11', '-Wfatal-errors', '-O0'],
+                  language='c++'),
         ],
 
     cmdclass = {'build_ext' : build_ext},
