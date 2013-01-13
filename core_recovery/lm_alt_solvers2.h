@@ -660,7 +660,7 @@ int solve_instance(PyArrayObject * npy_T,
     PYARRAY_AS_MATRIX(double, npy_SN, SN);
     if (!noSilhouetteUpdate)
     {
-        auto silhouetteNormalEnergy = new SilhouetteNormalEnergy(
+        auto silhouetteNormalEnergy = new SilhouetteNormalEnergy2(
             *node_V1, *node_U, SN, mesh, sqrt(lambdas[2]), narrowBand);
         problem.AddEnergy(silhouetteNormalEnergy);
         meshWalker.addEnergy(silhouetteNormalEnergy);
