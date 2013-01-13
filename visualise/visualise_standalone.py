@@ -406,15 +406,24 @@ def main():
         print 'Source file: %s' % input_path
 
         Z = np.load(input_path)
-        print 'Available keys:', Z.keys()
+        # print 'Available keys:', Z.keys()
 
-        if 'has_states' in Z:
-            Z = Z['states']
+        try:
+            has_states = 'has_states' in Z
+        except TypeError:
+            has_states = True
+            Z = Z.iter_states()
+        else:
+            if has_states:
+                Z = Z['states']
+            else:
+                Z = [Z]
+
+        if has_states:
             iter_output_path = imap(
                 lambda n: os.path.join(output_paths[i], '%d' % n),
                 count(0))
         else:
-            Z = [Z]
             iter_output_path = cycle([output_paths[i]])
             
         for j, z in enumerate(Z):
