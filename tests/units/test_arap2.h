@@ -83,6 +83,7 @@ PyObject * EvaluateCompleteSectionedBasisArapEnergy(PyArrayObject * npy_T,
                                        false,
                                        false,
                                        false,
+                                       false,
                                        false);
 
     // Calculate residual

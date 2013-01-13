@@ -410,6 +410,6 @@ def main_EvaluateGlobalRotationLinearCombinationEnergy():
     print_comparison(approx_Jyg=approx_Jyg, Jyg=Jyg)
 
 if __name__ == '__main__':
-    # main_EvaluateCompleteSectionedBasisArapEnergy()
-    main_EvaluateGlobalRotationLinearCombinationEnergy()
+    main_EvaluateCompleteSectionedBasisArapEnergy()
+    # main_EvaluateGlobalRotationLinearCombinationEnergy()
 
