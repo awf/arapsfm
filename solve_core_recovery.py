@@ -12,7 +12,7 @@ import multiprocessing as mp
 FINAL_SOLVER_OPTIONS = dict(maxIterations=100, 
                             gradientThreshold=1e-6,
                             updateThreshold=1e-7,
-                            improvementThreshold=1e-8,
+                            improvementThreshold=1e-6,
                             verbosenessLevel=1)
 
 # parse_args
@@ -30,6 +30,9 @@ def parse_args():
     parser.add_argument('--candidate_radius', type=float, default=None)
     parser.add_argument('--solver_options', type=str, default='{}')
     parser.add_argument('--num_processes', type=int, default=mp.cpu_count())
+    parser.add_argument('--initialise_silhouette',
+                        default=False,
+                        action='store_true')
 
     args = parser.parse_args()
 
@@ -135,8 +138,9 @@ def main():
 
     if args.action == 'update_silhouette':
         solver.parallel_solve_silhouettes(n=args.num_processes,
-                                          chunksize=solver.n /
-                                          args.num_processes,
+                                          chunksize=max(
+                                            solver.n / args.num_processes, 
+                                            1),
                                           verbose=True)
     else:
         # first forward-pass with no silhouette used
@@ -164,16 +168,26 @@ def main():
 
             args.outer_loops.pop(0)
 
+        if args.initialise_silhouette:
+            solver.parallel_solve_silhouettes(n=args.num_processes,
+                                              chunksize=max(
+                                                solver.n / args.num_processes, 
+                                                1),
+                                              verbose=True)
+
         for l in args.outer_loops:
             print '[# %d] Complete:' % l
+
             outer_timer = Timer()
 
             # solve for the core geometry
             callback, core_states = solver.solve_core_callback()
 
+            # solver.solver_options['verbosenessLevel'] = 2
             print '[# %d] Core:' % l
             t = solver.solve_core(callback=callback)
-            print '[# %d] Core: %.3fs' % (l, t)
+            # print '[# %d] Core: %.3fs' % (l, t)
+            solver.solver_options['verbosenessLevel'] = 1
 
             save_solver_states(l, 'core', core_states)
 
@@ -196,7 +210,8 @@ def main():
 
     print 'Complete time taken: %.3fs' % overall_time()
 
-    swap_solver_options()
+    # NOTE don't restore original lambdas, as they were probably incorrect ...
+    # swap_solver_options()
 
     head, tail = os.path.split(args.solver)
     root, ext = os.path.splitext(tail)
@@ -207,11 +222,14 @@ def main():
     except ValueError:
         n = 0
 
-    output_path = os.path.join(head, '_'.join(split[:-1]) + '_%d.dat' % n)
+    output_path = os.path.join(args.working, root + '-' + 
+                               '_'.join(split[:-1]) + '_%d.dat' % n)
+
     print '-> %s' % output_path
     pickle_.dump(output_path, solver)
 
-    args_path = os.path.join(head, root + '_ARGS.dat')
+    args_path = os.path.join(args.working, root + '_ARGS.dat')
+
     print '-> %s' % args_path
     pickle_.dump(args_path, args.__dict__)
     
