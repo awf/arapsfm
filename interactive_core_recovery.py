@@ -20,7 +20,7 @@ from time import time
 # Constants
 WORKING_SOLVER_OPTIONS = dict(maxIterations=100, 
                               gradientThreshold=1e-6,
-                              updateThreshold=1e-6,
+                              updateThreshold=1e-7,
                               improvementThreshold=1e-6,
                               verbosenessLevel=1)
 
@@ -414,6 +414,18 @@ class MainWindow(QMainWindow):
         self.solve_silhouette_button.clicked.connect(self.solve_silhouette)
         control_layout.addWidget(self.solve_silhouette_button)
 
+        self.solve_core_button = QPushButton('Solve &Core')
+        self.solve_core_button.clicked.connect(self.solve_core)
+        control_layout.addWidget(self.solve_core_button)
+
+        def control_layout_add_separator():
+            line = QFrame()
+            line.setFrameShape(QFrame.HLine)
+            line.setFrameShadow(QFrame.Sunken)
+            control_layout.addWidget(line)
+
+        control_layout_add_separator()
+
         self.update_from_selection_button = QPushButton('&Update from Selection')
         self.update_from_selection_button.clicked.connect(
             self.update_from_selection)
@@ -427,18 +439,15 @@ class MainWindow(QMainWindow):
         self.propagate_button.clicked.connect(self.propagate)
         control_layout.addWidget(self.propagate_button)
 
-        def control_layout_add_separator():
-            line = QFrame()
-            line.setFrameShape(QFrame.HLine)
-            line.setFrameShadow(QFrame.Sunken)
-            control_layout.addWidget(line)
-
         control_layout_add_separator()
         self.reset_geometry_button = QPushButton('Reset All Geometry')
         self.reset_geometry_button.clicked.connect(self.reset_geometry)
         control_layout.addWidget(self.reset_geometry_button)
 
         control_layout_add_separator()
+        self.solve_silhouettes_check = QCheckBox('Solve Silhouettes')
+        control_layout.addWidget(self.solve_silhouettes_check)
+
         self.initialise_all_button = QPushButton('In&itialise All')
         self.initialise_all_button.clicked.connect(self.initialise_all)
         self.initialise_all_button.setCheckable(True)
@@ -446,6 +455,7 @@ class MainWindow(QMainWindow):
 
         self.solve_all_button = QPushButton('Solve &All')
         self.solve_all_button.clicked.connect(self.solve_all)
+        self.solve_all_button.setCheckable(True)
         control_layout.addWidget(self.solve_all_button)
 
         control_layout_add_separator()
@@ -563,6 +573,12 @@ class MainWindow(QMainWindow):
             no_silhouette=not enable_silhouette,
             callback=callback)
 
+    def solve_core(self):
+        if not self._update_lambdas():
+            return
+
+        self.solver.solve_core()
+
     def solve_silhouette(self):
         if not self._update_lambdas():
             return
@@ -614,7 +630,9 @@ class MainWindow(QMainWindow):
 
             self.solve_instance(fixed_scale=True, fixed_global_rotation=False)
             self.solve_instance(fixed_scale=False, fixed_global_rotation=True)
-            self.solve_silhouette()
+
+            if self.solve_silhouettes_check.isChecked():
+                self.solve_silhouette()
 
             self.propagate()
 
@@ -625,8 +643,12 @@ class MainWindow(QMainWindow):
         start = self.instance_slider.value()
         for i in xrange(start, len(self.solver._s.V1)):
             self.instance_slider.setValue(i)
-            self.solve_instance()
             qapp.processEvents()
+
+            self.solve_instance()
+
+            if not self.solve_all_button.isChecked():
+                break
 
     def update_from_selection(self):
         if self.mesh_view._selected_V < 0:
