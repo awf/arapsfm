@@ -10,6 +10,7 @@ from mesh.faces import vertices_to_faces
 from mesh.geometry import face_normal
 from misc.numpy_ import normalise
 from sklearn.neighbors import NearestNeighbors
+from scipy.linalg import norm
 
 # solve_silhouette
 def solve_silhouette(V, T, S, SN, 
@@ -35,11 +36,17 @@ def solve_silhouette(V, T, S, SN,
     face_normals = map(lambda i: face_normal(V, T, i, normalise=False),
                        xrange(T.shape[0]))
 
+    # `W` is the weights which are determined by the area of the triangle
+    W = np.empty(num_candidates, dtype=np.float64)
+
     QN = np.empty((num_candidates, 3), dtype=np.float64)
     def vertex_normal_inplace(i):
         adj_normals = map(lambda j: face_normals[j], 
                           faces_adjacent_to_vertex[i])
+        unnormalised_normal = reduce(add, adj_normals)
+        W[i] = 2.0 * norm(unnormalised_normal)
         QN[i] = normalise(reduce(add, adj_normals))
+
     map(vertex_normal_inplace, xrange(V.shape[0]))
 
     # edge candidates
@@ -47,16 +54,18 @@ def solve_silhouette(V, T, S, SN,
         for l, (i, j) in enumerate(SilEdgeCands):
             t = SilEdgeCandParam[l]
 
+            W[V.shape[0] + l] = (1. - t) * W[i] + t * W[j]
             Q[V.shape[0] + l] = (1. - t) * V[i] + t * V[j]
             QN[V.shape[0] + l] = normalise((1. - t) * QN[i] + t * QN[j])
 
     n = S.shape[0]
     Q_2 = Q[:,:2]
     SN_3 = np.c_[SN, n * [0.]]
+    W = W * W
 
     unary = np.require(
         lambdas[1] * cdist(S, Q_2, 'sqeuclidean') +
-        lambdas[2] * cdist(SN_3, QN, 'sqeuclidean'),
+        lambdas[2] * cdist(SN_3, QN, 'sqeuclidean') * W[ np.newaxis, :],
         np.float64, requirements='C')
 
     pairwiseEnergies = [[np.require(lambdas[0] * SilCandDistances, 
