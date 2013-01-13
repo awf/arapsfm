@@ -448,3 +448,7 @@ class CoreRecoverySolver(object):
                     y=cp(self._s.y),
                     X=cp(self._s.X))
 
+    def iter_states(self):
+        for i in xrange(self.n):
+            yield self.get_instance(i)
+
