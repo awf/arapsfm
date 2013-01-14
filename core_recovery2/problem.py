@@ -8,13 +8,18 @@ from core_recovery import lm_alt_solvers2 as lm
 from core_recovery.arap.sectioned import parse_k
 from core_recovery.silhouette import solve_silhouette
 
-from geometry.axis_angle import axAdd
+from geometry.axis_angle import *
+from geometry.quaternion import *
+
 from mesh import faces, geometry
+from mesh.weights import weights
 
 from time import time
 
 from util import mp
 from misc.numpy_ import mparray
+
+from solvers.arap import ARAPVertexSolver
 
 # DEFAULT_SOLVER_OPTIONS 
 DEFAULT_SOLVER_OPTIONS = dict(maxIterations=100, 
@@ -404,6 +409,14 @@ class CoreRecoverySolver(object):
                 Xi[l, :] = x
 
         return Xi
+
+    def get_arap_solver(self):
+        if not hasattr(self, '_adjW'):
+            self._adjW = weights(self._s.V, faces.faces_to_cell_array(self.T),
+                                 weights_type='uniform')
+           
+        adj, W = self._adjW
+        return ARAPVertexSolver(adj, W, self._s.V.copy())
 
     def solve_instance_callback(self, i, r=None):
         if r is None:
