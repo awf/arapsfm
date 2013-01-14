@@ -512,14 +512,32 @@ class MainWindow(QMainWindow):
            
         lambdas = get_array(self.lambdas_line_edit)
         if lambdas.shape[0] != self.required_lambdas:
-            print 'lambdas.shape[0] != %d' % self.required_lambdas
-            return False
+            err_string = 'lambdas.shape[0] != %d' % self.required_lambdas
+            ret = QMessageBox.question(self, err_string, 
+                                       '%s: Accept?' % err_string, 
+                                       QMessageBox.Yes | QMessageBox.No,
+                                       QMessageBox.No)
+
+            if ret != QMessageBox.Yes:
+                return False
+
+            self.required_lambdas = lambdas.shape[0]
+
         self.solver.lambdas = lambdas
 
         preconditioners = get_array(self.preconditioners_line_edit)
         if preconditioners.shape[0] != self.required_preconditioners:
-            print 'preconditioners.shape[0] != %d' % self.required_preconditioners
-            return False
+            err_string = 'preconditioners.shape[0] != %d' % self.required_preconditioners
+            ret = QMessageBox.question(self, err_string, 
+                                       '%s: Accept?' % err_string, 
+                                       QMessageBox.Yes | QMessageBox.No,
+                                       QMessageBox.No)
+
+            if ret != QMessageBox.Yes:
+                return False
+
+            self.required_preconditioners = preconditioners.shape[0]
+
         self.solver.preconditioners = preconditioners
 
         self.solver._setup_lambdas()
@@ -692,6 +710,11 @@ class MainWindow(QMainWindow):
     def load_solver(self, path):
         self.solver_path = path
         self.solver = load(path)
+
+        print 'initial_Xgb:', self.solver.initial_Xgb
+        print 'Xgb:', self.solver._s.Xgb
+        print 'initial_Xb:', self.solver.initial_Xb
+        print 'Xb:', self.solver._s.Xb
 
         max_index = len(self.solver.frames) - 1
         n = int(np.floor(np.log10(max_index) + 1))
