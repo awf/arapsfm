@@ -255,6 +255,8 @@ class StandaloneVisualisation(object):
                     Xbi.append(Xb[next(iter_ki)])
                     yi.append(y[next(iter_ki)])
 
+                # FIXME Potential wrong order and will need to check when
+                # multiple local basis rotations
                 Xi[i, :] = reduce(add, map(mul, yi, Xbi))
                     
         # setup `solve_V`
