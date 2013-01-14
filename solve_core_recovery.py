@@ -7,6 +7,7 @@ from time import time
 from misc import pickle_
 from functools import partial
 import multiprocessing as mp
+from pprint import pprint
 
 # Constants
 FINAL_SOLVER_OPTIONS = dict(maxIterations=100, 
@@ -34,6 +35,9 @@ def parse_args():
                         default=False,
                         action='store_true')
     parser.add_argument('--solve_silhouette_after', type=int, default=-1)
+    parser.add_argument('--fixed_Xgb',
+                        default=False,
+                        action='store_true')
 
     args = parser.parse_args()
 
@@ -112,6 +116,7 @@ def save_solver(working, iteration, solver, verbose=True):
 # main
 def main():
     args = parse_args()
+    pprint(args.__dict__)
 
     solver = pickle_.load(args.solver)
 
@@ -185,7 +190,7 @@ def main():
             callback, core_states = solver.solve_core_callback()
 
             print '[# %d] Core:' % l
-            t = solver.solve_core(callback=callback)
+            t = solver.solve_core(fixed_Xgb=args.fixed_Xgb, callback=callback)
 
             # print '[# %d] Core: %.3fs' % (l, t)
             solver.solver_options['verbosenessLevel'] = 1
