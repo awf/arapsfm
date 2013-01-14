@@ -38,18 +38,25 @@ def parse_args():
     parser.add_argument('--fixed_Xgb',
                         default=False,
                         action='store_true')
+    parser.add_argument('--initial_Xgb', type=str, default='None')
+    parser.add_argument('--initial_Xb', type=str, default='None')
 
     args = parser.parse_args()
 
     for key in ['outer_loops', 
                 'solver_options',
+                'initial_Xgb',
+                'initial_Xb',
                 'lambdas',
                 'preconditioners']:
         setattr(args, key, eval(getattr(args, key)))
 
     for key, dtype in [
         ('lambdas', np.float64),
-        ('preconditioners', np.float64)]:
+        ('preconditioners', np.float64),
+        ('initial_Xgb', np.float64),
+        ('initial_Xb', np.float64)]:
+
         a = getattr(args, key)
         if a is not None:
             setattr(args, key, np.asarray(a, dtype=dtype))
@@ -120,22 +127,22 @@ def main():
 
     solver = pickle_.load(args.solver)
 
-    to_swap = dict(solver_options=args.solver_options,
-                   max_restarts=args.max_restarts,
-                   lambdas=args.lambdas,
-                   preconditioners=args.preconditioners)
+    new_settings = dict(solver_options=args.solver_options,
+                         max_restarts=args.max_restarts,
+                         lambdas=args.lambdas,
+                         preconditioners=args.preconditioners)
                   
-    def swap_solver_options():
-        for key, arr in to_swap.iteritems():
-            if arr is None:
-                continue
+    for key, arr in new_settings.iteritems():
+        if arr is None:
+            continue
 
-            to_swap[key] = getattr(solver, key)
-            setattr(solver, key, arr)
+        setattr(solver, key, arr)
 
-        solver._setup_lambdas()
-
-    swap_solver_options()
+    solver._setup_lambdas()
+    if args.initial_Xgb is not None:
+        solver._setup_global_rotations(kg=solver.kg, initial_Xgb=args.initial_Xgb)
+    if args.initial_Xb is not None:
+        solver._setup_rotations(ki=solver.ki, initial_Xb=args.initial_Xb)
 
     save_solver_states = partial(save_states, args.working, verbose=True)
     save_intermediate_solver = partial(save_solver, args.working, verbose=True)
@@ -222,9 +229,6 @@ def main():
             save_intermediate_solver(l, solver)
 
     print 'Complete time taken: %.3fs' % overall_time()
-
-    # NOTE don't restore original lambdas, as they were probably incorrect ...
-    # swap_solver_options()
 
     head, tail = os.path.split(args.solver)
     root, ext = os.path.splitext(tail)
