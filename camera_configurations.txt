@@ -1,0 +1,35 @@
+python \
+visualise/visualise_standalone.py \
+--ren_win_size 960,540 \
+--compute_normals \
+--no_colour_silhouette \
+-c SetResetCamera=False, \
+-c SetParallelProjection=1, \
+-c model:SetRepresentation=3, \
+\
+-c silhouette_projection:SetVisibility=False, \
+-c projection_constraints:SetVisibility=False, \
+-c SetPosition=959.5,539.5,800., \
+-c SetFocalPoint=959.5,539.5,0.0, \
+-c SetParallelScale=539.5, \
+-c Azimuth=0 \
+\
+-c SetFocalPoint=959.5,539.5,400., \
+-c SetPosition=1920.,559.5,400., \
+-c SetClippingRange=0.1,10000., \
+-c SetParallelScale=580. \
+\
+-c SetFocalPoint=830.,600.,170., \
+-c SetPosition=45.,840.,675., \
+-c SetParallelScale=750. \
+output/Interactive_Core_Recovery/Impala_0C_-1/17.dat \
+--output data/video_output/impala/Impala_0C_-1_17 \
+--subdivide 1 
+
+python \
+visualise/avi_visualisation.py \
+output/Interactive_Core_Recovery/Seabass_7_112-225_10,1,1e-05,0.5,2,1e-03,0,0,0,0,64,64,0.5/7.dat \
+data/video_output/Seabass_7_112-225_10,1,1e-05,0.5,2,1e-03,0,0,0,0,64,64,0.5_7/ \
+visualise/visualise_standalone.py \
+--vis_args " --subdivide 1 --compute_normals --no_colour_silhouette --ren_win_size 720,576 -c model:SetRepresentation=3, -c silhouette_projection:SetVisibility=False, -c projection_constraints:SetVisibility=False, -c SetResetCamera=False, -c SetParallelProjection=True, -c SetPosition=359.5,287.5,1000., -c SetFocalPoint=359.5,287.5,0., -c SetParallelScale=287.5, -c Azimuth=0" \
+--fps 25
