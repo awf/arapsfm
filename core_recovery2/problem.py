@@ -166,7 +166,8 @@ class CoreRecoverySolver(object):
                                   self.lambdas[5],    # rigid-arap to template 
                                   self.lambdas[9],    # global scale velocity penalty
                                   self.lambdas[10],   # global rotations velocity penalty
-                                  self.lambdas[11]]   # frame-to-frame velocity penalty
+                                  self.lambdas[11],   # frame-to-frame velocity penalty
+                                  self.lambdas[13]]   # rigid-arap rotations penalty
 
         self.core_preconditioners = np.r_[self.preconditioners[0], # V
                                           self.preconditioners[1], # X/Xg
@@ -414,6 +415,8 @@ class CoreRecoverySolver(object):
                 fixed_Xgb,
                 callback=callback,
                 **self.solver_options)
+
+            print status[1]
 
             if status[0] not in (0, 4):
                 break
