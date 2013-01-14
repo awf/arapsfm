@@ -381,7 +381,30 @@ class CoreRecoverySolver(object):
                 ret[key] = value.copy()
 
         return ret
-                
+
+    def get_instance_rotations(self, i):
+        Xi = np.zeros_like(self.V0)
+
+        for l in xrange(Xi.shape[0]):
+            m = self.ki_info.lookup[l]
+            n = self.ki[m]
+
+            if n == 0:
+                continue
+            elif n < 0:
+                Xi[l, :] = self._s.X[i][self.ki[m + 1]]
+                continue
+            else:
+                x = np.r_[0., 0., 0.]
+                for j in xrange(n):
+                    x = axAdd(self._s.Xb[self.ki[m + 1 + 2*j]] *
+                              self._s.y[i][self.ki[m + 1 + 2*j + 1]],
+                              x)
+
+                Xi[l, :] = x
+
+        return Xi
+
     def solve_instance_callback(self, i, r=None):
         if r is None:
             r = dict(has_states=True, states=[])
