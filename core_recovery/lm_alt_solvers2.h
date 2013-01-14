@@ -430,6 +430,9 @@ int solve_core(PyArrayObject * npy_T,
 
         problem.AddEnergy(new RigidTransformArapEnergy(*node_V0, *node_s0,
             *node_Xg0, *node_X0, *node_V, mesh, sqrt(lambdas[4]), true, true));
+
+        problem.AddEnergy(new RotationRegulariseEnergy(*node_Xg0, sqrt(V0.num_rows() * lambdas[8])));
+        problem.AddEnergy(new RotationRegulariseEnergy(*node_X0, sqrt(lambdas[8])));
     }
 
     if (callback != Py_None)

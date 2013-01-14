@@ -142,7 +142,7 @@ def solve_core(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
                bint fixedXgb,
                **kwargs):
 
-    assert lambdas.shape[0] == 8
+    assert lambdas.shape[0] == 9
     assert preconditioners.shape[0] == 4
 
     callback = kwargs.pop('callback', None)
