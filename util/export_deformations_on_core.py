@@ -32,7 +32,8 @@ def main():
         Vi = solve_arap(Ri)
         s = np.array([[1.0]], dtype=np.float64)
         Xg = np.array([[0.0, 0.0, 0.0]], dtype=np.float64)
-        states.append(dict(T=solver.T, V=Vi, X=Xi, s=s, Xg=Xg))
+        states.append(dict(T=solver.T, V=Vi, X=Xi, s=s, Xg=Xg,
+                           image=solver.frames[i]))
 
         print '%d ' % i,
         sys.stdout.flush()
