@@ -569,7 +569,7 @@ public:
         {
             for (int n=0; n < _k[m]; n++)
             {
-                IF_PARAM_ON_CONDITION(!_fixedXgb)
+                IF_PARAM_ON_CONDITION(!_fixedXb)
                 {
                     // Xb
 
