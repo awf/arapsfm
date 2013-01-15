@@ -237,6 +237,13 @@ setup(
                   include_dirs=include_dirs + [SSLM_ROOT],
                   extra_compile_args=['-std=c++11', '-Wfatal-errors', '-O0'],
                   language='c++'),
+
+        Extension('linear_basis_shapes.test_linear_basis_shape', 
+                  ['linear_basis_shapes/test_linear_basis_shape.pyx',
+                   'cpp/Solve/node.cpp'],
+                  include_dirs=include_dirs + [SSLM_ROOT],
+                  extra_compile_args=['-std=c++11', '-Wfatal-errors', '-O0'],
+                  language='c++'),
         ],
 
     cmdclass = {'build_ext' : build_ext},
