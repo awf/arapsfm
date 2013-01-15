@@ -228,20 +228,23 @@ public:
             return;
         }
 
-        if (__V.GetCoefficientParam(whichParam) >= 0)
+        for (int j = 0; j < __V.D(); j++)
         {
-            fillMatrix(J, 0.);
-
-            Matrix<double> Jt(2, 3);
-            Matrix<double> Jy(3, 1);
-
-            for (int i = 0; i < all_Jr.size(); i++)
+            if (__V.GetCoefficientParam(whichParam) >= 0)
             {
-                __V.CoefficientJacobian(whichParam++, narrowBand[i], Jy);
-                multiply_A_B(all_Jr[i], Jy, Jt);
-                addMatricesIP(Jt, J);
+                fillMatrix(J, 0.);
+
+                Matrix<double> Jt(2, 1);
+                Matrix<double> Jy(3, 1);
+
+                for (int i = 0; i < all_Jr.size(); i++)
+                {
+                    __V.CoefficientJacobian(whichParam, narrowBand[i], Jy);
+                    multiply_A_B(all_Jr[i], Jy, Jt);
+                    addMatricesIP(Jt, J);
+                }
+                return;
             }
-            return;
         }
 
         assert(false);
@@ -426,20 +429,23 @@ public:
             return;
         }
 
-        if (__V.GetCoefficientParam(whichParam) >= 0)
+        for (int j = 0; j < __V.D(); j++)
         {
-            fillMatrix(J, 0.);
-
-            Matrix<double> Jt(3, 3);
-            Matrix<double> Jy(3, 1);
-
-            for (int i = 0; i < all_Jr.size(); i++)
+            if (__V.GetCoefficientParam(whichParam) >= 0)
             {
-                __V.CoefficientJacobian(whichParam++, narrowBand[i], Jy);
-                multiply_A_B(all_Jr[i], Jy, Jt);
-                addMatricesIP(Jt, J);
+                fillMatrix(J, 0.);
+
+                Matrix<double> Jt(3, 1);
+                Matrix<double> Jy(3, 1);
+
+                for (int i = 0; i < all_Jr.size(); i++)
+                {
+                    __V.CoefficientJacobian(whichParam, narrowBand[i], Jy);
+                    multiply_A_B(all_Jr[i], Jy, Jt);
+                    addMatricesIP(Jt, J);
+                }
+                return;
             }
-            return;
         }
 
         assert(false);
