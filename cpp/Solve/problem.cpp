@@ -36,6 +36,11 @@ void Problem::AddFixedNode(Node * node)
     _fixedNodes.push_back(node);
 }
 
+void Problem::AddCompositeNode(Node * node)
+{
+    _compositeNodes.push_back(node);
+}
+
 void Problem::AddEnergy(Energy * energy)
 {
     if (energy->GetWeight() <= 0.)
@@ -80,6 +85,9 @@ bool Problem::BeginIteration(const int currentIteration, bool computeDerivatives
     for (auto energy = _allEnergies.begin(); energy != _allEnergies.end(); energy++)
         if (!(*energy)->CanBeginIteration()) 
             return false;
+
+    for (auto node = _compositeNodes.begin(); node != _compositeNodes.end(); ++node)
+        (*node)->Prepare();
 
     if (_pyCallback != nullptr)
     {
@@ -145,6 +153,10 @@ void Problem::UpdateParameter(const int paramType, const VectorArrayAdapter<doub
 
         node->Update(deltaSlice);
     }
+
+    for (auto node = _compositeNodes.begin(); node != _compositeNodes.end(); ++node)
+        (*node)->Prepare();
+
 }
 
 void Problem::Save()
@@ -159,6 +171,9 @@ void Problem::Restore()
     for (auto i = _allNodes.begin(); i != _allNodes.end(); i++)
         for (auto j = i->second.begin(); j != i->second.end(); j++)
             (*j)->Restore();
+
+    for (auto node = _compositeNodes.begin(); node != _compositeNodes.end(); ++node)
+        (*node)->Prepare();
 }
 
 double Problem::GetParameterLength() const
@@ -207,5 +222,8 @@ Problem::~Problem()
 
     for (int i = 0; i < _storedJte.size(); i++)
         delete _storedJte[i];
+
+    for (int i = 0; i < _compositeNodes.size(); i++)
+        delete _compositeNodes[i];
 }
 

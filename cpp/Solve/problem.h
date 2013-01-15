@@ -19,6 +19,7 @@ public:
     Problem();
     virtual void AddNode(Node * node, bool isFixed=false);
     virtual void AddFixedNode(Node * node);
+    virtual void AddCompositeNode(Node * node);
     virtual void AddEnergy(Energy * energy);
 
     virtual void InitialiseParamDesc();
@@ -58,6 +59,8 @@ protected:
     vector<NLSQ_CostFunction *> _costFunctions;
 
     PyObject * _pyCallback;
+
+    vector<Node *> _compositeNodes;
 };
 
 
