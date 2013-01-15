@@ -1,4 +1,4 @@
-# visualise_linear_basis_deformations.py
+# visualise_dual_linear_basis_deformations.py
 
 # Imports
 import os, argparse
@@ -215,6 +215,8 @@ class MainWindow(QMainWindow):
         self.V0 = V0
         self.Vb = Vb
         self.L = L
+        
+        self.instance_slider.setMaximum(len(self.L) - 1)
 
         k = Vb.shape[0]
         min_, max_ = np.amin(L, axis=0), np.amax(L, axis=0)
