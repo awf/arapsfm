@@ -394,6 +394,10 @@ class MainWindow(QMainWindow):
         self.enable_silhouette = QCheckBox('&Enable Silhouette')
         control_layout.addWidget(self.enable_silhouette)
 
+        self.show_silhouette = QCheckBox('Show Silhouette')
+        control_layout.addWidget(self.show_silhouette)
+        self.show_silhouette.clicked.connect(self._show_silhouette)
+
         self.fixed_scale = QCheckBox('Fixed Scale')
         self.fixed_scale.setChecked(True)
         control_layout.addWidget(self.fixed_scale)
@@ -503,6 +507,11 @@ class MainWindow(QMainWindow):
         self.mesh_view.set_silhouette_constraints(self.solver.S[i])
         self.mesh_view.set_silhouette_preimage(self.solver._s.L[i], self.solver._s.U[i], update=False)
         self.mesh_view.set_initial_geometry(self.solver._s.V1[i], update=True)
+        self.mesh_view.refresh()
+
+    def _show_silhouette(self):
+        is_visible = self.show_silhouette.isChecked()
+        self.mesh_view._actors.silhouette.SetVisibility(is_visible)
         self.mesh_view.refresh()
 
     def _update_lambdas(self):
