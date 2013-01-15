@@ -3,7 +3,8 @@
 # Imports
 import os, argparse
 import numpy as np
-from linear_basis_shapes.lbs_lm_solvers import solve_single_silhouette
+from linear_basis_shapes.lbs_lm_solvers import solve_single_silhouette, \
+                                               solve_multiple
 
 from operator import mul, add
 from geometry import axis_angle, quaternion
@@ -11,6 +12,8 @@ from mesh import faces, geometry
 
 from visualise.visualise import *
 from pprint import pprint
+
+from misc.pickle_ import dump, load
 
 # Constants
 FINAL_SOLVER_OPTIONS = dict(maxIterations=100, 
@@ -29,6 +32,7 @@ def parse_args():
     parser.add_argument('--max_restarts', type=int, default=10)
     parser.add_argument('--narrowband', type=int, default=2)
     parser.add_argument('--solver_options', type=str, default='{}')
+    parser.add_argument('--output', type=str)
     args = parser.parse_args()
 
     for key in ['lambdas',
@@ -49,20 +53,24 @@ def parse_args():
 
     return args
 
-# main
-def main():
+# main_solve_single_silhouette
+def main_solve_single_silhouette():
     args = parse_args()
+    pprint(args.__dict__)
 
     arap_solver = np.load(args.solver)
 
     T = arap_solver.T
-    Vb = [arap_solver._s.V1[args.i].copy()]
+    V = arap_solver._s.V1[args.i]
+    Vb = [V.copy(),
+          np.zeros_like(V)]
 
     s = np.r_[1.].reshape(-1,1)
     xg = np.r_[0., 0., 0.].reshape(-1,3)
     vd = np.r_[0., 0., 0.].reshape(-1,3)
 
-    y = np.array(tuple(), dtype=np.float64).reshape(0,1)
+    # y = np.array(tuple(), dtype=np.float64).reshape(0,1)
+    y = np.r_[1.0].reshape(-1,1)
 
     C = arap_solver.C[args.i]
     P = arap_solver.P[args.i]
@@ -81,9 +89,17 @@ def main():
             **args.solver_options)
         print status[1]
 
+        print 'y:'
+        print y
+
         if status[0] not in (0, 4):
             break
 
+    if args.output is not None:
+        print '-> %s' % args.output
+        dump(args.output, dict(Vb=Vb, y=y, T=T))
+        return
+        
     V = Vb[0]
     if y.size > 0:
         V = V + reduce(add, map(mul, y, Vb[1:]))
@@ -93,9 +109,8 @@ def main():
     Rt = np.transpose(R)
     V = s[0][0] * np.dot(V, Rt) + vd[0]
 
-
     vis = VisualiseMesh()
-    vis.add_mesh(V, T) # Vb[0], T)
+    vis.add_mesh(V, T)
     vis.add_image(arap_solver.frames[args.i])
 
     Q = geometry.path2pos(V, T, L, U)
@@ -105,5 +120,53 @@ def main():
     vis.camera_actions(('SetParallelProjection', (True,)))
     vis.execute()
 
+# main_solve_multiple
+def main_solve_multiple():
+    args = parse_args()
+    pprint(args.__dict__)
+
+    arap_solver = np.load(args.solver)
+
+    N = len(arap_solver.frames)
+    T = arap_solver.T
+    V = arap_solver._s.V1[args.i]
+
+    Vb = [V.copy(), np.zeros_like(V)]
+
+    s = map(lambda i: np.r_[1.].reshape(-1,1), xrange(N))
+    xg = map(lambda i: np.r_[0., 0., 0.].reshape(-1,3), xrange(N))
+    vd = map(lambda i: np.r_[0., 0., 0.].reshape(-1,3), xrange(N))
+    y = map(lambda i: np.r_[1.0].reshape(-1,1), xrange(N))
+
+    U = map(lambda i: arap_solver._s.U[i].copy(), xrange(N))
+    L = map(lambda i: arap_solver._s.L[i].copy(), xrange(N))
+
+    C = arap_solver.C
+    P = arap_solver.P
+    S = arap_solver.S
+    SN = arap_solver.SN
+
+    for i in xrange(args.max_restarts):
+        status = solve_multiple(
+            T, Vb, s, xg, vd, y, U, L, 
+            C, P, S, SN, args.lambdas, args.preconditioners,
+            args.narrowband,
+            debug=False,
+            **args.solver_options)
+        print status[1]
+
+        print 'y:'
+        pprint(y)
+
+        if status[0] not in (0, 4):
+            break
+
+    if args.output is not None:
+        print '-> %s' % args.output
+        dump(args.output, dict(Vb=Vb, y=y, T=T))
+        return
+
 if __name__ == '__main__':
-    main()
+    # main_solve_single_silhouette()
+    main_solve_multiple()
+
