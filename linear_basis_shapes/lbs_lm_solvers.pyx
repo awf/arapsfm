@@ -54,6 +54,25 @@ cdef extern from "lbs_lm_solvers.h":
         bint debug,
         OptimiserOptions * options)
 
+    int solve_multiple_c 'solve_multiple' (
+        np.ndarray npy_T,
+        list list_Vb,
+        list list_s,
+        list list_Xg,
+        list list_Vd,
+        list list_y,
+        list list_U,
+        list list_L,
+        list list_C,
+        list list_P,
+        list list_S,
+        list list_SN,
+        np.ndarray npy_lambdas,
+        np.ndarray npy_preconditioners,
+        np.int32_t narrowBand,
+        bint debug,
+        OptimiserOptions * options)
+
 # additional_optimiser_options
 DEFAULT_OPTIMISER_OPTIONS = {
     'maxIterations' : 50,
@@ -156,6 +175,45 @@ def solve_single_silhouette(np.ndarray[np.int32_t, ndim=2] npy_T,
         npy_T, list_Vb, npy_s, npy_Xg, npy_Vd, npy_y, npy_U, npy_L, 
         npy_C, npy_P, npy_S, npy_SN, npy_lambdas, 
         npy_preconditioners, narrowBand, debug, &options)
+
+    return status, STATUS_CODES[status]
+
+# solve_multiple
+def solve_multiple (np.ndarray npy_T,
+                    list list_Vb,
+                    list list_s,
+                    list list_Xg,
+                    list list_Vd,
+                    list list_y,
+                    list list_U,
+                    list list_L,
+                    list list_C,
+                    list list_P,
+                    list list_S,
+                    list list_SN,
+                    np.ndarray npy_lambdas,
+                    np.ndarray npy_preconditioners,
+                    np.int32_t narrowBand,
+                    **kwargs):
+
+    cdef bint debug = kwargs.pop('debug', False)
+
+    cdef OptimiserOptions options
+    additional_optimiser_options(&options, kwargs)
+
+    if npy_lambdas.shape[0] != 5:
+        raise ValueError('npy_lambdas.shape[0] != 5')
+
+    if npy_preconditioners.shape[0] != 5:
+        raise ValueError('npy_preconditioners.shape[0] != 5')
+
+
+    cdef int status = solve_multiple_c(npy_T, 
+        list_Vb, list_s, list_Xg, list_Vd, list_y, 
+        list_U, list_L, 
+        list_C, list_P, 
+        list_S, list_SN, 
+        npy_lambdas, npy_preconditioners, narrowBand, debug, &options)
 
     return status, STATUS_CODES[status]
 

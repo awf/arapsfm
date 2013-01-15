@@ -207,4 +207,170 @@ int solve_single_silhouette(PyArrayObject * npy_T,
     return ret;
 }
 
+// solve_multiple
+int solve_multiple(PyArrayObject * npy_T,
+                   PyObject * list_Vb,
+                   PyObject * list_s,
+                   PyObject * list_Xg,
+                   PyObject * list_Vd,
+                   PyObject * list_y,
+                   PyObject * list_U,
+                   PyObject * list_L,
+                   PyObject * list_C,
+                   PyObject * list_P,
+                   PyObject * list_S,
+                   PyObject * list_SN,
+                   PyArrayObject * npy_lambdas,
+                   PyArrayObject * npy_preconditioners,
+                   int narrowBand,
+                   bool debug,
+                   const OptimiserOptions * options)
+{
+    if (debug)
+        asm("int $0x3");
+
+    PYARRAY_AS_VECTOR(double, npy_preconditioners, preconditioners);
+
+    PYARRAY_AS_MATRIX(int, npy_T, T);
+    auto Vb = make_vectorOfMatrix<double>(list_Vb);
+    auto s = make_vectorOfMatrix<double>(list_s);
+    auto Xg = make_vectorOfMatrix<double>(list_Xg);
+    auto Vd = make_vectorOfMatrix<double>(list_Vd);
+    auto y = make_vectorOfMatrix<double>(list_y);
+
+    auto U = make_vectorOfMatrix<double>(list_U);
+    auto L = make_vectorOfVector<int>(list_L);
+
+    assert(s.size() == Xg.size());
+    assert(Vd.size() == Xg.size());
+    assert(Vd.size() == y.size());
+    assert(U.size() == y.size());
+    assert(U.size() == L.size());
+
+    Mesh mesh(Vb[0].num_rows(), T);
+
+    Problem problem;
+
+    vector<VertexNode *> nodes_Vb;
+    for (int i = 0; i < Vb.size(); i++)
+    {
+        nodes_Vb.push_back(new VertexNode(Vb[i]));
+        problem.AddNode(nodes_Vb.back());
+
+        nodes_Vb.back()->SetPreconditioner(preconditioners[0]);
+    }
+
+    vector<ScaleNode *> nodes_s;
+    for (int i = 0; i < s.size(); i++)
+    {
+        nodes_s.push_back(new ScaleNode(s[i]));
+        problem.AddNode(nodes_s.back());
+
+        nodes_s.back()->SetPreconditioner(preconditioners[2]);
+    }
+
+    vector<RotationNode *> nodes_Xg;
+    for (int i = 0; i < Xg.size(); i++)
+    {
+        nodes_Xg.push_back(new RotationNode(Xg[i]));
+        problem.AddNode(nodes_Xg.back());
+
+        nodes_Xg.back()->SetPreconditioner(preconditioners[1]);
+    }
+
+    vector<VertexNode *> nodes_Vd;
+    for (int i = 0; i < Vd.size(); i++)
+    {
+        nodes_Vd.push_back(new VertexNode(Vd[i]));
+        problem.AddNode(nodes_Vd.back());
+
+        nodes_Vd.back()->SetPreconditioner(preconditioners[0]);
+    }
+
+    vector<CoefficientsNode *> nodes_y;
+    for (int i = 0; i < y.size(); i++)
+    {
+        nodes_y.push_back(new CoefficientsNode(y[i]));
+        problem.AddNode(nodes_y.back());
+
+        nodes_y.back()->SetPreconditioner(preconditioners[4]);
+    }
+
+    vector<Matrix<double> * > V_;
+    vector<LinearBasisShapeNode *> nodes_V;
+    for (int i = 0; i < y.size(); i++)
+    {
+        V_.push_back(new Matrix<double>(Vb[0].num_rows(), Vb[0].num_cols()));
+        nodes_V.push_back(new LinearBasisShapeNode(*V_.back(), 
+                                                   nodes_Vb, 
+                                                   *nodes_y[i], 
+                                                   *nodes_s[i], 
+                                                   *nodes_Xg[i], 
+                                                   *nodes_Vd[i]));
+        problem.AddCompositeNode(nodes_V.back());
+    }
+
+    vector<MeshWalker *> meshWalkers;
+    vector<BarycentricNode *> nodes_U;
+
+    for (int i = 0; i < U.size(); i++)
+    {
+        meshWalkers.push_back(new MeshWalker(mesh, *V_[i]));
+        nodes_U.push_back(new BarycentricNode(U[i], L[i], *meshWalkers.back()));
+        problem.AddNode(nodes_U.back());
+
+        nodes_U.back()->SetPreconditioner(preconditioners[3]);
+    }
+
+    PYARRAY_AS_VECTOR(double, npy_lambdas, lambdas);
+
+    auto C = make_vectorOfVector<int>(list_C);
+    auto P = make_vectorOfMatrix<double>(list_P);
+
+    for (int i = 0; i < C.size(); i++)
+    {
+        problem.AddEnergy(new LinearBasisShapeProjectionEnergy(*nodes_V[i], C[i], P[i], 
+                          sqrt(lambdas[0])));
+    }
+
+    auto S = make_vectorOfMatrix<double>(list_S);
+
+    for (int i = 0; i < S.size(); i++)
+    {
+        problem.AddEnergy(new LinearBasisShapeSilhouetteProjectionEnergy(*nodes_V[i], *nodes_U[i],
+            S[i], mesh, sqrt(lambdas[1]), narrowBand));
+    }
+
+    auto SN = make_vectorOfMatrix<double>(list_SN);
+
+    for (int i = 0; i < SN.size(); i++)
+    {
+        problem.AddEnergy(new LinearBasisShapeSilhouetteNormalEnergy2(*nodes_V[i], *nodes_U[i],
+            SN[i], mesh, sqrt(lambdas[2]), narrowBand));
+    }
+
+    vector<const ScaleNode *> const_nodes_s;
+    for (int i = 0; i < nodes_s.size(); i++)
+        const_nodes_s.push_back(nodes_s[i]);
+
+    for (int i = 0; i < nodes_Vb.size(); i++)
+    {
+        problem.AddEnergy(new LaplacianEnergy(*nodes_Vb[i], 
+            vector<const ScaleNode *>(const_nodes_s),
+            mesh, sqrt(lambdas[3])));
+    }
+
+    if (nodes_Vb.size() > 1)
+    {
+        for (int i = 0; i < nodes_y.size(); i++)
+            problem.AddEnergy(new LinearBasisShapeCoefficientEnergy(*nodes_y[i], sqrt(lambdas[4])));
+    }
+
+    int ret = problem.Minimise(*options);
+
+    dealloc_vector(meshWalkers);
+    dealloc_vector(V_);
+
+    return ret;
+}
 #endif
