@@ -29,16 +29,29 @@ class QuickMeshView(QVTKWidget):
         self._actors = Bunch()
         self._data = Bunch()
 
+        rens = []
         ren = vtk.vtkRenderer()
         ren.SetBackground(1., 1., 1.)
+        ren.SetViewport(0.0, 0.0, 0.5, 1.0)
+        rens.append(ren)
+
+        ren = vtk.vtkRenderer()
+        ren.SetBackground(1., 1., 1.)
+        ren.SetViewport(0.5, 0.0, 1.0, 1.0)
+        rens.append(ren)
+
+        camera = rens[0].GetActiveCamera()
+        rens[1].SetActiveCamera(camera)
 
         render_window = vtk.vtkRenderWindow()
-        render_window.AddRenderer(ren)
+        render_window.AddRenderer(rens[0])
+        render_window.AddRenderer(rens[1])
+
         self.SetRenderWindow(render_window)
 
         style = InteractorStyle()
         style.SetMagnification(2.)
-        style.SetCurrentRenderer(ren)
+        style.SetCurrentRenderer(rens[1])
 
         iren = self.GetInteractor()
         iren.SetInteractorStyle(style)
@@ -46,61 +59,64 @@ class QuickMeshView(QVTKWidget):
         _p = locals()
         del _p['self']
         self._p = Bunch(_p)
+        self._q = [Bunch(), Bunch()]
 
-        self._add_mesh()
-        self._add_image()
+        self._add_mesh(0)
+        self._add_mesh(1)
+        self._add_image(0)
+        self._add_image(1)
 
-    def _add_image(self):
+    def _add_image(self, i=0):
         reader = vtk.vtkPNGReader()
 
         image_actor = vtk.vtkImageActor()
         image_actor.GetMapper().SetInputConnection(reader.GetOutputPort())
         image_actor.VisibilityOff()
 
-        self._p.ren.AddActor(image_actor)
+        self._p.rens[i].AddActor(image_actor)
         self._actors.image = image_actor
         self._reader = reader
         
-    def _add_mesh(self):
-        self._p.loop = vtk.vtkLoopSubdivisionFilter()
+    def _add_mesh(self, i=0):
+        self._q[i].loop = vtk.vtkLoopSubdivisionFilter()
 
-        self._p.normals = vtk.vtkPolyDataNormals()
-        self._p.normals.SetInputConnection(self._p.loop.GetOutputPort())
-        self._p.normals.ComputeCellNormalsOn()
+        self._q[i].normals = vtk.vtkPolyDataNormals()
+        self._q[i].normals.SetInputConnection(self._q[i].loop.GetOutputPort())
+        self._q[i].normals.ComputeCellNormalsOn()
 
         mapper = vtk.vtkPolyDataMapper()
-        mapper.SetInputConnection(self._p.normals.GetOutputPort())
+        mapper.SetInputConnection(self._q[i].normals.GetOutputPort())
 
         actor = vtk.vtkActor()
         actor.SetMapper(mapper)
         actor.GetProperty().SetLighting(True)
         actor.GetProperty().SetColor(*int2dbl(179, 179, 179))
 
-        self._p.ren.AddActor(actor)
+        self._p.rens[i].AddActor(actor)
         self._actors.mesh = actor
 
     def set_image(self, filename):
         self._reader.SetFileName(filename)
         self._actors.image.VisibilityOn()
 
-    def set_mesh(self, T, V):
+    def set_mesh(self, i, T, V):
         self.T = T
         self.V = V
 
         cells = faces_to_vtkCellArray(T)
         self._data.mesh = numpy_to_vtkPolyData(V, cells)
 
-        self._p.loop.SetInput(self._data.mesh)
+        self._q[i].loop.SetInput(self._data.mesh)
         self._data.mesh.Modified()
 
     def refresh(self):
         self.GetRenderWindow().Render()
 
     def reset_camera(self):
-        camera = self._p.ren.GetActiveCamera()
+        camera = self._p.rens[0].GetActiveCamera()
         camera.SetParallelProjection(True)
         
-        self._p.ren.ResetCamera()
+        self._p.rens[0].ResetCamera()
 
     def sizeHint(self):
         return QSize(960, 540)
@@ -120,10 +136,16 @@ class MainWindow(QMainWindow):
         view_layout = QVBoxLayout()
         view_layout.addWidget(self.mesh_view)
 
+        self.instance_label = QLabel('')
+
         self.instance_slider = QSlider(Qt.Horizontal)
         self.instance_slider.setMinimum(0)
         self.instance_slider.setTracking(True)
         self.instance_slider.valueChanged.connect(self.set_instance)
+
+        instance_layout = QHBoxLayout()
+        instance_layout.addWidget(self.instance_label)
+        instance_layout.addWidget(self.instance_slider)
 
         self.basis_slider_layout = QHBoxLayout()
 
@@ -134,7 +156,7 @@ class MainWindow(QMainWindow):
         button_layout.addStretch(1)
 
         ctrl_layout = QVBoxLayout()
-        ctrl_layout.addWidget(self.instance_slider)
+        ctrl_layout.addLayout(instance_layout)
         ctrl_layout.addLayout(self.basis_slider_layout)
         ctrl_layout.addLayout(button_layout)
 
@@ -170,17 +192,24 @@ class MainWindow(QMainWindow):
         if i is None:
             i = self.instance_slider.value()
 
+        self.instance_label.setText(str(i))
+
         if set_basis_shapes:
             self._set_basis_states(self.L[i])
 
         V = self._get_shape()
+        self.mesh_view.set_mesh(1, self.T, V)
+        self.mesh_view.set_mesh(0, self.T, self.states[i]['V'])
 
-        self.mesh_view.set_mesh(self.T, V)
         if self.frames is not None:
-            self.mesh_view.set_image(self.frames[i])
+            self.mesh_view.set_image(0, self.frames[i])
+            self.mesh_view.set_image(1, self.frames[i])
 
         self.mesh_view.refresh()
         
+    def set_source_states(self, states):
+        self.states = states
+
     def set_shape_space(self, T, V0, Vb, L):
         self.T = T
         self.V0 = V0
@@ -234,7 +263,7 @@ def decompose_basis_shapes(states, k=None, explained_variance=0.95):
         cum_s2 /= cum_s2[-1]
 
         required_k = np.argwhere(cum_s2 >= explained_variance).ravel()
-        k = required_k[0]
+        k = required_k[0] + 1
 
     V0 = W0.reshape(-1, 3)
     Vb = Vt[:k].reshape(k, -1, 3)
@@ -266,6 +295,7 @@ def main():
     if args.show_frames:
         main_window.set_frames(frames)
 
+    main_window.set_source_states(states)
     main_window.set_shape_space(T, V0, Vb, L)
 
     main_window.show()
