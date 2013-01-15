@@ -266,7 +266,7 @@ def main():
         Vb = z['Vb']
         V0 = Vb[0]
         Vb = np.asarray(Vb[1:])
-        L = np.transpose(z['y'])
+        L = np.vstack(map(np.transpose, z['y']))
 
     global qapp
     qapp = QApplication([])
