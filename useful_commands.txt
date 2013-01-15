@@ -951,5 +951,62 @@ output/Interactive_Core_Recovery/Boxer_0F_70-265_10,1,1e-04,0.25,2,0.5,0,0,0,819
 Linear Basis Shapes w/ Laplacian Regularisation
 -----------------------------------------------
 
-python solve_linear_basis_shapes.py output/Interactive_Core_Recovery/Impala_1_Fixed_Hindquarters_85-87/-2.dat "(1.0,1.0,1.0)" --preconditioners "(1.0,1.0,1.0,100.0,1.0)"
+python \
+solve_linear_basis_shapes.py \
+output/Interactive_Core_Recovery/Impala_1_Fixed_Hindquarters_85-87/-2.dat \
+"(1.0,1.0,1.0)" \
+--preconditioners "(1.0,1.0,1.0,100.0,1.0)"
 
+
+==> Larger test
+python \
+start_core_recovery.py \
+data/models/Impala_1.npz \
+data/user_constraints/impala0/Impala_1_Updated_Knees_Fixed_Ears/85.npz \
+Impala0-Impala_1/Silhouette_Info/85.npz \
+data/arap_selections/Impala_1.npz \
+"[-1,0,-1,1,-1,2,-1,3,-1,4,-1,5,-1,6,-1,7,-1,8,-1,9]" \
+"[85,86,87,88,89,90,91,92,93,94]" \
+data/user_constraints/impala0/Impala_1_Updated_Knees_Fixed_Ears/%d.npz \
+data/silhouettes/impala0/shutterstock_v1981186_1_1_%05d.npz \
+"data/frames/impala0/shutterstock_v1981186_2_%05d.png" \
+"10,1,1e-05,0.5,2,1,0,0,0,8192,1024,0,0.5,8192" \
+"1.0,32.0,32.0,64.0,32.0" \
+--candidate_radius 100.0 \
+--initial_Xb "[[0.,0.,1.0],[0.,0.,1.0]]" \
+output/Interactive_Core_Recovery/Impala_1_85-94.dat
+
+start_core_recovery.py \
+data/models/Impala_1.npz \
+data/user_constraints/impala0/Impala_1_Updated_Knees_Fixed_Ears/85.npz \
+Impala0-Impala_1/Silhouette_Info/85.npz \
+data/arap_selections/Impala_1.npz \
+"[-1,0,-1,1,-1,2]" \
+"[85,86,87]" \
+data/user_constraints/impala0/Impala_1_Updated_Knees_Fixed_Ears/%d.npz \
+data/silhouettes/impala0/shutterstock_v1981186_1_1_%05d.npz \
+"data/frames/impala0/shutterstock_v1981186_2_%05d.png" \
+"10,1,1e-05,0.5,2,1,0,0,0,8192,1024,0,0.5,8192" \
+"1.0,32.0,32.0,64.0,32.0" \
+--candidate_radius 100.0 \
+--initial_Xb "[[0.,0.,1.0],[0.,0.,1.0]]" \
+output/Interactive_Core_Recovery/Impala_1_85-87.dat
+
+python \
+start_core_recovery.py \
+data/models/Impala_1.npz \
+data/user_constraints/impala0/Impala_1_Updated_Knees_Fixed_Ears/85.npz \
+Impala0-Impala_1/Silhouette_Info/85.npz \
+data/arap_selections/Impala_1.npz \
+"[-1,0,-1,1,-1,2,-1,3,-1,4]" \
+"[85,86,87,88,89]" \
+data/user_constraints/impala0/Impala_1_Updated_Knees_Fixed_Ears/%d.npz \
+data/silhouettes/impala0/shutterstock_v1981186_1_1_%05d.npz \
+"data/frames/impala0/shutterstock_v1981186_2_%05d.png" \
+"10,1,1e-05,0.5,2,1,0,0,0,8192,1024,0,0.5,8192" \
+"1.0,32.0,32.0,64.0,32.0" \
+--candidate_radius 100.0 \
+--initial_Xb "[[0.,0.,1.0],[0.,0.,1.0]]" \
+output/Interactive_Core_Recovery/Impala_1_85-89.dat
+
+python solve_linear_basis_shapes.py output/Interactive_Core_Recovery/Impala_1_85-89.dat "(1.0,1.0,1e-7,1e1,1e3)" --preconditioners "(1.0,1.0,64.0,128.0,32.0)" --output LBS_Test/out1.dat --output_dir LBS_Test/output2 --solver_options "dict(updateThreshold=1e-8, improvementThreshold=1e-7, maxIterations=50)" --max_restarts 5
