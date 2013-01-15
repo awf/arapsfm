@@ -263,7 +263,24 @@ public:
         const int narrowBand,
         const ResidualTransform * pResidualTransform = nullptr)
         : SilhouetteNormalEnergy2(V, U, SN, mesh, w, narrowBand, pResidualTransform), __V(V)
-    {}
+    {
+        __jacobianCache.resize(_SN.num_rows());
+    }
+
+    bool CanBeginIteration() const
+    {
+        if (SilhouetteNormalEnergy2::CanBeginIteration())
+        {
+            for (auto i = __jacobianCache.begin(); i != __jacobianCache.end(); i++)
+            {
+                const_cast< vector<Matrix<double>> *>(&(*i))->clear();
+            }
+
+            return true;
+        }
+
+        return false;
+    }
 
     void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
     {
@@ -346,13 +363,20 @@ public:
             }
         }
 
-        vector<Matrix<double>> all_Jr;
-        for (int i = 0; i < _allNarrowBands[k]->size(); i++)
+        if (__jacobianCache[k].size() == 0)
         {
-            Matrix<double> Jr(3, 3);
-            SilhouetteNormalEnergy2::EvaluateJacobian(k, i + 1, Jr);
-            all_Jr.push_back(move(Jr));
+            vector<Matrix<double>> * j = const_cast< vector<Matrix<double>> *>(&__jacobianCache[k]);
+
+            for (int i = 0; i < _allNarrowBands[k]->size(); i++)
+            {
+                Matrix<double> Jr(3, 3);
+                SilhouetteNormalEnergy2::EvaluateJacobian(k, i + 1, Jr);
+                j->push_back(move(Jr));
+            }
         }
+
+        const vector<Matrix<double>> & all_Jr = __jacobianCache[k];
+
 
         if (__V.GetScaleParam(whichParam) >= 0)
         {
@@ -423,6 +447,7 @@ public:
 
 protected:
     const LinearBasisShapeNode & __V;
+    vector<vector<Matrix<double>>> __jacobianCache;
 };
 
 #endif
