@@ -242,6 +242,8 @@ setup(
                   ['linear_basis_shapes/lbs_lm_solvers.pyx',
                    'cpp/Solve/problem.cpp',
                    'cpp/Solve/node.cpp',
+                   'cpp/Geometry/mesh_walker.cpp',
+                   'cpp/Energy/narrow_band_silhouette.cpp',
                   ] +
                   SSLM_BASE_SRC + 
                   SSLM_MATH_SRC,
@@ -249,8 +251,8 @@ setup(
                   library_dirs=[COLAMD_LIB],
                   libraries=['colamd'],
                   define_macros=REMOVE_EXCEPTION_MACROS + [('NO_HELPER', 1)],
-                  # extra_compile_args=['-std=c++11', '-Wfatal-errors'],
-                  extra_compile_args=['-std=c++11', '-Wfatal-errors', '-O0'],
+                  extra_compile_args=['-std=c++11', '-Wfatal-errors'],
+                  # extra_compile_args=['-std=c++11', '-Wfatal-errors', '-O0'],
                   language='c++'),
 
         Extension('linear_basis_shapes.test_linear_basis_shape', 
