@@ -226,5 +226,177 @@ protected:
     const LinearBasisShapeNode & __V;
 };
 
+// LinearBasisShapeSilhouetteNormalEnergy2
+class LinearBasisShapeSilhouetteNormalEnergy2 : public SilhouetteNormalEnergy2
+{
+public:
+    LinearBasisShapeSilhouetteNormalEnergy2(const LinearBasisShapeNode & V, 
+        const BarycentricNode & U, 
+        const Matrix<double> & SN, const Mesh & mesh, 
+        const double w, 
+        const int narrowBand,
+        const ResidualTransform * pResidualTransform = nullptr)
+        : SilhouetteNormalEnergy2(V, U, SN, mesh, w, narrowBand, pResidualTransform), __V(V)
+    {}
+
+    void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions)
+    {
+        // mapping from n -> [k0, k1, ...]
+        map<int, vector<int> *> narrowBandSizeToResidual;
+        LinearBasisShapeSilhouette_GetNarrowBands(_mesh, _U.GetFaceIndices(), _narrowBand, 
+                                                  &_allNarrowBands, &narrowBandSizeToResidual);
+        
+        // construct cost functions
+        for (auto i = narrowBandSizeToResidual.begin(); i != narrowBandSizeToResidual.end(); i++)
+        {
+            int n = i->first;
+
+            vector<int> * pUsedParamTypes = new vector<int>;
+            pUsedParamTypes->push_back(_U.GetParamId());
+
+            for (int j = 0; j < n; j++)
+                __V.AddVertexUsedParamTypes(pUsedParamTypes);
+
+            __V.AddGlobalUsedParamTypes(pUsedParamTypes);
+
+            costFunctions.push_back(new Energy_CostFunction(*this, pUsedParamTypes, 
+                _measurementDim, i->second, _pResidualTransform));
+        }
+    }
+
+    int GetCorrespondingParam(const int k, const int l) const
+    {
+        int whichParam = l;
+
+        if (whichParam == 0)
+            return k + _U.GetOffset();
+
+        whichParam -= 1;
+        int p;
+
+        for (int i = 0; i < _allNarrowBands[k]->size(); i++)
+        {
+            p = __V.GetVertexParam(whichParam, (*_allNarrowBands[k])[i]);
+            if (p >= 0) return p;
+        }
+
+        p = __V.GetScaleParam(whichParam);
+        if (p >= 0) return p;
+
+        p = __V.GetGlobalRotationParam(whichParam);
+        if (p >= 0) return p;
+
+        p = __V.GetDisplacmentParam(whichParam);
+        if (p >= 0) return p;
+
+        p = __V.GetCoefficientParam(whichParam);
+        if (p >= 0) return p;
+
+        assert(false);
+    }
+
+    void EvaluateJacobian(const int k, const int l, Matrix<double> & J) const
+    {
+        int whichParam = l;
+
+        if (whichParam == 0)
+            return SilhouetteNormalEnergy2::EvaluateJacobian(k, 0, J);
+
+        whichParam -= 1;
+
+        const vector<int> & narrowBand = *_allNarrowBands[k];
+
+        for (int i = 0; i < _allNarrowBands[k]->size(); i++)
+        {
+            if (__V.GetVertexParam(whichParam, narrowBand[i]) >= 0)
+            {
+                Matrix<double> Jr(3, 3);
+                SilhouetteNormalEnergy2::EvaluateJacobian(k, i + 1, Jr);
+
+                Matrix<double> JV(3, 3);
+                __V.VertexJacobian(whichParam, narrowBand[i], JV);
+                multiply_A_B(Jr, JV, J);
+                return;
+            }
+        }
+
+        vector<Matrix<double>> all_Jr;
+        for (int i = 0; i < _allNarrowBands[k]->size(); i++)
+        {
+            Matrix<double> Jr(3, 3);
+            SilhouetteNormalEnergy2::EvaluateJacobian(k, i + 1, Jr);
+            all_Jr.push_back(move(Jr));
+        }
+
+        if (__V.GetScaleParam(whichParam) >= 0)
+        {
+            fillMatrix(J, 0.);
+
+            Matrix<double> Jt(3, 1);
+            Matrix<double> Js(3, 1);
+
+            for (int i = 0; i < all_Jr.size(); i++)
+            {
+                __V.ScaleJacobian(narrowBand[i], Js);
+                multiply_A_B(all_Jr[i], Js, Jt);
+                addMatricesIP(Jt, J);
+            }
+            return;
+        }
+
+        if (__V.GetGlobalRotationParam(whichParam) >= 0)
+        {
+            fillMatrix(J, 0.);
+
+            Matrix<double> Jt(3, 3);
+            Matrix<double> JXg(3, 3);
+
+            for (int i = 0; i < all_Jr.size(); i++)
+            {
+                __V.GlobalRotationJacobian(narrowBand[i], JXg);
+                multiply_A_B(all_Jr[i], JXg, Jt);
+                addMatricesIP(Jt, J);
+            }
+            return;
+        }
+
+        if (__V.GetDisplacmentParam(whichParam) >= 0)
+        {
+            fillMatrix(J, 0.);
+
+            Matrix<double> Jt(3, 3);
+            Matrix<double> JVd(3, 3);
+
+            for (int i = 0; i < all_Jr.size(); i++)
+            {
+                __V.DisplacementJacobian(JVd);
+                multiply_A_B(all_Jr[i], JVd, Jt);
+                addMatricesIP(Jt, J);
+            }
+            return;
+        }
+
+        if (__V.GetCoefficientParam(whichParam) >= 0)
+        {
+            fillMatrix(J, 0.);
+
+            Matrix<double> Jt(3, 3);
+            Matrix<double> Jy(3, 1);
+
+            for (int i = 0; i < all_Jr.size(); i++)
+            {
+                __V.CoefficientJacobian(whichParam++, narrowBand[i], Jy);
+                multiply_A_B(all_Jr[i], Jy, Jt);
+                addMatricesIP(Jt, J);
+            }
+            return;
+        }
+
+        assert(false);
+    }
+
+protected:
+    const LinearBasisShapeNode & __V;
+};
 
 #endif
