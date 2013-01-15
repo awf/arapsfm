@@ -67,6 +67,7 @@ def main():
     C = arap_solver.C[args.i]
     P = arap_solver.P[args.i]
     S = arap_solver.S[args.i]
+    SN = arap_solver.SN[args.i]
 
     U = arap_solver._s.U[args.i].copy()
     L = arap_solver._s.L[args.i].copy()
@@ -74,7 +75,7 @@ def main():
     for i in xrange(args.max_restarts):
         status = solve_single_silhouette(
             T, Vb, s, xg, vd, y, U, L, 
-            C, P, S, args.lambdas, args.preconditioners,
+            C, P, S, SN, args.lambdas, args.preconditioners,
             args.narrowband,
             debug=False,
             **args.solver_options)
