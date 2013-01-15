@@ -14,6 +14,7 @@ from visualise.visualise import *
 from pprint import pprint
 
 from misc.pickle_ import dump, load
+from linear_basis_shapes.problem import BareLBSSolver
 
 # Constants
 FINAL_SOLVER_OPTIONS = dict(maxIterations=100, 
@@ -33,6 +34,7 @@ def parse_args():
     parser.add_argument('--narrowband', type=int, default=2)
     parser.add_argument('--solver_options', type=str, default='{}')
     parser.add_argument('--output', type=str)
+    parser.add_argument('--output_dir', type=str)
     args = parser.parse_args()
 
     for key in ['lambdas',
@@ -166,7 +168,50 @@ def main_solve_multiple():
         dump(args.output, dict(Vb=Vb, y=y, T=T))
         return
 
+# main
+def main():
+    args = parse_args()
+    pprint(args.__dict__)
+
+    arap_solver = np.load(args.solver)
+    lbs_solver = BareLBSSolver(
+        arap_solver.T,
+        arap_solver.V0.copy(),
+        arap_solver.S,
+        arap_solver.SN,
+        arap_solver.C,
+        arap_solver.P,
+        arap_solver.frames)
+
+    lbs_solver.setup(arap_solver._s.U,
+                     arap_solver._s.L,
+                     D=1)
+
+    states = []
+    for i in xrange(2):
+        status, _states, time_taken = lbs_solver(
+            args.lambdas, 
+            args.preconditioners,
+            args.max_restarts,
+            args.narrowband,
+            **args.solver_options)
+
+        print status
+        print 'Time taken: %.3fs' % time_taken
+
+        lbs_solver.add_basis()
+
+        states += _states
+
+    if args.output is not None:
+        print '-> %s' % args.output
+        dump(args.output, lbs_solver)
+    
+    if args.output_dir is not None:
+        lbs_solver.export_states(states, args.output_dir)
+
 if __name__ == '__main__':
     # main_solve_single_silhouette()
-    main_solve_multiple()
+    # main_solve_multiple()
+    main()
 
