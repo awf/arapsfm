@@ -100,7 +100,7 @@ public:
                 _V[i][j] += d[j];
     }
 
-    virtual void AddGlobalUsedParamTypes(vector<int> * pUsedParamTypes)
+    virtual void AddGlobalUsedParamTypes(vector<int> * pUsedParamTypes) const
     {
         pUsedParamTypes->push_back(_s.GetParamId());
         pUsedParamTypes->push_back(_Xg.GetParamId());
@@ -110,14 +110,14 @@ public:
             pUsedParamTypes->push_back(_y.GetParamId());
     }
 
-    virtual void AddVertexUsedParamTypes(vector<int> * pUsedParamTypes)
+    virtual void AddVertexUsedParamTypes(vector<int> * pUsedParamTypes) const
     {
         for (int i = 0; i < (_D + 1); i++)
             pUsedParamTypes->push_back(_Vb[i]->GetParamId());
     }
 
     // `Param` methods
-    virtual int GetVertexParam(int & whichParam, const int i)
+    virtual int GetVertexParam(int & whichParam, const int i) const
     {
         if (whichParam < (_D + 1))
             return _Vb[whichParam]->GetOffset() + i;
@@ -128,7 +128,7 @@ public:
         }
     }
 
-    virtual int GetScaleParam(int & whichParam)
+    virtual int GetScaleParam(int & whichParam) const
     {
         if (whichParam == 0)
         {
@@ -141,7 +141,7 @@ public:
         }
     }
 
-    virtual int GetGlobalRotationParam(int & whichParam)
+    virtual int GetGlobalRotationParam(int & whichParam) const
     {
         if (whichParam == 0)
         {
@@ -154,7 +154,7 @@ public:
         }
     }
 
-    virtual int GetDisplacmentParam(int & whichParam)
+    virtual int GetDisplacmentParam(int & whichParam) const
     {
         if (whichParam == 0)
         {
@@ -167,7 +167,7 @@ public:
         }
     }
     
-    virtual int GetCoefficientParam(int & whichParam)
+    virtual int GetCoefficientParam(int & whichParam) const
     {
         if (whichParam < _D)
             return _y.GetOffset() + whichParam;
@@ -179,7 +179,7 @@ public:
     }
 
     // `Jacobian` methods
-    virtual void VertexJacobian(const int whichParam, const int i, Matrix<double> & J)
+    virtual void VertexJacobian(const int whichParam, const int i, Matrix<double> & J) const
     {
         assert(whichParam < (_D + 1));
 
@@ -190,12 +190,12 @@ public:
         scaleMatrixIP(_y.GetCoefficient(whichParam - 1), J);
     }
 
-    virtual void ScaleJacobian(const int i, Matrix<double> & J)
+    virtual void ScaleJacobian(const int i, Matrix<double> & J) const
     {
         multiply_A_v_Static<double, 3, 3>(_R[0], _W1[i], J[0]);
     }
 
-    virtual void GlobalRotationJacobian(const int i, Matrix<double> & J)
+    virtual void GlobalRotationJacobian(const int i, Matrix<double> & J) const
     {
         double q[4];
         quat_Unsafe(_Xg.GetRotation(0), q);
@@ -209,12 +209,12 @@ public:
         multiply_A_B_Static<double, 3, 4, 3>(Jq, D, J[0]);
     }
 
-    virtual void DisplacementJacobian(Matrix<double> & J)
+    virtual void DisplacementJacobian(Matrix<double> & J) const
     {
         makeIdentityMatrix(J);
     }
 
-    virtual void CoefficientJacobian(const int whichParam, const int i, Matrix<double> & J)
+    virtual void CoefficientJacobian(const int whichParam, const int i, Matrix<double> & J) const
     {
         assert(whichParam < _D);
         multiply_A_v_Static<double, 3, 3>(_sR[0], _Vb[whichParam + 1]->GetVertex(i), J[0]);
