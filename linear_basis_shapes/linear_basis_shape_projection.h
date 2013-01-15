@@ -8,7 +8,7 @@
 class LinearBasisShapeProjectionEnergy : public ProjectionEnergy
 {
 public:
-    LinearBasisShapeProjectionEnergy(LinearBasisShapeNode & V, 
+    LinearBasisShapeProjectionEnergy(const LinearBasisShapeNode & V, 
           const Vector<int> & C, const Matrix<double> & P, const double w)
         : ProjectionEnergy(V, C, P, w), __V(V)
     {} 
@@ -96,7 +96,7 @@ public:
     }
 
 protected:
-    LinearBasisShapeNode & __V;
+    const LinearBasisShapeNode & __V;
 };
 
 #endif
