@@ -199,6 +199,9 @@ int solve_single_silhouette(PyArrayObject * npy_T,
                                               mesh, sqrt(lambdas[3])));
     }
 
+    if (node_y->GetCount() > 0)
+        problem.AddEnergy(new LinearBasisShapeCoefficientEnergy(*node_y, sqrt(lambdas[4])));
+
     int ret = problem.Minimise(*options);
 
     return ret;

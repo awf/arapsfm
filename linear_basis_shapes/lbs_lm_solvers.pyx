@@ -146,8 +146,8 @@ def solve_single_silhouette(np.ndarray[np.int32_t, ndim=2] npy_T,
     cdef OptimiserOptions options
     additional_optimiser_options(&options, kwargs)
 
-    if npy_lambdas.shape[0] != 4:
-        raise ValueError('npy_lambdas.shape[0] != 4')
+    if npy_lambdas.shape[0] != 5:
+        raise ValueError('npy_lambdas.shape[0] != 5')
 
     if npy_preconditioners.shape[0] != 5:
         raise ValueError('npy_preconditioners.shape[0] != 5')
