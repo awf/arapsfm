@@ -53,7 +53,7 @@ class LinearBasisShapeNode : public VertexNode
 {
 public:
     LinearBasisShapeNode(Matrix<double> & V,
-                         const vector<const VertexNode *> & Vb,
+                         const vector<VertexNode *> & Vb,
                          const CoefficientsNode & y,
                          const ScaleNode & s,
                          const RotationNode & Xg,
@@ -100,10 +100,88 @@ public:
                 _V[i][j] += d[j];
     }
 
+    virtual void AddGlobalUsedParamTypes(vector<int> * pUsedParamTypes)
+    {
+        pUsedParamTypes->push_back(_s.GetParamId());
+        pUsedParamTypes->push_back(_Xg.GetParamId());
+        pUsedParamTypes->push_back(_Vd.GetParamId());
+
+        for (int i = 0; i < _D; i++)
+            pUsedParamTypes->push_back(_y.GetParamId());
+    }
+
+    virtual void AddVertexUsedParamTypes(vector<int> * pUsedParamTypes)
+    {
+        for (int i = 0; i < (_D + 1); i++)
+            pUsedParamTypes->push_back(_Vb[i]->GetParamId());
+    }
+
+    // `Param` methods
+    virtual int GetVertexParam(int & whichParam, const int i)
+    {
+        if (whichParam < (_D + 1))
+            return _Vb[whichParam]->GetOffset() + i;
+        else
+        {
+            whichParam -= (_D + 1);
+            return -1;
+        }
+    }
+
+    virtual int GetScaleParam(int & whichParam)
+    {
+        if (whichParam == 0)
+        {
+            return _s.GetOffset();
+        }
+        else
+        {
+            whichParam -= 1;
+            return -1;
+        }
+    }
+
+    virtual int GetGlobalRotationParam(int & whichParam)
+    {
+        if (whichParam == 0)
+        {
+            return _Xg.GetOffset();
+        }
+        else
+        {
+            whichParam -= 1;
+            return -1;
+        }
+    }
+
+    virtual int GetDisplacmentParam(int & whichParam)
+    {
+        if (whichParam == 0)
+        {
+            return _Vd.GetOffset();
+        }
+        else
+        {
+            whichParam -= 1;
+            return -1;
+        }
+    }
+    
+    virtual int GetCoefficientParam(int & whichParam)
+    {
+        if (whichParam < _D)
+            return _y.GetOffset() + whichParam;
+        else
+        {
+            whichParam -= _D;
+            return -1;
+        }
+    }
+
     // `Jacobian` methods
     virtual void VertexJacobian(const int whichParam, const int i, Matrix<double> & J)
     {
-        assert(whichParam < (D + 1));
+        assert(whichParam < (_D + 1));
 
         copyMatrix(_sR, J);
         if (whichParam == 0)
@@ -138,13 +216,13 @@ public:
 
     virtual void CoefficientJacobian(const int whichParam, const int i, Matrix<double> & J)
     {
-        assert(whichParam < D);
+        assert(whichParam < _D);
         multiply_A_v_Static<double, 3, 3>(_sR[0], _Vb[whichParam + 1]->GetVertex(i), J[0]);
     }
 
 protected:
     Matrix<double> & _V;
-    const vector<const VertexNode *> & _Vb;
+    const vector<VertexNode *> & _Vb;
     const CoefficientsNode & _y;
     const ScaleNode & _s;
     const RotationNode & _Xg;

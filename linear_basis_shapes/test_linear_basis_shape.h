@@ -1,7 +1,12 @@
 #ifndef __TEST_LINEAR_BASIS_SHAPE_H__
 #define __TEST_LINEAR_BASIS_SHAPE_H__
 
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+
 #include "linear_basis_shape.h"
+#include "linear_basis_shape_projection.h"
 #include "Util/pyarray_conversion.h"
 using namespace std;
 
@@ -22,7 +27,7 @@ PyObject * EvaluateLinearBasisShape(PyObject * list_Vb,
     PYARRAY_AS_MATRIX(double, npy_Xg, Xg);
     PYARRAY_AS_MATRIX(double, npy_Vd, Vd);
 
-    vector<const VertexNode *> nodes_Vb_const;
+    vector<VertexNode *> nodes_Vb_const;
     for (int i = 0; i < Vb.size(); i++)
         nodes_Vb_const.push_back(new VertexNode(Vb[i]));
 
