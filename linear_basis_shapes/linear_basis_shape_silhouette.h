@@ -8,6 +8,46 @@ using namespace std;
 
 // TODO: Clean-up ...
 
+// LinearBasisShapeCoefficientEnergy
+class LinearBasisShapeCoefficientEnergy : public Energy
+{
+public:
+    LinearBasisShapeCoefficientEnergy(const CoefficientsNode & y, double w)
+        : Energy(w), _y(y)
+    {}
+
+    virtual void GetCostFunctions(vector<NLSQ_CostFunction *> & costFunctions) 
+    {
+        auto pUsedParamTypes = new vector<int>;
+        pUsedParamTypes->push_back(_y.GetParamId());
+
+        costFunctions.push_back(new Energy_CostFunction(*this, pUsedParamTypes, 1));
+    }
+
+    virtual int GetCorrespondingParam(const int k, const int i) const
+    {
+        return _y.GetOffset() + k;
+    }
+
+    virtual int GetNumberOfMeasurements() const 
+    {
+        return _y.GetCount();
+    }
+
+    virtual void EvaluateResidual(const int k, Vector<double> & e) const
+    {
+        e[0] = _y.GetCoefficient(k);
+    }
+
+    virtual void EvaluateJacobian(const int k, const int whichParam, Matrix<double> & J) const
+    {
+        J[0][0] = _w;
+    }
+
+protected:
+    const CoefficientsNode & _y;
+};
+
 // LinearBasisShapeSilhouette_GetNarrowBands
 void LinearBasisShapeSilhouette_GetNarrowBands(
     const Mesh & mesh,
