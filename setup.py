@@ -238,6 +238,21 @@ setup(
                   extra_compile_args=['-std=c++11', '-Wfatal-errors', '-O0'],
                   language='c++'),
 
+        Extension('linear_basis_shapes.lbs_lm_solvers', 
+                  ['linear_basis_shapes/lbs_lm_solvers.pyx',
+                   'cpp/Solve/problem.cpp',
+                   'cpp/Solve/node.cpp',
+                  ] +
+                  SSLM_BASE_SRC + 
+                  SSLM_MATH_SRC,
+                  include_dirs=include_dirs + [SSLM_ROOT, COLAMD_INC],
+                  library_dirs=[COLAMD_LIB],
+                  libraries=['colamd'],
+                  define_macros=REMOVE_EXCEPTION_MACROS + [('NO_HELPER', 1)],
+                  # extra_compile_args=['-std=c++11', '-Wfatal-errors'],
+                  extra_compile_args=['-std=c++11', '-Wfatal-errors', '-O0'],
+                  language='c++'),
+
         Extension('linear_basis_shapes.test_linear_basis_shape', 
                   ['linear_basis_shapes/test_linear_basis_shape.pyx',
                    'cpp/Solve/node.cpp'],
