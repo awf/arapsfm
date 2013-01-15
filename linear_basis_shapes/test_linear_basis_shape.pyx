@@ -17,8 +17,10 @@ cdef extern from "test_linear_basis_shape.h":
         np.ndarray npy_y,
         np.ndarray npy_s,
         np.ndarray npy_Xg,
-        np.ndarray npy_Vd)
+        np.ndarray npy_Vd,
+        int k,
+        bint debug)
 
-def EvaluateLinearBasisShape(Vb, y, s, Xg, Vd):
-    return EvaluateLinearBasisShape_c(Vb, y, s, Xg, Vd)
+def EvaluateLinearBasisShape(Vb, y, s, Xg, Vd, k, debug=False):
+    return EvaluateLinearBasisShape_c(Vb, y, s, Xg, Vd, k, debug)
 
