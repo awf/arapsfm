@@ -45,6 +45,8 @@ public:
         return sqrNorm_L2(flatX);
     }
 
+    virtual void Prepare() { }
+
 protected:
     Node(Matrix<double> & X, int offset = 0, int paramId = -1)
         : _X(X), _savedX(X.num_rows(), X.num_cols()),
