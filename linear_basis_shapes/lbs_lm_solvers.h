@@ -116,6 +116,7 @@ int solve_single_silhouette(PyArrayObject * npy_T,
                             PyArrayObject * npy_C,
                             PyArrayObject * npy_P,
                             PyArrayObject * npy_S,
+                            PyArrayObject * npy_SN,
                             PyArrayObject * npy_lambdas,
                             PyArrayObject * npy_preconditioners,
                             int narrowBand,
@@ -185,13 +186,17 @@ int solve_single_silhouette(PyArrayObject * npy_T,
     problem.AddEnergy(new LinearBasisShapeSilhouetteProjectionEnergy(*node_V, *node_U,
         S, mesh, sqrt(lambdas[1]), narrowBand));
 
+    PYARRAY_AS_MATRIX(double, npy_SN, SN);
+    problem.AddEnergy(new LinearBasisShapeSilhouetteNormalEnergy2(*node_V, *node_U,
+        SN, mesh, sqrt(lambdas[2]), narrowBand));
+
     vector<const ScaleNode *> nodes_s;
     nodes_s.push_back(node_s);
 
     for (int i = 0; i < nodes_Vb.size(); i++)
     {
         problem.AddEnergy(new LaplacianEnergy(*nodes_Vb[i], vector<const ScaleNode *>(nodes_s),
-                                              mesh, sqrt(lambdas[2])));
+                                              mesh, sqrt(lambdas[3])));
     }
 
     int ret = problem.Minimise(*options);

@@ -47,6 +47,7 @@ cdef extern from "lbs_lm_solvers.h":
         np.ndarray npy_C,
         np.ndarray npy_P,
         np.ndarray npy_S,
+        np.ndarray npy_SN,
         np.ndarray npy_lambdas,
         np.ndarray npy_preconditioners,
         np.int32_t narrowBand,
@@ -134,6 +135,7 @@ def solve_single_silhouette(np.ndarray[np.int32_t, ndim=2] npy_T,
                             np.ndarray[np.int32_t, ndim=1] npy_C,
                             np.ndarray[np.float64_t, ndim=2] npy_P,
                             np.ndarray[np.float64_t, ndim=2] npy_S,
+                            np.ndarray[np.float64_t, ndim=2] npy_SN,
                             np.ndarray[np.float64_t, ndim=1] npy_lambdas,
                             np.ndarray[np.float64_t, ndim=1] npy_preconditioners,
                             np.int32_t narrowBand,
@@ -144,15 +146,15 @@ def solve_single_silhouette(np.ndarray[np.int32_t, ndim=2] npy_T,
     cdef OptimiserOptions options
     additional_optimiser_options(&options, kwargs)
 
-    if npy_lambdas.shape[0] != 3:
-        raise ValueError('npy_lambdas.shape[0] != 3')
+    if npy_lambdas.shape[0] != 4:
+        raise ValueError('npy_lambdas.shape[0] != 4')
 
     if npy_preconditioners.shape[0] != 5:
         raise ValueError('npy_preconditioners.shape[0] != 5')
 
     cdef int status = solve_single_silhouette_c(
         npy_T, list_Vb, npy_s, npy_Xg, npy_Vd, npy_y, npy_U, npy_L, 
-        npy_C, npy_P, npy_S, npy_lambdas, 
+        npy_C, npy_P, npy_S, npy_SN, npy_lambdas, 
         npy_preconditioners, narrowBand, debug, &options)
 
     return status, STATUS_CODES[status]
