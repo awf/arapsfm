@@ -71,7 +71,8 @@ cdef extern from "lbs_lm_solvers.h":
         np.ndarray npy_preconditioners,
         np.int32_t narrowBand,
         bint debug,
-        OptimiserOptions * options)
+        OptimiserOptions * options,
+        object callback)
 
 # additional_optimiser_options
 DEFAULT_OPTIMISER_OPTIONS = {
@@ -197,6 +198,7 @@ def solve_multiple (np.ndarray npy_T,
                     **kwargs):
 
     cdef bint debug = kwargs.pop('debug', False)
+    callback = kwargs.pop('callback', None)
 
     cdef OptimiserOptions options
     additional_optimiser_options(&options, kwargs)
@@ -213,7 +215,8 @@ def solve_multiple (np.ndarray npy_T,
         list_U, list_L, 
         list_C, list_P, 
         list_S, list_SN, 
-        npy_lambdas, npy_preconditioners, narrowBand, debug, &options)
+        npy_lambdas, npy_preconditioners, narrowBand, debug, &options,
+        callback)
 
     return status, STATUS_CODES[status]
 

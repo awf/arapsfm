@@ -224,7 +224,8 @@ int solve_multiple(PyArrayObject * npy_T,
                    PyArrayObject * npy_preconditioners,
                    int narrowBand,
                    bool debug,
-                   const OptimiserOptions * options)
+                   const OptimiserOptions * options,
+                   PyObject * callback)
 {
     if (debug)
         asm("int $0x3");
@@ -365,6 +366,9 @@ int solve_multiple(PyArrayObject * npy_T,
         for (int i = 0; i < nodes_y.size(); i++)
             problem.AddEnergy(new LinearBasisShapeCoefficientEnergy(*nodes_y[i], sqrt(lambdas[4])));
     }
+
+    if (callback != Py_None)
+        problem.SetCallback(callback);
 
     int ret = problem.Minimise(*options);
 
