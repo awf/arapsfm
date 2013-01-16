@@ -69,7 +69,7 @@ class CoreRecoverySolver(object):
                  max_restarts=10,
                  outer_loops=20,
                  candidate_radius=None,
-                 use_creasing_silhouette=True):
+                 use_creasing_silhouette=False):
 
         self.lambdas = lambdas
         self.preconditioners = preconditioners
@@ -216,7 +216,10 @@ class CoreRecoverySolver(object):
             candidate_radius = self.candidate_radius
 
         if use_creasing_silhouette is None:
-            use_creasing_silhouette = self.use_creasing_silhouette
+            if not hasattr(self, 'use_creasing_silhouette'): 
+                self.use_creasing_silhouette = False
+
+            use_creasing_silhouette = self.use_creasing_silhouette 
 
         t1 = time()
         u, l = solve_silhouette(
@@ -270,6 +273,9 @@ class CoreRecoverySolver(object):
             lambdas = self.instance_lambdas
 
         if use_creasing_silhouette is None:
+            if not hasattr(self, 'use_creasing_silhouette'): 
+                self.use_creasing_silhouette = False
+
             use_creasing_silhouette = self.use_creasing_silhouette 
 
         for j in xrange(self.max_restarts):
