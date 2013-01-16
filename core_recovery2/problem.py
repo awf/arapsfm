@@ -115,6 +115,11 @@ class CoreRecoverySolver(object):
         self._s.Xg0 = np.zeros((1, 3), dtype=np.float64)
         self._s.X0 = np.zeros((self.V0.shape[0], 3), dtype=np.float64)
 
+        self._s.sp = make_list_of_arrays((1, 1), self.n - 1, value=1.0)
+        self._s.Xgp = make_list_of_arrays((1, 3), self.n - 1, value=0.0)
+        self._s.Xp = make_list_of_arrays((self.V0.shape[0], 3),
+                                         dtype=np.float64, value=0.0)
+
         self._setup_lambdas()
 
     def _setup_global_rotations(self, **kwargs):
@@ -291,10 +296,19 @@ class CoreRecoverySolver(object):
 
     def _setup_subproblem(self, i):
         if i > 0:
+            if not hasattr(self._s, 'sp'):
+                self._s.sp = make_list_of_arrays((1, 1), self.n - 1,    
+                                                 value=1.0)
+                self._s.Xgp = make_list_of_arrays((1, 3), self.n - 1, 
+                                                  value=0.0)
+                self._s.Xp = make_list_of_arrays((self.V0.shape[0], 3), 
+                    self.n - 1, value=0.0)
+
             Vp = self._s.V1[i-1]
-            sp = np.ones((1, 1), dtype=np.float64)
-            Xgp = np.zeros((1, 3), dtype=np.float64)
-            Xp = np.zeros_like(Vp)
+
+            sp = self._s.sp[i-1]
+            Xgp = self._s.Xgp[i-1]
+            Xp = self._s.Xp[i-1]
             
             sm1 = [self._s.s[i-1]]
             ym1 = [self._s.y[i-1]]
@@ -439,6 +453,9 @@ class CoreRecoverySolver(object):
 
         t1 = time()
 
+        core_solver_options = self.solver_options.copy()
+        core_solver_options['verbosenessLevel'] = 2
+
         for j in xrange(self.max_restarts):
             status = lm.solve_core(
                 self.T, self._s.V, self._s.s,
@@ -450,7 +467,7 @@ class CoreRecoverySolver(object):
                 self.uniform_weights,
                 fixed_Xgb,
                 callback=callback,
-                **self.solver_options)
+                **core_solver_options)
 
             print status[1]
 
