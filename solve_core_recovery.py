@@ -40,6 +40,12 @@ def parse_args():
                         action='store_true')
     parser.add_argument('--initial_Xgb', type=str, default='None')
     parser.add_argument('--initial_Xb', type=str, default='None')
+    parser.add_argument('--use_creasing_silhouette',
+                        action='store_true',
+                        default=False)
+    parser.add_argument('--use_area_weighted_silhouette',
+                        action='store_true',
+                        default=False)
 
     args = parser.parse_args()
 
@@ -127,18 +133,20 @@ def main():
 
     solver = pickle_.load(args.solver)
 
-    new_settings = dict(solver_options=args.solver_options,
-                         max_restarts=args.max_restarts,
-                         lambdas=args.lambdas,
-                         preconditioners=args.preconditioners)
-                  
+    update_keys = ['solver_options', 'max_restarts', 'lambdas',
+                   'preconditioners', 
+                   'use_creasing_silhouette',
+                   'use_area_weighted_silhouette']
+
+    new_settings = {k:getattr(args,k) for k in update_keys}
+
     for key, arr in new_settings.iteritems():
         if arr is None:
             continue
-
         setattr(solver, key, arr)
 
     solver._setup_lambdas()
+
     if args.initial_Xgb is not None:
         solver._setup_global_rotations(kg=solver.kg, initial_Xgb=args.initial_Xgb)
     if args.initial_Xb is not None:
@@ -150,11 +158,7 @@ def main():
     overall_time = Timer()
 
     if args.action == 'update_silhouette':
-        solver.parallel_solve_silhouettes(n=args.num_processes,
-                                          chunksize=max(
-                                            solver.n / args.num_processes, 
-                                            1),
-                                          verbose=True)
+        solver.parallel_solve_silhouettes(n=args.num_processes)
     else:
         # first forward-pass with no silhouette used
         if args.outer_loops[0] == -1:
