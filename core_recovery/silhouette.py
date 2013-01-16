@@ -20,6 +20,7 @@ def solve_silhouette(V, T, S, SN,
                      SilCandAssignedFaces,
                      SilCandU,
                      lambdas,
+                     use_creasing_silhouette=True,
                      radius=None,
                      verbose=False):
 
@@ -43,7 +44,12 @@ def solve_silhouette(V, T, S, SN,
     def vertex_normal_inplace(i):
         adj_normals = map(lambda j: face_normals[j], 
                           faces_adjacent_to_vertex[i])
-        W[i] = 0.5 * reduce(add, map(norm, adj_normals))
+        if not use_creasing_silhouette:
+            W[i] = 0.5 * reduce(add, map(norm, adj_normals))
+        else:
+            unnormalised_normal = reduce(add, adj_normals)
+            W[i] = norm(unnormalised_normal)
+
         QN[i] = normalise(reduce(add, adj_normals))
 
     map(vertex_normal_inplace, xrange(V.shape[0]))
