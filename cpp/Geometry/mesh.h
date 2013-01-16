@@ -407,5 +407,70 @@ inline double oneRingArea(const Mesh & mesh, const Matrix<double> & V1, int vert
     return area;
 }
 
+// lengthJac_Unsafe
+inline void lengthJac_Unsafe(const double * v, double * J)
+{
+    double x[5];
+    x[0] = v[0]*v[0];
+    x[1] = v[1]*v[1];
+    x[2] = v[2]*v[2];
+    x[3] = x[0] + x[1] + x[2];
+    x[4] = 1.0 / sqrt(x[3]);
+
+    J[0] = v[0] * x[4];
+    J[1] = v[1] * x[4];
+    J[2] = v[2] * x[4];
+}
+
+// oneRingAreaJac
+inline Matrix<double> oneRingAreaJac(const Mesh & mesh, const Matrix<double> & V1, int vertexId)
+{
+    vector<int> incOneRing = mesh.GetNRing(vertexId, 1, true);
+    vector<int> adjTriangles = mesh.GetTrianglesAtVertex(vertexId);
+
+    Matrix<double> areaJacobian(1, 3*incOneRing.size(), 0.);
+
+    // build an index mapping for `incOneRing` (which is ordered)
+    std::map<int, int> indexIncOneRing;
+    auto it = incOneRing.begin();
+    for (int l=0; it != incOneRing.end(); l++, it++)
+        indexIncOneRing.insert(std::pair<int, int>(*it, l));
+
+    for (int i = 0; i < adjTriangles.size(); i ++)
+    {
+        // calculate the face normal Jacobian for the vertices in the face
+        const int * Ti = mesh.GetTriangle(adjTriangles[i]);
+
+        double faceNormalJac[27];
+        faceNormalJac_Unsafe(V1[Ti[0]], V1[Ti[1]], V1[Ti[2]], faceNormalJac);
+
+        // calculate the face normal in-order to get the norm_L2 Jacobian
+        double faceNormal[3];
+        faceNormal_Unsafe(V1[Ti[0]], V1[Ti[1]], V1[Ti[2]], faceNormal);
+
+        double lengthJac[3];
+        lengthJac_Unsafe(faceNormal, lengthJac);
+
+        // get the jacobian for the face area
+        double Jt[9];
+        multiply_A_B_Static<double, 1, 3, 9>(lengthJac, faceNormalJac, Jt);
+        scaleVectorIP_Static<double, 9>(0.5, Jt);
+
+        // add the columns into the appropriate columns in areaJacobian
+        for (int j=0; j < 3; j++)
+        {
+            auto indexPairPointer = indexIncOneRing.find(Ti[j]);
+            assert(indexPairPointer != indexIncOneRing.end());
+
+            int columnIndex = indexPairPointer->second;
+
+            for (int c=0; c < 3; c++)
+                areaJacobian[0][3*columnIndex + c] += Jt[3*j + c];
+        }
+    }
+
+    return areaJacobian;
+}
+
 #endif
 
