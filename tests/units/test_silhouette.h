@@ -39,20 +39,6 @@ inline void normalizationJac_Unsafe(const double * v, double * J)
     J[8] = -x[2]*x[4] + x[5];
 }
 
-inline void lengthJac_Unsafe(const double * v, double * J)
-{
-    double x[5];
-    x[0] = v[0]*v[0];
-    x[1] = v[1]*v[1];
-    x[2] = v[2]*v[2];
-    x[3] = x[0] + x[1] + x[2];
-    x[4] = 1.0 / sqrt(x[3]);
-
-    J[0] = v[0] * x[4];
-    J[1] = v[1] * x[4];
-    J[2] = v[2] * x[4];
-}
-
 void silhouetteNormalResiduals2_Unsafe(const Mesh & mesh, const Matrix<double> & V1, 
                                        int faceIndex, const double * u_, const double * SN, 
                                        const double & w, double * e)
@@ -60,13 +46,14 @@ void silhouetteNormalResiduals2_Unsafe(const Mesh & mesh, const Matrix<double> &
     const int * Ti = mesh.GetTriangle(faceIndex);
 
     double vertexNormals[3][3];
-    double vertexNormalLengths[3];
+    double adjFaceAreas[3];
 
     for (int i=0; i < 3; i++)
     {
         vertexNormal_Unsafe(mesh, V1, Ti[i], vertexNormals[i]);
-        vertexNormalLengths[i] = norm_L2_Static<double, 3>(vertexNormals[i]);
-        scaleVectorIP_Static<double, 3>(1.0 / vertexNormalLengths[i], vertexNormals[i]);
+        normalizeVector_Static<double, 3>(vertexNormals[i]);
+
+        adjFaceAreas[i] = oneRingArea(mesh, V1, Ti[i]);
     }
 
     double u[3] = { u_[0], u_[1], 1.0 - u_[0] - u_[1] };
@@ -75,13 +62,13 @@ void silhouetteNormalResiduals2_Unsafe(const Mesh & mesh, const Matrix<double> &
     makeTriInterpolatedVector_Static<double, 3>(u, vertexNormals[0], vertexNormals[1], vertexNormals[2], normal);
     normalizeVector_Static<double, 3>(normal);
 
-    double weightedLengths = (u[0] * vertexNormalLengths[0] +
-                              u[1] * vertexNormalLengths[1] +
-                              u[2] * vertexNormalLengths[2]);
+    double w1 = w * (u[0] * adjFaceAreas[0] +
+                     u[1] * adjFaceAreas[1] +
+                     u[2] * adjFaceAreas[2]);
 
-    e[0] = w * weightedLengths * (SN[0] - normal[0]);
-    e[1] = w * weightedLengths * (SN[1] - normal[1]);
-    e[2] = w * weightedLengths * (- normal[2]);
+    e[0] = w1 * (SN[0] - normal[0]);
+    e[1] = w1 * (SN[1] - normal[1]);
+    e[2] = w1 * (- normal[2]);
 }
 
 void silhouetteNormalResiduals2Jac_V1_Unsafe(const Mesh & mesh, const Matrix<double> & V1, 
@@ -124,10 +111,14 @@ void silhouetteNormalResiduals2Jac_V1_Unsafe(const Mesh & mesh, const Matrix<dou
     Matrix<double> unJ(3, 3*allVertices.size(), 0.);
 
     Matrix<double> wJ(1, 3*allVertices.size(), 0.);
-    double weightedLengths = 0.;
+    double weightedArea = 0.;
 
     for (int i = 0; i < 3; i++)
     {
+        // get the one ring area and the one ring area Jacobian
+        double area = oneRingArea(mesh, V1, Ti[i]);
+        Matrix<double> orJ = oneRingAreaJac(mesh, V1, Ti[i]);
+
         // get the (un-normalised) vertex normal
         double * vertexNormal = normalisedVertexNormals[i];
         vertexNormal_Unsafe(mesh, V1, Ti[i], vertexNormal);
@@ -136,20 +127,12 @@ void silhouetteNormalResiduals2Jac_V1_Unsafe(const Mesh & mesh, const Matrix<dou
         Matrix<double> normalizationJac(3,3);
         normalizationJac_Unsafe(vertexNormal, normalizationJac[0]);
 
-        // get the length jacobian
-        Matrix<double> lengthJac(1,3);
-        lengthJac_Unsafe(vertexNormal, lengthJac[0]);
-
         // get the Jacobian for the given vertex (column ordering same as `oneRings[i]`)
         Matrix<double> unVertexNormalJ = vertexNormalJac(mesh, V1, Ti[i]);
 
         // apply the normalisation Jacobian (chain rule)
         Matrix<double> vertexJ(3, unVertexNormalJ.num_cols());
         multiply_A_B(normalizationJac, unVertexNormalJ, vertexJ);
-
-        // apply the length Jacobian (chain rule)
-        Matrix<double> lengthJ(1, unVertexNormalJ.num_cols());
-        multiply_A_B(lengthJac, unVertexNormalJ, lengthJ);
 
         // add and scale the columns into the main Jacobian matrices
         auto it = oneRings[i].begin();
@@ -164,17 +147,16 @@ void silhouetteNormalResiduals2Jac_V1_Unsafe(const Mesh & mesh, const Matrix<dou
                 for (int r=0; r<3; r++)
                     unJ[r][3*m + k] += u[i] * vertexJ[r][3*l + k];
 
-                wJ[0][3*m + k] += u[i] * lengthJ[0][3*l + k];
+                wJ[0][3*m + k] += u[i] * orJ[0][3*l + k];
             }
 
         }
 
-        // get the vertex normal length
-        double vertexNormalLength = norm_L2_Static<double, 3>(vertexNormal);
-        weightedLengths += u[i] * vertexNormalLength;
+        // add the weight area
+        weightedArea += u[i] * area;
 
         // normalise the vertex normal
-        scaleVectorIP_Static<double, 3>(1.0 / vertexNormalLength, vertexNormal);
+        normalizeVector_Static<double, 3>(vertexNormal);
     }
 
     // construct blended (unnormalised) normal vector
@@ -206,7 +188,7 @@ void silhouetteNormalResiduals2Jac_V1_Unsafe(const Mesh & mesh, const Matrix<dou
     Matrix<double> finalJ(3, unJ.num_cols());
     for (int r = 0; r < 3; r++)
         for (int c = 0; c < unJ.num_cols(); c++)
-            finalJ[r][c] = w * (wJ[0][c] * residual[r] + Jp2[r][c] * weightedLengths);
+            finalJ[r][c] = w * (wJ[0][c] * residual[r] + Jp2[r][c] * weightedArea);
 
     // return slice for the vertex of interest
     auto p = indexAllVertices.find(vertexIndex);
@@ -224,22 +206,21 @@ void silhouetteNormalResiduals2Jac_u_Unsafe(const Mesh & mesh, const Matrix<doub
 
     // get the normalised vertex normals and the vertex normal lengths
     double vertexNormals[3][3];
-    double vertexNormalLengths[3];
+    double adjFaceAreas[3];
 
     for (int i=0; i < 3; i++)
     {
-        double * vertexNormal = vertexNormals[i];
-        vertexNormal_Unsafe(mesh, V1, Ti[i], vertexNormal);
+        vertexNormal_Unsafe(mesh, V1, Ti[i], vertexNormals[i]);
+        normalizeVector_Static<double, 3>(vertexNormals[i]);
 
-        vertexNormalLengths[i] = norm_L2_Static<double, 3>(vertexNormal);
-        scaleVectorIP_Static<double, 3>(1.0 / vertexNormalLengths[i], vertexNormal);
+        adjFaceAreas[i] = oneRingArea(mesh, V1, Ti[i]);
     }
 
-    // get the weighted lengths
+    // get the weight
     double u[3] = { u_[0], u_[1], 1.0 - u_[0] - u_[1] };
-    double weightedLengths = (u[0] * vertexNormalLengths[0] +
-                              u[1] * vertexNormalLengths[1] +
-                              u[2] * vertexNormalLengths[2]);
+    double w1 = (u[0] * adjFaceAreas[0] +
+                 u[1] * adjFaceAreas[1] +
+                 u[2] * adjFaceAreas[2]);
 
     double unJ[3][2];
     for (int i=0; i < 3; i++)
@@ -247,8 +228,8 @@ void silhouetteNormalResiduals2Jac_u_Unsafe(const Mesh & mesh, const Matrix<doub
             unJ[i][j] = vertexNormals[j][i] - vertexNormals[2][i];
 
     double unJ1[2];
-    unJ1[0] = vertexNormalLengths[0] - vertexNormalLengths[2];
-    unJ1[1] = vertexNormalLengths[1] - vertexNormalLengths[2];
+    unJ1[0] = adjFaceAreas[0] - adjFaceAreas[2];
+    unJ1[1] = adjFaceAreas[1] - adjFaceAreas[2];
 
     // get the blended normal
     double normal[3];
@@ -281,7 +262,7 @@ void silhouetteNormalResiduals2Jac_u_Unsafe(const Mesh & mesh, const Matrix<doub
 
     for (int r = 0; r < 3; r++)
         for (int c = 0; c < 2; c++)
-            J[r][c] = w * (unJ1[c] * residual[r] + Jp2[r][c] * weightedLengths);
+            J[r][c] = w * (unJ1[c] * residual[r] + Jp2[r][c] * w1);
 }
 
 PyObject * EvaluateSilhouetteNormal2(PyArrayObject * npy_T,
