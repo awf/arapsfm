@@ -485,6 +485,7 @@ int solve_instance(PyArrayObject * npy_T,
                    bool fixedScale,
                    bool fixedGlobalRotation,
                    bool noSilhouetteUpdate,
+                   bool useCreasingSilhouetteNormal,
                    const OptimiserOptions * options,
                    PyObject * callback)
 {
@@ -657,16 +658,25 @@ int solve_instance(PyArrayObject * npy_T,
         auto silhouetteProjectionEnergy = new SilhouetteProjectionEnergy(
             *node_V1, *node_U, S, mesh, sqrt(lambdas[1]), narrowBand, residualTransform);
         problem.AddEnergy(silhouetteProjectionEnergy);
-        meshWalker.addEnergy(silhouetteProjectionEnergy);
+        // meshWalker.addEnergy(silhouetteProjectionEnergy);
     }
 
     PYARRAY_AS_MATRIX(double, npy_SN, SN);
     if (!noSilhouetteUpdate)
     {
-        auto silhouetteNormalEnergy = new SilhouetteNormalEnergy2(
-            *node_V1, *node_U, SN, mesh, sqrt(lambdas[2]), narrowBand);
+        SilhouetteBaseEnergy * silhouetteNormalEnergy;
+        if (!useCreasingSilhouetteNormal)
+        {
+            silhouetteNormalEnergy = new SilhouetteNormalEnergy2(
+                *node_V1, *node_U, SN, mesh, sqrt(lambdas[2]), narrowBand);
+        }
+        else
+        {
+            silhouetteNormalEnergy = new SilhouetteNormalEnergy3(
+                *node_V1, *node_U, SN, mesh, sqrt(lambdas[2]), narrowBand);
+        }
         problem.AddEnergy(silhouetteNormalEnergy);
-        meshWalker.addEnergy(silhouetteNormalEnergy);
+        // meshWalker.addEnergy(silhouetteNormalEnergy);
     }
 
     PYARRAY_AS_VECTOR(int, npy_C, C);
