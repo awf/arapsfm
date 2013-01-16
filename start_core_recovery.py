@@ -42,6 +42,9 @@ def parse_args():
     parser.add_argument('--use_creasing_silhouette',
                         action='store_true',
                         default=False)
+    parser.add_argument('--use_area_weighted_silhouette',
+                        action='store_true',
+                        default=False)
 
     args = parser.parse_args()
 
@@ -100,7 +103,10 @@ def setup_solver(args):
                                 args.max_restarts,
                                 args.outer_loops,
                                 args.candidate_radius,
-                                args.use_creasing_silhouette)
+                                args.use_creasing_silhouette,
+                                args.use_area_weighted_silhouette)
+    
+    pprint(args.__dict__)
 
     print '<- %s' % args.mesh
     print '<- %s' % args.core_silhouette_info
