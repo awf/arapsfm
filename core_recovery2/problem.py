@@ -68,7 +68,8 @@ class CoreRecoverySolver(object):
                  uniform_weights=True,
                  max_restarts=10,
                  outer_loops=20,
-                 candidate_radius=None):
+                 candidate_radius=None,
+                 use_creasing_silhouette=True):
 
         self.lambdas = lambdas
         self.preconditioners = preconditioners
@@ -79,6 +80,7 @@ class CoreRecoverySolver(object):
         self.max_restarts = max_restarts
         self.outer_loops = outer_loops
         self.candidate_radius = candidate_radius
+        self.use_creasing_silhouette = use_creasing_silhouette
 
     def set_mesh(self, T, V0, silhouette_info):
         self.T = T
@@ -205,12 +207,16 @@ class CoreRecoverySolver(object):
 
         self.silhouette_lambdas = self.lambdas[:3]
 
-    def solve_silhouette(self, i, lambdas=None, candidate_radius=None):
+    def solve_silhouette(self, i, lambdas=None, candidate_radius=None,
+                         use_creasing_silhouette=None):
         if lambdas is None:
             lambdas = self.silhouette_lambdas
 
         if candidate_radius is None:
             candidate_radius = self.candidate_radius
+
+        if use_creasing_silhouette is None:
+            use_creasing_silhouette = self.use_creasing_silhouette
 
         t1 = time()
         u, l = solve_silhouette(
@@ -224,6 +230,7 @@ class CoreRecoverySolver(object):
             self.silhouette_info['SilCandU'],
             lambdas,
             radius=candidate_radius,
+            use_creasing_silhouette=use_creasing_silhouette,
             verbose=True)
         t2 = time()
 
@@ -249,6 +256,7 @@ class CoreRecoverySolver(object):
     def solve_instance(self, i, fixed_global_rotation=True, 
                        fixed_scale=False,
                        no_silhouette=False,
+                       use_creasing_silhouette=None,
                        lambdas=None,
                        callback=None):
 
@@ -261,11 +269,12 @@ class CoreRecoverySolver(object):
         if lambdas is None:
             lambdas = self.instance_lambdas
 
+        if use_creasing_silhouette is None:
+            use_creasing_silhouette = self.use_creasing_silhouette 
+
         for j in xrange(self.max_restarts):
             print ' [%d] s[%d]: %.3f' % (j, i, self._s.s[i])
         
-            import pdb; pdb.set_trace()
-
             status = lm.solve_instance(
                 self.T, 
                 self._s.V, 
@@ -285,6 +294,7 @@ class CoreRecoverySolver(object):
                 fixed_scale,
                 fixed_global_rotation,
                 no_silhouette,
+                use_creasing_silhouette,
                 callback=callback,
                 **self.solver_options)
 
