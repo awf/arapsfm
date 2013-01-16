@@ -39,6 +39,9 @@ def parse_args():
 
     parser.add_argument('--initial_Xgb', type=str, default='None')
     parser.add_argument('--initial_Xb', type=str, default='None')
+    parser.add_argument('--use_creasing_silhouette',
+                        action='store_true',
+                        default=False)
 
     args = parser.parse_args()
 
@@ -96,7 +99,8 @@ def setup_solver(args):
                                 args.uniform_weights,
                                 args.max_restarts,
                                 args.outer_loops,
-                                args.candidate_radius)
+                                args.candidate_radius,
+                                args.use_creasing_silhouette)
 
     print '<- %s' % args.mesh
     print '<- %s' % args.core_silhouette_info
