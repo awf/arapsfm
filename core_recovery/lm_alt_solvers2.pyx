@@ -79,6 +79,7 @@ cdef extern from "lm_alt_solvers2.h":
         bint fixedGlobalRotation,
         bint noSilhouetteUpdate,
         bint useCreasingSilhouetteNormal,
+        bint useAreaWeightedSilhouetteNormal,
         OptimiserOptions * options,
         object callback)
 
@@ -196,6 +197,7 @@ def solve_instance(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
                    bint fixedGlobalRotation,
                    bint noSilhouetteUpdate,
                    bint useCreasingSilhouetteNormal,
+                   bint useAreaWeightedSilhouetteNormal,
                    **kwargs):
 
     assert lambdas.shape[0] == 11
@@ -215,7 +217,7 @@ def solve_instance(np.ndarray[np.int32_t, ndim=2, mode='c'] T,
         C, P, 
         lambdas,  preconditioners,  piecewisePolynomial, 
         narrowBand, uniformWeights, fixedScale, fixedGlobalRotation,
-        noSilhouetteUpdate, useCreasingSilhouetteNormal,
+        noSilhouetteUpdate, useCreasingSilhouetteNormal, useAreaWeightedSilhouetteNormal,
         &options, callback)
 
     return status, STATUS_CODES[status]

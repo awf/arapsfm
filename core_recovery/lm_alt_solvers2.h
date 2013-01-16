@@ -486,6 +486,7 @@ int solve_instance(PyArrayObject * npy_T,
                    bool fixedGlobalRotation,
                    bool noSilhouetteUpdate,
                    bool useCreasingSilhouetteNormal,
+                   bool useAreaWeightedSilhouetteNormal,
                    const OptimiserOptions * options,
                    PyObject * callback)
 {
@@ -665,14 +666,19 @@ int solve_instance(PyArrayObject * npy_T,
     if (!noSilhouetteUpdate)
     {
         SilhouetteBaseEnergy * silhouetteNormalEnergy;
-        if (!useCreasingSilhouetteNormal)
+        if (useAreaWeightedSilhouetteNormal)
         {
             silhouetteNormalEnergy = new SilhouetteNormalEnergy2(
                 *node_V1, *node_U, SN, mesh, sqrt(lambdas[2]), narrowBand);
         }
-        else
+        if (useCreasingSilhouetteNormal)
         {
             silhouetteNormalEnergy = new SilhouetteNormalEnergy3(
+                *node_V1, *node_U, SN, mesh, sqrt(lambdas[2]), narrowBand);
+        }
+        else
+        {
+            silhouetteNormalEnergy = new SilhouetteNormalEnergy(
                 *node_V1, *node_U, SN, mesh, sqrt(lambdas[2]), narrowBand);
         }
         problem.AddEnergy(silhouetteNormalEnergy);
