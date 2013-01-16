@@ -406,8 +406,11 @@ class MainWindow(QMainWindow):
         self.fixed_global_rotation.setChecked(True)
         control_layout.addWidget(self.fixed_global_rotation)
 
-        self.use_creasing_silhouette = QCheckBox('Use Creased Silhouette')
+        self.use_creasing_silhouette = QCheckBox('Use Creasing Silhouette')
         control_layout.addWidget(self.use_creasing_silhouette)
+
+        self.use_area_weighted_silhouette = QCheckBox('Use Area Weighted Silhouette')
+        control_layout.addWidget(self.use_area_weighted_silhouette)
 
         self.refresh = QCheckBox('Refresh')
         self.refresh.setChecked(True)
@@ -566,6 +569,7 @@ class MainWindow(QMainWindow):
             fixed_global_rotation = self.fixed_global_rotation.isChecked()
 
         use_creasing_silhouette = self.use_creasing_silhouette.isChecked()
+        use_area_weighted_silhouette = self.use_area_weighted_silhouette.isChecked()
         # print 'use_creasing_silhouette:', use_creasing_silhouette
 
         i = self.instance_slider.value()
@@ -605,6 +609,7 @@ class MainWindow(QMainWindow):
             fixed_global_rotation=fixed_global_rotation,
             no_silhouette=not enable_silhouette,
             use_creasing_silhouette=use_creasing_silhouette,
+            use_area_weighted_silhouette=use_area_weighted_silhouette,
             callback=callback)
 
     def solve_core(self):
@@ -621,13 +626,15 @@ class MainWindow(QMainWindow):
         candidate_radius = float(candidate_radius_string)
 
         use_creasing_silhouette = self.use_creasing_silhouette.isChecked()
+        use_area_weighted_silhouette = self.use_area_weighted_silhouette.isChecked()
         # print 'use_creasing_silhouette:', use_creasing_silhouette
 
         i = self.instance_slider.value()
         self.solver.solve_silhouette(
             i, 
             candidate_radius=candidate_radius, 
-            use_creasing_silhouette=use_creasing_silhouette)
+            use_creasing_silhouette=use_creasing_silhouette,
+            use_area_weighted_silhouette=use_area_weighted_silhouette)
 
         self.mesh_view.set_silhouette_preimage(self.solver._s.L[i],
                                                self.solver._s.U[i],
@@ -679,6 +686,8 @@ class MainWindow(QMainWindow):
             if not self.initialise_all_button.isChecked():
                 break
 
+        self.initialise_all_button.setChecked(False)
+
     def solve_all(self):
         start = self.instance_slider.value()
         for i in xrange(start, len(self.solver._s.V1)):
@@ -689,6 +698,8 @@ class MainWindow(QMainWindow):
 
             if not self.solve_all_button.isChecked():
                 break
+
+        self.solve_all_button.setChecked(False)
 
     def update_from_selection(self):
         if self.mesh_view._selected_V < 0:
@@ -755,6 +766,14 @@ class MainWindow(QMainWindow):
         lambda_string = make_string(self.solver.preconditioners)
         self.required_preconditioners = self.solver.preconditioners.shape[0]
         self.preconditioners_line_edit.setText(lambda_string)
+
+        if hasattr(self.solver, 'use_area_weighted_silhouette'):
+            self.use_area_weighted_silhouette.setChecked(
+                self.solver.use_area_weighted_silhouette)
+
+        if hasattr(self.solver, 'use_creasing_silhouette'):
+            self.use_creasing_silhouette.setChecked(
+                self.solver.use_creasing_silhouette)
 
         self.set_instance(0)
         self.mesh_view.reset_camera()
