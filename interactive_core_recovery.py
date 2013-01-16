@@ -406,6 +406,9 @@ class MainWindow(QMainWindow):
         self.fixed_global_rotation.setChecked(True)
         control_layout.addWidget(self.fixed_global_rotation)
 
+        self.use_creasing_silhouette = QCheckBox('Use Creased Silhouette')
+        control_layout.addWidget(self.use_creasing_silhouette)
+
         self.refresh = QCheckBox('Refresh')
         self.refresh.setChecked(True)
         control_layout.addWidget(self.refresh)
@@ -562,6 +565,9 @@ class MainWindow(QMainWindow):
         if fixed_global_rotation is None:
             fixed_global_rotation = self.fixed_global_rotation.isChecked()
 
+        use_creasing_silhouette = self.use_creasing_silhouette.isChecked()
+        # print 'use_creasing_silhouette:', use_creasing_silhouette
+
         i = self.instance_slider.value()
         enable_silhouette = self.enable_silhouette.isChecked()
 
@@ -598,6 +604,7 @@ class MainWindow(QMainWindow):
             fixed_scale=fixed_scale,
             fixed_global_rotation=fixed_global_rotation,
             no_silhouette=not enable_silhouette,
+            use_creasing_silhouette=use_creasing_silhouette,
             callback=callback)
 
     def solve_core(self):
@@ -613,8 +620,14 @@ class MainWindow(QMainWindow):
         candidate_radius_string = str(self.candidate_radius_line_edit.text())
         candidate_radius = float(candidate_radius_string)
 
+        use_creasing_silhouette = self.use_creasing_silhouette.isChecked()
+        # print 'use_creasing_silhouette:', use_creasing_silhouette
+
         i = self.instance_slider.value()
-        self.solver.solve_silhouette(i, candidate_radius=candidate_radius)
+        self.solver.solve_silhouette(
+            i, 
+            candidate_radius=candidate_radius, 
+            use_creasing_silhouette=use_creasing_silhouette)
 
         self.mesh_view.set_silhouette_preimage(self.solver._s.L[i],
                                                self.solver._s.U[i],
