@@ -69,7 +69,8 @@ class CoreRecoverySolver(object):
                  max_restarts=10,
                  outer_loops=20,
                  candidate_radius=None,
-                 use_creasing_silhouette=False):
+                 use_creasing_silhouette=False,
+                 use_area_weighted_silhouette=False):
 
         self.lambdas = lambdas
         self.preconditioners = preconditioners
@@ -81,6 +82,7 @@ class CoreRecoverySolver(object):
         self.outer_loops = outer_loops
         self.candidate_radius = candidate_radius
         self.use_creasing_silhouette = use_creasing_silhouette
+        self.use_area_weighted_silhouette = use_area_weighted_silhouette
 
     def set_mesh(self, T, V0, silhouette_info):
         self.T = T
@@ -207,8 +209,12 @@ class CoreRecoverySolver(object):
 
         self.silhouette_lambdas = self.lambdas[:3]
 
-    def solve_silhouette(self, i, lambdas=None, candidate_radius=None,
-                         use_creasing_silhouette=None):
+    def solve_silhouette(self, i, 
+                         lambdas=None, 
+                         use_area_weighted_silhouette=None,
+                         use_creasing_silhouette=None,
+                         candidate_radius=None):
+
         if lambdas is None:
             lambdas = self.silhouette_lambdas
 
@@ -221,6 +227,12 @@ class CoreRecoverySolver(object):
 
             use_creasing_silhouette = self.use_creasing_silhouette 
 
+        if use_area_weighted_silhouette is None:
+            if not hasattr(self, 'use_area_weighted_silhouette'): 
+                self.use_area_weighted_silhouette = False
+
+            use_area_weighted_silhouette = self.use_area_weighted_silhouette 
+
         t1 = time()
         u, l = solve_silhouette(
             self._s.V1[i],
@@ -232,8 +244,9 @@ class CoreRecoverySolver(object):
             self.silhouette_info['SilCandAssignedFaces'],
             self.silhouette_info['SilCandU'],
             lambdas,
-            radius=candidate_radius,
-            use_creasing_silhouette=use_creasing_silhouette,
+            use_creasing_silhouette,
+            use_area_weighted_silhouette,
+            candidate_radius,
             verbose=True)
         t2 = time()
 
@@ -242,13 +255,15 @@ class CoreRecoverySolver(object):
 
         return t2 - t1
 
-    def parallel_solve_silhouettes(self, lambdas=None, **kwargs):
+    def parallel_solve_silhouettes(self, n, **kwargs):
         self._s.U = copy_to_shared(self._s.U)
         self._s.L = copy_to_shared(self._s.L)
 
-        mp.async_exec(lambda i: self.solve_silhouette(i, lambdas=lambdas),
+        mp.async_exec(lambda i: self.solve_silhouette(i, **kwargs), 
                       ((i,) for i in xrange(self.n)),
-                      **kwargs)
+                      n=n, 
+                      chunksize=max(self.n / n, 1),
+                      verbose=True)
 
     def silhouette_preimages(self, i):
         return geometry.path2pos(self._s.V1[i], 
@@ -259,6 +274,7 @@ class CoreRecoverySolver(object):
     def solve_instance(self, i, fixed_global_rotation=True, 
                        fixed_scale=False,
                        no_silhouette=False,
+                       use_area_weighted_silhouette=None,
                        use_creasing_silhouette=None,
                        lambdas=None,
                        callback=None):
@@ -277,6 +293,12 @@ class CoreRecoverySolver(object):
                 self.use_creasing_silhouette = False
 
             use_creasing_silhouette = self.use_creasing_silhouette 
+
+        if use_area_weighted_silhouette is None:
+            if not hasattr(self, 'use_area_weighted_silhouette'): 
+                self.use_area_weighted_silhouette = False
+
+            use_area_weighted_silhouette = self.use_area_weighted_silhouette 
 
         for j in xrange(self.max_restarts):
             print ' [%d] s[%d]: %.3f' % (j, i, self._s.s[i])
@@ -301,6 +323,7 @@ class CoreRecoverySolver(object):
                 fixed_global_rotation,
                 no_silhouette,
                 use_creasing_silhouette,
+                use_area_weighted_silhouette,
                 callback=callback,
                 **self.solver_options)
 
