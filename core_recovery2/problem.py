@@ -115,10 +115,12 @@ class CoreRecoverySolver(object):
         self._s.Xg0 = np.zeros((1, 3), dtype=np.float64)
         self._s.X0 = np.zeros((self.V0.shape[0], 3), dtype=np.float64)
 
-        self._s.sp = make_list_of_arrays((1, 1), self.n - 1, value=1.0)
-        self._s.Xgp = make_list_of_arrays((1, 3), self.n - 1, value=0.0)
-        self._s.Xp = make_list_of_arrays((self.V0.shape[0], 3),
-                                         dtype=np.float64, value=0.0)
+        self._s.sp = make_list_of_arrays((1, 1), self.n - 1,    
+                                         value=1.0)
+        self._s.Xgp = make_list_of_arrays((1, 3), self.n - 1, 
+                                          value=0.0)
+        self._s.Xp = make_list_of_arrays((self.V0.shape[0], 3), 
+            self.n - 1, value=0.0)
 
         self._setup_lambdas()
 
@@ -262,6 +264,8 @@ class CoreRecoverySolver(object):
         for j in xrange(self.max_restarts):
             print ' [%d] s[%d]: %.3f' % (j, i, self._s.s[i])
         
+            import pdb; pdb.set_trace()
+
             status = lm.solve_instance(
                 self.T, 
                 self._s.V, 
