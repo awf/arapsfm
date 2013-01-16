@@ -387,5 +387,25 @@ inline Matrix<double> vertexNormalJac(const Mesh & mesh, const Matrix<double> & 
     return sumFaceNormalsJac;
 }
 
+// oneRingArea_Unsafe
+inline double oneRingArea(const Mesh & mesh, const Matrix<double> & V1, int vertexId)
+{
+    double area = 0.;
+
+    vector<int> adjacentTriangles = mesh.GetTrianglesAtVertex(vertexId);
+
+    for (int i=0; i < adjacentTriangles.size(); i++)
+    {
+        const int * Tj = mesh.GetTriangle(adjacentTriangles[i]);
+
+        double faceNormal[3];
+        faceNormal_Unsafe(V1[Tj[0]], V1[Tj[1]], V1[Tj[2]], faceNormal);
+
+        area += 0.5 * norm_L2_Static<double, 3>(faceNormal);
+    }
+
+    return area;
+}
+
 #endif
 
