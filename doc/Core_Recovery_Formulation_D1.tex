@@ -1,0 +1,217 @@
+\documentclass[a4paper,10pt]{article}
+\usepackage[utf8x]{inputenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage[hmargin=2.5cm,vmargin=3.0cm]{geometry}
+\newcommand{\mb}{\mathbf}
+\usepackage{tabularx}
+
+% These definitions are taken from Herbert Voss' Mathmode document,
+% available online via CTAN from: http://www.ctan.org/pkg/voss-mathmode
+\def\mathllap{\mathpalette\mathllapinternal}
+\def\mathllapinternal#1#2{%
+\llap{$\mathsurround=0pt#1{#2}$}% $
+}
+\def\clap#1{\hbox to 0pt{\hss#1\hss}}
+\def\mathclap{\mathpalette\mathclapinternal}
+\def\mathclapinternal#1#2{%
+\clap{$\mathsurround=0pt#1{#2}$}%
+}
+\def\mathrlap{\mathpalette\mathrlapinternal}
+\def\mathrlapinternal#1#2{%
+\rlap{$\mathsurround=0pt#1{#2}$}% $
+}
+
+%opening
+\title{Core Recovery}
+\author{}
+
+\begin{document}
+
+\maketitle
+
+\section{Basic Model}
+\label{sec:basic_model}
+
+\subsection{Fixed Model Parameters}
+\begin{tabularx}{\textwidth}{ l | X}
+$T \in \mathbb{N}^{N_T \times 3}$ & The matrix which specifies which vertices contribute to each of the $N_T$ triangles of the mesh \\
+\end{tabularx}
+
+\subsection{Initial Model Unknowns}
+\begin{tabularx}{\textwidth}{ l | X}
+$V \in \mathbb{R}^{N_V \times 3}$  & The positions of the $N_V$ vertices in the \emph{core} geometry \\
+$V^1, ..., V^{N_F}$ & Each  $V^f \in \mathbb{R}^{N_V \times 3}$ is the positions of the $N_V$ vertices in each frame $f$ (the \emph{instance} geometry) \\
+$\lambda^1, ..., \lambda^{N_F}$ & The scale $\lambda^f$ of the instance geometry $V^f$ relative to $V$ \\
+$\mb{x}_g^1, ..., \mb{x}_g^{N_F}$ & The global rotation $\mb{x}_g^f \in \mathbb{R}^3$ (axis-angle representation) of the instance geometry $V^f$ in frame $f$ relative to $V$ \\
+$X^1, ..., X^{N_F}$ & $X^f \in \mathbb{R}^{N_V \times 3}$ is the matrix of local rotations (axis-angle representation) for \texttt{ARAP} \\
+\end{tabularx}
+
+\subsection{Problem Data}
+\begin{tabularx}{\textwidth}{ l | X}
+$\mb{c}^1, ..., \mb{c}^{N_F}$ & Each $\mb{c}^f$ is a vector which holds the indices of vertices on the model which correspond to positions in the frame \\
+$P^1, ..., P^{N_F}$ & Each $P^f$ is a matrix of 2-d positions which specify where each vertex specified by $\mb{c}^f$ should project to on frame $f$ \\
+$S^1, ..., S^{N_F}$ & Each $S^f$ is a matrix of 2-d positions which specify points on the silhouette, ordered so that $\mb{s}^f_1, \mb{s}^f_2, ..., \mb{s}^f_{N({S^f})}$ forms a circuit of the exterior silhouette \\
+$S_\phi^1, ..., S_\phi^{N_F}$ & Each $S_\phi^f$ is the corresponding matrix of silhouette normals
+\end{tabularx}
+
+\subsection{Unknowns Introduced by Problem Data}
+\begin{tabularx}{\textwidth}{ l | X}
+$(\mb{l}^1, U^1), ..., (\mb{l}^{N_F}, U^{N_F})$ & Each $(\mb{l}^f, U^f)$ defines the positions on the piecewise-planar model which correspond to points on the external silhouette. 
+Each $l^f_i \in \mathbb{N}$ is a triangle index and each $\mb{u}_i^f \in \mathbb{R}^2$ is the first two barycentric coordinates which define the position in the triangle.
+\end{tabularx}
+
+\subsection{Model Components}
+\subsubsection{Deformation Model}
+\subsubsection*{As-Rigid-As-Possible}
+
+\begin{equation}
+\label{eq:arap}
+E_{A}(V, V^f, \lambda^f, \mb{x}^f_g, X^f) = \sum_{i=1}^{N_V} \sum_{j \in \mathcal{N}_i} \left\| \left( \mb{v}^f_i - \mb{v}^f_j \right) - \lambda^f \mathcal{R}(\mb{x}^f_g) \mathcal{R}(\mb{x}^f_i) \left( \mb{v}_i - \mb{v}_j \right) \right\|^2
+\end{equation}
+where $\mathcal{N}_i$ is the set of vertex indices for the neighbours of vertex $i$ (the one-ring of vertex $i$) and $\mathcal{R} \colon \mathbb{R}^3 \to \mathbb{R}^{3 \times 3}$ maps an axis-angle rotation to a rotation matrix.
+
+\subsubsection*{Laplacian Regularisation}
+
+\begin{equation}
+\label{eq:laplacian_regularisation}
+E_{L}(V, \{\lambda^f\}_{f=1}^{N_F}) = \sum_{i=1}^{N_V} \left\| \left( \frac{1}{N_F} \sum_{f=1}^{N_F} \lambda^f \right) \left( \mb{v}_i - \frac{1}{ | \mathcal{N}_i |} \sum_{j \in \mathcal{N}_i}  \mb{ v}_j \right) \right\|^2
+\end{equation}
+where the mean scale is required to prevent $V$ arbitrarily decreasing to 0 (to reduce \eqref{eq:laplacian_regularisation}) and each $\lambda^i$ increasing arbitrarily (to compensate for \eqref{eq:arap}).
+
+\subsubsection{Data Energies}
+\subsubsection*{User Constraints}
+
+\begin{equation}
+\label{eq:user_constraints}
+E_{U}(V^f ; \mb{c}^f, P^f) = \sum_{i=1}^{N(\mb{c}^f)} \left\| \mb{p}^f_i - \Pi_2 \mb{v}^f_{c^f_i} \right\|^2
+\end{equation}
+where $\Pi_2$ is the 2-d orthographic projection matrix and $N(\mb{c}^f)$ is the number of elements in the vector $\mb{c}^f$.
+
+\subsubsection*{Silhouette Projection}
+
+\begin{equation}
+\label{eq:silhouette_projection}
+E_{SP}(V^f, \mb{l}^f, U^f ; S^f) = \sum_{i=1}^{N(S^f)} \left\| \mb{s}^f_i - \Pi_2 b(V^f, \mb{t}^f_{l_i}, \mb{u}^f_i) \right\|^2
+\end{equation}
+where $N(S^f)$ is the number of rows of $S^f$ and $b(V^f, \mb{t}^f_{l_i}, \mb{u}^f_i)$ defines the position on the model given the triangle vertices and the first two barycentric coordinates:
+\begin{equation}
+b(V, \mb{t}, \mb{u}) = 
+u_0 \left( \mb{v}_{t_0} - \mb{v}_{t_2} \right) +  
+u_1 \left( \mb{v}_{t_1} - \mb{v}_{t_2} \right) +  
+\mb{v}_{t_2}
+\end{equation}
+
+\subsubsection*{Silhouette Normals}
+
+\begin{equation}
+\label{eq:silhouette_normal}
+E_{SN}(V^f, \mb{l}^f, U^f ; S_\phi^f) = \sum_{i=1}^{N(S_\phi^f)} \left\| [ \mb{s}^f_{\phi, i} | 0 ] - b_{\phi}(V^f, \mb{t}^f_{l_i}, \mb{u}^f_i) \right\|^2
+\end{equation}
+where $b_{\phi}(V^f, \mb{t}^f_{l_i}, \mb{u}^f_i)$ gives the 3-d unit vector normal at the position $\mb{u}^f_i$ in triangle $l_i$ by linearly interpolating the estimated vertex unit normals then normalising.
+
+\subsection{Complete Energy}
+The complete energy captures the idea that each frame shows an independent \texttt{ARAP} deformation from the core geometry, while still fitting user constraints and the external silhouette.
+\begin{align}
+\label{eq:basic_model_complete_energy}
+E(V, \{V^f\}, \{\lambda^f\}, \{\mb{x}^f_g\}, \{X^f\}) &= \zeta_{L} E_{L}(V, \{\lambda^f\}) \notag\\
+&+ \sum_{f=1}^{N_F} \zeta_{A} E_{A}(V, V^f, \lambda^f, \mb{x}^f_g, X^f) \notag\\
+&+ \sum_{f=1}^{N_F} \zeta_{U} E_{U}(V^f ; \mb{c}^f, P^f) \notag \\
+&+ \sum_{f=1}^{N_F} \zeta_{SP} E_{SP}(V^f, \mb{l}^f, U^f ; S^f)  + \zeta_{SN} E_{SN}(V^f, \mb{l}^f, U^f ; S_\phi^f)
+\end{align}
+where all $\{\cdot\}$ indexed by $f$ are over the range $f = 1, ..., N_F$.
+
+\section{Shared Vector Basis for Local Rotations}
+In \eqref{eq:basic_model_complete_energy} all local rotations are assumed independent \emph{within} in each frame and \emph{between} frames.
+While this model is general, it is not restrictive enough for 2-d motion recovery.
+The absence of data constraints in the $z$-axis allows for out-of-plane deformations to achieve lower $\texttt{ARAP}$ deformation energy.
+For many objects, such as walking animals, this out-of-plane motion is unrealistic and undesirable.
+Incorporating these constraints can be achieved by removing the assumption that local rotations are independent within and between frames.
+
+First, entries in $X^f$ can be shared between vertices within each frame to enforce strict rigidity of sections of the model (e.g. the head of an animal).
+Second, entries in $X^f$ can be expressed on a common vector basis which is shared \emph{between} frames.
+This captures the idea that certain sections of the model should rotate on simlar axes (e.g. the legs of an animal).
+
+Let $X^b \in \mathbb{R}^{N_B \times 3}$ denote the matrix of $N_B$ unknown basis rotation vectors which is shared between frames and let $\mb{y}^f$ denote the vector of basis coefficients which are independent for each frame $f$.
+Let $\mb{\hat x}_i^f$ denote the local rotation at each vertex $i$ in each frame $f$. 
+Each $\mb{\hat x}_i^f$ is now defined as either an entry in $X^f$ or a linear combination of entries from $X^b$ and $\mb{y}^f$:
+\begin{equation}
+\label{eq:basis_local_rotation}
+\mb{\hat x}_i^f = f_b(\mb{k}_i, X^f, X^b, \mb{y}^f) = \left\{  
+\begin{array}{lr}
+\mb{x}^f_{k_{i,2}} & \colon k_{i,1} \leq 0 \\
+\displaystyle \sum_{j=1}^{k_{i,2}} y^f_{k_{i,{2i + 2}}} \mb{x}^b_{k_{i,{2i + 1}}} & \colon k_{i,1} > 0 \\
+\end{array}
+\right.
+\end{equation}
+where $\mb{k}_i$ is a vector of integers which defines the configuration of the local rotation at vertex $i$.
+All $\{\mb{k}_i\}_{i=1}^{N_V}$ are specified by the user painting the model where different colours represent independent or shared basis rotations.
+Note that now $N(X^f) < N_V$.
+
+The updated \texttt{ARAP} energy substituted into \eqref{eq:basic_model_complete_energy} is:
+\begin{equation}
+\label{eq:basis_arap}
+E'_A(V, V^f, \lambda^f, \mb{x}^f_g, X^f, X^b, \mb{y}^f ; \{\mb{k}_i\}) = \sum_{i=1}^{N_V} \sum_{j \in \mathcal{N}_i} 
+\left\| 
+\left( \mb{v}^f_i - \mb{v}^f_j \right) - \lambda^f \mathcal{R}(\mb{x}^f_g) 
+\right.
+\mathcal{R}(\underbrace{\mb{\hat x}^f_i}_{\mathclap{= f_b(\mb{k}_i, X^f, X^b, \mb{y}^f)}}) 
+\left. \vphantom{\left( \mb{v}^f_i - \mb{v}^f_j \right)}
+\left( \mb{v}_i - \mb{v}_j \right) 
+\right\|^2
+\end{equation}
+
+\section{Temporal Consistency}
+The introduction of shared deformation basis restricts deformations based on prior knowledge about ranges of rotation, but it does not ensure temporal consistency of the pose, local deformations, or smoothness of the vertices.
+
+\subsection{Penalising Acceleration of Pose}
+\subsubsection*{Global Rotational Acceleration}
+\begin{equation}
+\label{eq:global_acceleration}
+E^t_G(\mb{x}_g^{f-1}, \mb{x}_g^{f}, \mb{x}_g^{f+1}) = \left\| \mb{x}_g^{f+1} \oplus -2\mb{x}_g^{f} \oplus \mb{x}_g^{f-1} \right\|^2
+\end{equation}
+where $\oplus$ defines the right-to-left composition of rotations.
+This is evaluated by performing quaternion multiplication (denoted by $\otimes$):
+\begin{equation}
+\mb{x}_1 \oplus \mb{x}_0 = \mathcal{Q}^{-1} \left( \mathcal{Q}(\mb{x}_1) \otimes \mathcal{Q}(\mb{x}_0) \right)
+\end{equation}
+where $\mathcal{Q}$ and $\mathcal{Q}^{-1}$ are the quaternion and inverse quaternion transformations respectively.
+
+\subsubsection*{Global Scale}
+Global scale change is penalised logarithmically to prevent $\lambda_f$ decreasing to 0, as its absolute magnitude is not bound by any of the energy terms:
+\begin{equation}
+\label{eq:global_scale}
+E^t_\lambda(\lambda^{f-1}, \lambda^{f}, \lambda^{f+1}) = \left\| \log(\lambda^{f+1}) - 2 \log(\lambda^{f}) + \log(\lambda^{f-1}) \right\|^2
+\end{equation}
+
+\subsubsection*{Local Rotation Acceleration}
+The temporal penalty over local rotations is defined similarly to \eqref{eq:global_acceleration}:
+\begin{equation}
+\label{eq:local_acceleration}
+E^t_L(X^b, X^{f-1}, X^{f}, X^{f+1}, \mb{y}^{f-1}, \mb{y}^f, \mb{y}^{f+1} ; \{\mb{k}_i\}) = \sum_{i=1}^{N_V} \left\| \mb{\hat x}^{f+1}_i \oplus -2 \mb{\hat x}^{f}_i \oplus \mb{\hat x}^{f-1}_i \right\|^2
+\end{equation}
+using the definition for $\mb{\hat x}^{f}_i$ from \eqref{eq:basis_local_rotation}.
+
+\subsection{Smooth Vertices Between Frames}
+To ensure smooth motion of the instance vertices $V^f$, the basic \texttt{ARAP} energy \eqref{eq:arap} is applied between pairs of frames.
+This requires introducing the parameters $(\{ {\tilde\lambda}^f \}, \{ \mb{\tilde x}^f_g \}, \{ {\tilde X}^f \})$ to model the between-frame deformation.
+
+\subsection{Revised Complete Energy}
+Extending \eqref{eq:basic_model_complete_energy}:
+\begin{align}
+\label{eq:revised_model_complete_energy}
+E(V, \{V^f\}, \{\lambda^f\}, \{\mb{x}^f_g\}, \{X^f\}, X_b, \{\mb{y}^f\}) &= \zeta_{L} E_{L}(V, \{\lambda^f\}) \notag\\
+&+ \sum_{f=1}^{N_F} \zeta_{A} E'_{A}(V, V^f, \lambda^f, \mb{x}^f_g, X^f, X^b, \mb{y}^f ; \{\mb{k}_i\}) \notag\\
+&+ \sum_{f=1}^{N_F} \zeta_{U} E_{U}(V^f ; \mb{c}^f, P^f) \notag \\
+&+ \sum_{f=1}^{N_F} \zeta_{SP} E_{SP}(V^f, \mb{l}^f, U^f ; S^f)  + \zeta_{SN} E_{SN}(V^f, \mb{l}^f, U^f ; S_\phi^f) \notag \\
+&+ \sum_{f=2}^{N_F - 1} \zeta^t_G E^t_G(\mb{x}_g^{f-1}, \mb{x}_g^{f}, \mb{x}_g^{f+1}) + \zeta^t_\lambda E^t_\lambda(\lambda^{f-1}, \lambda^{f}, \lambda^{f+1}) \notag \\
+&+ \sum_{f=2}^{N_F - 1} \zeta^t_L E^t_L(X^b, X^{f-1}, X^{f}, X^{f+1}, \mb{y}^{f-1}, \mb{y}^f, \mb{y}^{f+1} ; \{\mb{k}_i\}) \notag \\
+&+ \sum_{f=2}^{N_F} \zeta^t_A E_{A}(V^{f-1}, V^f, {\tilde\lambda}^f, \mb{\tilde x}^f_g, {\tilde X}^f)
+\end{align}
+
+% \section{Optimisation}
+% \subsection{Initialisation}
+% 
+% \subsection{Block Alternation}
+
+\end{document}

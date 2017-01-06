@@ -1,0 +1,3774 @@
+@string{cvpr = {Proc. CVPR}} %{Computer Vision and Pattern Recognition (CVPR), 2009 IEEE Conference on}
+@string{iccv = {Proc. ICCV}}
+@string{bmvc = {Proc. BMVC}}
+@string{ijcv = {IJCV}}
+@string{icra = {Proc. ICRA}}
+
+@book{Girveau:2006:OUAT,
+author = {Bruno Girveau},
+title = {Once Upon a Time---Walt Disney: The Sources of Inspiration for the Disney Studios},
+year = 2007,
+publisher = {Prestel}
+}
+
+@inproceedings { PonsMoll11,
+  author = {Pons-Moll, G. and {Leal-Taix\'e}, L. and  Truong, T. and Rosenhahn, B.},
+  title = {Efficient and Robust Shape Matching for Model Based Human Motion Capture },
+  booktitle = {Proc. DAGM},
+  year = {2011}}
+
+@inproceedings{Salzmann:2010:CDG,
+author = {M. Salzmann and R. Urtasun},
+title = {Combining discriminative and generative methods for {3D} deformable surface and articulated pose reconstruction},
+booktitle = cvpr,
+year = 2010
+}
+@article{GallIJCV10,
+        AUTHOR = "Gall, J. and Rosenhahn, B. and Brox, T. and Seidel, H.P.",
+        TITLE = "Optimization and Filtering for Human Motion Capture: A Multi-Layer Framework",
+        JOURNAL = IJCV,
+        VOLUME = "87",
+        YEAR = "2010",}
+
+@article{anguelov05scape,
+        AUTHOR = "Anguelov, D. and Srinivasan, P. and Koller, D. and Thrun, S. and Rodgers, J. and Davis, J.",
+        TITLE = "SCAPE: Shape Completion and Animation of People",
+        JOURNAL = "ToG",
+        VOLUME = "24",
+        YEAR = "2005",
+        NUMBER = "3"}
+
+@inproceedings{Ballan08,
+title = {Marker-less motion capture of skinned models in a four camera set-up using optical flow and silhouettes},
+author = {Ballan, L. and Cortelazzo, G.M.},
+booktitle = {In Proc. 3DPVT},
+year= 2008}
+
+@Article{Delaunoy11,
+  author       = "Delaunoy, Ama{\"e}l and Prados, Emmanuel",
+  title        = "Gradient Flows for Optimizing Triangular Mesh-based Surfaces: Applications to {3D} Reconstruction Problems dealing with Visibility",
+  journal      = ijcv,
+  volume    = {95},
+  number    = {2},
+  year      = {2011},
+  pages     = {100-123},
+}
+
+@InProceedings{Delaunoy08,
+  author       = "Delaunoy, Ama{\"e}l and Prados, Emmanuel and Gargallo, Pau and Pons, Jean-Philippe and Sturm, Peter",
+  title        = "Minimizing the Multi-view Stereo Reprojection Error for Triangular Surface Meshes",
+  booktitle    = bmvc,
+  year         = "2008"
+}
+
+
+@TechReport{criminisi2011decisionforests,
+    author = "Criminisi, A. and Shotton, J. and Konukoglu, E.",
+    title = "Decision Forests for Classification, Regression, Density Estimation, Manifold Learning and Semi-Supervised Learning",
+    institution = "Microsoft Research",
+    month = oct,
+    year = "2011",
+    note = "MSR-TR-2011-114"}
+
+@inproceedings{balan07detailed,
+        AUTHOR = "Balan, A.O. and Sigal, L. and Black, M.J. and Davis, J.E. and Haussecker, H.W.",
+        TITLE = "Detailed Human Shape and Pose from Images",
+        BOOKTITLE = cvpr,
+        YEAR = "2007"}
+
+@inproceedings{baak11data,
+  Author = {Baak, A. and M\"{u}ller, M. and Bharaj, G. and Seidel, H.-P. and Theobalt, C.},
+  Title = {A Data-Driven Approach for Real-Time Full Body Pose Reconstruction from a Depth Camera},
+  booktitle = iccv,
+  year = {2011},
+  annote = { Geodesic extrema - suffers from topology change.  Assumes known body shape.  Only works for small chest angle rotations.  Requires uncropped images.  Tracking. }
+}
+
+@inproceedings{ye11pose,
+  Author = {Ye, M. and Wang, X. and Yang, R. and Ren, L. and Pollefeys, M.},
+  Title = {Accurate {3D} Pose Estimation From a Single Depth Image},
+  booktitle = iccv,
+  year = {2011},
+annote = {
+Nearest neighbor matching of whole poses against large database of frames in a PCA space.  Very slow (60+ seconds per frame), implicitly assumes whole frame visible.  Includes failure recovery that relies on previous frame's estimate. Strong sensitivity to noise (ours very good).
+}
+}
+
+@inproceedings{davinci1487vitruvian,
+  Author = {da Vinci, L.},
+  Title = {The {V}itruvian {M}an},
+  year = {c. 1487}}
+
+@inproceedings{muller10human,
+  Author = {M\"{u}ller, J. and Arens, M.},
+  Title = {Human Pose Estimation with Implicit Shape Models},
+  booktitle = {ARTEMIS},
+  year = {2010}}
+
+@inproceedings{urtasun08local,
+    Title = {Local Probabilistic Regression for Activity-Independent Human Pose Inference},
+    Author = {Urtasun, R. and Darrell, T.},
+    booktitle = cvpr,
+    year = {2008}}
+
+@inproceedings{kanaujia07semi,
+    Author = {Kanaujia, A. and Sminchisescu, C. and Metaxas, D.},
+    Title = {Semi-Supervised Hierarchical Models for {3D} Human Pose Reconstruction},
+    booktitle = cvpr,
+    year = {2007}}
+
+@inproceedings{sminchisescu02silhouettes,
+        AUTHOR = {Sminchisescu, C. and Telea, A.},
+        TITLE = {Human Pose Estimation from Silhouettes: A Consistent Approach Using Distance Level Sets},
+        BOOKTITLE = {WSCG},
+        YEAR = {2002}}
+
+@article{brubaker10physics,
+    title = {Physics-based Person Tracking Using the Anthropomorphic Walker},
+    author = {Brubaker, M.A. and Fleet, D.J. and Hertzmann, A.},
+    journal = ijcv,
+    year = {2010}}
+
+
+@inproceedings{tsoli11shape,
+  title = {Shape- and Pose-Invariant Correspondences using Probabilistic Geodesic Surface Embedding},
+  author = {Tsoli, A. and Black, M.J.},
+  year = {2011},
+  booktitle = {DAGM Symposium}}
+
+@article{elad03bending,
+  title = {On Bending Invariant Signatures for Surfaces},
+  author = {Elad, A. and Kimmel, R.},
+  journal = {TPAMI},
+  year = {2003},
+  volume = {25},
+  number = {10}}
+
+@article{vitter85reservoir,
+  title = {Random Sampling with a Reservoir},
+  author = {Vitter, J. S.},
+  journal = {ACM Trans. Math. Software},
+  volume = {11},
+  number = {1},
+  year = {1985},
+  pages = {37-57}}
+
+@conference{kinectcamera,
+  title = {Kinect for {X}box 360},
+  author = {{Microsoft Corp. Redmond WA}}
+}
+
+@conference{shotton2011real,
+  title = {Real-time human pose recognition in parts from a single depth image},
+  author={Shotton, J. and Fitzgibbon, A.W. and Cook, M. and Sharp, T. and Finocchio, M. and Moore, R. and Kipman, A. and Blake, A.},
+  booktitle=cvpr,
+  pages={},
+  issn={},
+  year={2011},
+  organization={IEEE}
+}
+
+@article{Deutscher05,
+  author    = {Jonathan Deutscher and Ian D. Reid},
+  title     = {Articulated Body Motion Capture by Stochastic Search},
+  journal   = ijcv,
+  volume    = {61},
+  number    = {2},
+  year      = {2005},
+  pages     = {185--205},
+}
+
+@article{Rosales06,
+author = {R Rosales and S Sclaroff},
+title = {Combining generative and discriminative models in a framework for articulated pose estimation},
+journal= ijcv,
+volume = 67,
+number = 3,
+pages = {251--276},
+year = 2006,
+}
+
+@article{leibe08robust,
+	Author = {Leibe, B. and Leonardis, A. and Schiele, B.},
+	Journal = ijcv,
+	Number = {1-3},
+	Pages = {259-289},
+	Title = {Robust Object Detection with Interleaved Categorization and Segmentation},
+	Volume = {77},
+	Year = {2008}}
+
+
+@inproceedings{rogez08pose,
+	Author = {G. Rogez and J. Rihan and S. Ramalingam and C. Orrite and P.H.S. Torr},
+	Booktitle = cvpr,
+	Title = {Randomized Trees for Human Pose Detection},
+	Year = {2008}}
+
+
+@inproceedings{plagemann10bodyparts,
+    Author = {C. Plagemann and V. Ganapathi and D. Koller and S. Thrun},
+    Booktitle = icra,
+    Title = {Real-time Identification and Localization of Body Parts from Depth Images},
+    Year = {2010}}
+
+@inproceedings{bourdev09poselets,
+  author    = {L. Bourdev and J. Malik},
+  title     = {Poselets: Body Part Detectors Trained Using {3D} Human Pose Annotations},
+  booktitle = iccv,
+  year      = {2009}}
+
+@inproceedings{agarwal04trackingb,
+	Author = {A. Agarwal and B. Triggs},
+	Booktitle = cvpr,
+	Title = {{3D} Human Pose from Silhouettes by Relevance Vector Regression},
+	Year = {2004}}
+
+@conference{ganapathi2010real,
+  title={{Real time motion capture using a single time-of-flight camera}},
+  author={Ganapathi, V. and Plagemann, C. and Koller, D. and Thrun, S.},
+  booktitle=cvpr,
+  pages={755--762},
+  issn={1063-6919},
+  year={2010},
+  organization={IEEE}
+}
+
+
+% ----
+
+@article{Li:2009:RSV,
+    	Author = {Hao Li and Bart Adams and Leonidas J. Guibas and Mark Pauly},
+	Title = {Robust {S}ingle-{V}iew {G}eometry and {M}otion {R}econstruction},
+  	Journal = {ACM Trans.~Graphics},
+	Volume = {28},
+	Number = {5},
+  	Year = {2009},
+}
+
+@article{Skrba:2009:AQ,
+journal = {Computer Graphics Forum},
+volume= 28, year=2009, number = 6, pages = {1541--1560},
+title = {Animating Quadrupeds: Methods and Applications},
+author = {Ljiljana Skrba and  Lionel Reveret and Franck H\'etroy and Marie-Paule Cani and Carol O'Sullivan}
+}
+
+@inproceedings{Shih:2008:Cap,
+author = {Liang-Yu Shih and Bing-Yu Chen and Ja-Ling Wu},
+title = {Video-based Motion Capturing for Skeleton-based 3D Models},
+booktitle = {Proc. Pacific-Rim Symposium on Image and Video Tech. (PSIVT)},
+pages = {748--758}, 
+year = 2009,
+annote = {
+single-view silhouette
+}
+}
+
+@inproceedings{Paprocki11,
+year = 2011,
+author = {Mateusz Paprocki},
+booktitle = {Proc. SIAM Comp. Sci. and Eng, Reno, NV},
+title = {Symbolic Mathematics in Pure Python}
+}
+
+@phdthesis{Grassia00,
+author = {F. Sebastain Grassia},
+title = {Believable Automatically Synthesized Motion
+by Knowledge-Enhanced Motion
+Transformation},
+year = 2000,
+school = {Carnegie Mellon University CMU-CS-00-163},
+annote = {pivot joint page 64}
+}
+
+@inproceedings{Favreau:2004:AG,
+author = {Favreau, L. and Reveret, L. and Depraz, C. and Cani, M.-P},
+year = 2004,
+title = {Animal gaits from video},
+booktitle = {Symposium on Computer Animation, ACM SIGGRAPH},
+annote = {
+Dimensionality reduction on binarized images 
+to automatically select key-images from a live video.
+Artist is asked to provide 3D pose examples of the key-images and the system interpolates the examples with Radial Basis Function (RBF).
+}
+}
+
+
+
+
+@article{Gorce:2011:MB3,
+author = {Martin {de la Gorce} and David J Fleet and Nikos Paragios},
+title = {Model-{B}ased {3D} {H}and {P}ose {E}stimation from {M}onocular {V}ideo},
+journal = {IEEE Trans.~PAMI},
+year = {2011},
+volume = {33},
+number = {9}
+}
+
+@inproceedings{Blanz:2003:RFI,
+author = {V. Blanz and C. Basso and T. Poggio and T. Vetter},
+title = {Reanimating {F}aces in {I}mages and {V}ideo},
+booktitle = {Proc.~Eurographics},
+year = {2003}
+}
+
+
+
+@ARTICLE{Vetter97,
+author={Vetter, T. and Poggio, T.}, 
+journal=pami,
+title={Linear object classes and image synthesis from a single example image}, 
+year={1997}, 
+volume={19}, 
+number={7},
+pages={733--742}, 
+doi={10.1109/34.598230},
+}
+
+@article{Aguiar:2008:PCF,
+author = {E. {de Aguiar} and C. Stoll and C. Theobalt and N. Ahmed and H.-P. Seidel and S. Thrun}, 
+title = {Performance {C}apture from {S}parse {M}ulti-view {V}ideo},
+journal = {ACM Trans.~Graphics},
+volume = {27},
+number = {3},
+year = {2008}
+}
+
+@article{Vlasic:2005:FTW,
+author = {Daniel Vlasic and Matthew Brand and Hanspeter Pfister and Jovan Popovi\'{c}},
+title = {Face Transfer with Multilinear Models},
+journal = {ACM Trans. Graphics},
+year = {2005}
+}
+
+@article{Vlasic:2008:AMA,
+author = {Daniel Vlasic and Ilya Baran and Wojciech Matusik  and Jovan Popovi\'{c}},
+title = {Articulated Mesh Animation from Multi-view Silhouettes},
+journal = {ACM Trans. Graphics},
+year = {2008}
+}
+
+@inproceedings{Kraevoy:2009:MCD,
+author = {Vladislav Kraevoy and Alla Sheffer and van de Panne, Michiel},
+booktitle = {EUROGRAPHICS Symposium on Sketch-Based Interfaces and Modeling},
+year = 2009,
+title = {Modeling from Contour Drawings},
+annote = {adapt a template mesh to user-drawn contours.  contour-sil correspondence based on proximity and normal similarity, then hmm. iterate.}
+}
+
+@inproceedings{Alexa:2000:ARA,
+author ={Marc Alexa and Daniel Cohen-Or and David Levin},
+title = {As-{R}igid-{A}s-{P}ossible {S}hape {I}nterpolation},
+booktitle = {Proc.~SIGGRAPH},
+year = {2000}
+}
+
+@inproceedings{Sorkine:2007:ARA,
+author = {Olga Sorkine and Marc Alexa},
+title = {As-{R}igid-{A}s-{P}ossible {S}urface {M}odeling},
+booktitle = {Proc.~SGP},
+year = {2007}
+}
+
+@article{Jacobson:2012:FAS,
+author = {Alec Jacobson and Ilya Baran and Ladislav Kavan and Jovan Popovi\'{c} and Olga Sorkine},
+title = {Fast {A}utomatic {S}kinning {T}ransformations},
+journal = {ACM Trans.~Graphics},
+year = {2012}
+}
+
+@inproceedings{Balan:2007:DHS,
+author = {Alexandru O. Balan and Leonid Sigal and Michael J. Black and James E. Davis and Horst W. Haussecker},
+title = {Detailed Human Shape and Pose from Images},
+booktitle = cvpr,
+year = {2007}}
+
+@INPROCEEDINGS{HernandezEtc_ICCV07,
+ author = {Hern\'andez, C. and Vogiatzis, G. and Brostow, G. J. and Stenger, B. and Cipolla, R.},
+ title =  {Non-{R}igid {P}hotometric {S}tereo with {C}olored {L}ights},
+ booktitle = {Proc.~ICCV},
+ year = 2007
+}
+@inproceedings{Furukawa:2009:D3M,
+author = {Yasutaka Furukawa and Jean Ponce},
+title = {Dense {3D} {M}otion {C}apture for {H}uman {F}aces},
+year = {2009},
+booktitle = cvpr
+}
+@inproceedings{Furukawa:2008:D3M,
+author = {Yasutaka Furukawa and Jean Ponce},
+title = {Dense {3D} {M}otion {C}apture from {S}ynchronized {V}ideo {S}treams},
+year = {2008},
+booktitle = cvpr
+}
+@inproceedings{Zhang:2003:SSS,
+author = {Li Zhang and Brian Curless and Steven M. Seitz},
+title = {Spacetime {S}tereo: {S}hape {R}ecovery for {D}ynamic {S}cenes},
+booktitle = cvpr,
+year = {2003}
+}
+
+@article{Park:2006:CAA,
+author = {Sang Il Park and Jessica K. Hodgins},
+title = {Capturing and {A}nimating {S}kin {D}eformation in {H}uman {M}otion},
+journal = {ACM Trans.~Graphics},
+year = {2006},
+volume = {25},
+number = {3}
+}
+
+@article{Vlasic:2009:DSC,
+title = {Dynamic {S}hape {C}apture using {M}ulti-{V}iew {P}hotometric {S}tereo},
+author = {Daniel Vlasic and Pieter Peers and Ilya Baran and Paul Debevec and Jovan Popovi\'{c} and Szymon Rusinkiewicz and Wojciech Matusik},
+journal = {ACM Trans.~Graph.},
+year = {2009},
+volume = {28},
+number = {5}
+}
+
+@inproceedings{Gall:2009:MC,
+author = {J. Gall and C. Stoll and E. de Aguiar and C. Theobalt and B. Rosenhahn and H.-P. Seidel},
+title = {Motion Capture Using Joint Skeleton Tracking and Surface Estimation},
+booktitle = {Proc. CVPR},
+year = 2009,
+annote = {
+Adapt single scanned mesh to silhouette.  Good results on skirts.
+}
+}
+
+@article{Sand:2003:CCS,
+author = {Peter Sand and Leonard McMillan and Jovan Popovi\'{c}},
+title = {Continuous {C}apture of {S}kin {D}eformation},
+journal = {ACM Trans.~Graphics},
+volume = {22},
+number = {3},
+year = {2003}
+}
+
+@InProceedings{Buchanan:2005:DNA,
+	author		= "Aeron M. Buchanan and Andrew W. Fitzgibbon",
+	title		= "Damped {N}ewton {A}lgorithms for {M}atrix {F}actorization with {M}issing {D}ata",
+	booktitle	= "Proc. CVPR",
+	pages		= "316--322",
+	volume		= "2",
+	year		= "2005",
+}
+
+
+@article{Ullman:1984:MRT,
+author = {Shimon Ullman},
+title = {Maximizing rigidity: the incremental recovery of 3-{D} structure from rigid and nonrigid motion},
+journal = {Perception},
+year = {1984},
+volume = {13},
+number = {3},
+pages = {255--274}
+}
+
+@inproceedings{Bishop:1999:VPC,
+author = {Christopher M. Bishop},
+title = {Variational {P}rincipal {C}omponents},
+booktitle = {Proc. ICANN},
+year = {1999},
+volume = {1},
+pages = {509--514}
+}
+
+@inproceedings{Bishop:1998:BP,
+author = {Christopher M. Bishop},
+title = {Bayesian {PCA}},
+booktitle = {Proc. NIPS 11},
+year = {1998},
+pages = {382--388}
+}
+
+
+@inproceedings{Parke:1972:CGA,
+ author = {Frederick I. Parke},
+ title = {Computer generated animation of faces},
+ booktitle = {{ACM}'72: {P}roceedings of the {ACM} annual conference},
+ year = {1972},
+ pages = {451--457},
+ }
+% location = {Boston, Massachusetts, United States},
+% doi = {http://doi.acm.org/10.1145/800193.569955},
+% publisher = {ACM Press},
+% address = {New York, NY, USA},
+
+
+@article{Dempster:1977:MLF,
+author = {A. P. Dempster and N. M. Laird and D. B. Rubin},
+title = {Maximum likelihood from incomplete data via the {EM} algorithm},
+journal = {J.  of the Royal Statistical Society series B},
+volume = {39},
+pages = {1--38},
+year = {1977}
+}
+
+
+@book{Bishop:1995:NNF,
+author = {Christopher M. Bishop},
+title = {Neural {N}etworks for {P}attern {R}ecognition},
+publisher = {Oxford University Press},
+year = {1995},
+}
+
+@article{Treuille:2006:MRF,
+author = {Adrien Treuille and Andrew Lewis and Zoran Popovi\'{c}},
+title = {Model {R}eduction for {R}eal-time {F}luids},
+journal = {ACM Trans.~on Graphics},
+volume = {25},
+number = {3},
+year = {2006},
+pages = {826--834}
+}
+
+@article{Tipping:1999:PPC,
+author = {Michael E. Tipping and Christopher M. Bishop},
+title = {Probabilistic {P}rincipal {C}omponents {A}nalysis},
+year = {1999},
+journal = {J. Royal Statistical Society, Series B},
+volume = {61},
+number = {3},
+pages = {611--622}
+}
+
+@article{Sirovich:1987:LDP,
+author = {L. Sirovich and M. Kirby},
+title = {Low-dimensional procedure for the characterization of human faces},
+journal = {J. Opt. Soc. Am. A},
+volume = {4},
+number = {3},
+month = mar,
+year = {1987},
+pages = {519--524}
+}
+
+@inproceedings{Han:2001:MMS,
+author = {Mei Han and Takeo Kanade}, 
+title = {Multiple {M}otion {S}cene {R}econstruction from {U}ncalibrated {V}iews},
+booktitle = {Proc.~ICCV},
+year = {2001},
+month = jul,
+volume ={1},
+pages = {163--170}
+}
+
+@article{Costeira:1998:AMF,
+author = {{Jo\~{a}o} Paulo Costeira and Takeo Kanade},
+title = {A {M}ultibody {F}actorization {M}ethod for {I}ndependently {M}oving {O}bjects},
+journal = {International Journal of Computer Vision},
+volume = {29},
+number = {3},
+pages = {159--179},
+year = {1998}
+}
+
+@article{Barbic:2005:RSI,
+  author = "Jernej Barbi\u{c} and Doug James",
+  title = "Real-{T}ime {S}ubspace {I}ntegration for {S}t.~{V}enant-{K}irchhoff deformable {M}odels",
+  year = "2005",
+  month = aug,
+  journal = "ACM Trans.~on Graphics",
+  volume = "24",
+  number = "3",
+  pages = "982--990",
+}
+
+@article{Xiao:2006:ACS,
+author = {Jing Xiao and {Jin-xiang} Chai and Takeo Kanade},
+title = {A {C}losed-{F}orm {S}olution to {N}on-{R}igid {S}hape and {M}otion {R}ecovery},
+journal = {Int.~J.~of Computer Vision},
+year = {2006},
+volume = {67},
+number = {2},
+pages = {233--246}
+}
+
+
+@inproceedings{Xiao:2004:NRS,
+author = {Jing Xiao and Takeo Kanade},
+title = {Non-{R}igid {S}hape and {M}otion {R}ecovery: {D}egenerate {D}eformations},
+booktitle = cvpr,
+year = {2004},
+volume = {1},
+pages = {668--675}
+}
+
+
+@inproceedings{Xiao:2004:ACS,
+author = {Jing Xiao and {Jin-xiang} Chai and Takeo Kanade},
+title = {A {C}losed-{F}orm {S}olution to {N}on-{R}igid {S}hape and {M}otion {R}ecovery},
+booktitle = {Proc.~ECCV},
+year = {2004},
+}
+
+
+@inproceedings{Torresani:2004:ANR,
+author = {Lorenzo Torresani and Aaron Hertzmann},
+title = {Automatic {N}on-{R}igid {3D} {M}odeling from {V}ideo},
+booktitle = {Proc.~ECCV},
+year = {2004},
+pages ={299--312}
+}
+
+
+
+@book{Gelman:2003:BDA,
+author = {Andrew Gelman and John B. Carlin and Hal S. Stern and Donald B. Rubin},
+title = {Bayesian {D}ata {A}nalysis},
+publisher = {CRC Press},
+year = {2003},
+edition = {2nd}
+}
+
+
+@article{Johansson:1973:VPO,
+author = {Gunnar Johansson},
+title = {Visual perception of biological motion and a model for its analysis},
+journal = {Perception \& Psychophysics},
+volume = {14},
+pages = {201-211},
+year = {1973}
+}
+
+@article{Troje:2002:DBM,
+author = {Nikolaus F. Troje},
+title = {Decomposing biological motion: {A} framework for analysis and synthesis of human gait patterns},
+journal = {J. of Vision},
+volume = {2},
+number = {5},
+article = {2},
+pages = {371--387},
+year = {2002}
+}
+
+@book{Hartley:2003:MVG,
+author = {Richard Hartley and Andrew Zisserman},
+title = {Multiple View Geometry in Computer Vision},
+publisher = {Cambridge University Press},
+edition = {2nd},
+year = {2003}
+}
+
+
+
+
+@book{Forsyth:2003:CVA,
+author = {David A. Forsyth and Jean Ponce},
+title = {Computer {V}ision: {A} {M}odern {A}pproach},
+publisher = {Prentice Hall},
+year = {2003}
+}
+
+@article{Jepson:2003:ROA,
+author = {Allan D. Jepson and David J. Fleet and Thomas F. El-Maraghi},
+title = {Robust {O}nline {A}ppearance {M}odels for {V}isual {T}racking},
+journal = {IEEE Trans. PAMI},
+volume = {25},
+number = {10},
+pages = {1296--1311},
+year={2003}
+}
+
+
+
+@inproceedings{Gruber:2003:FWU,
+author = {Amit Gruber and Yair Weiss},
+title = {Factorization with {U}ncertainty and {M}issing {D}ata: {E}xploiting {T}emporal {C}oherence},
+booktitle = {Proc.~NIPS 16},
+year = {2003},
+note = {To appear}
+}
+
+
+
+@inproceedings{Wang:2006:GPD,
+author = {Jack M. Wang and David J. Fleet and Aaron Hertzmann},
+title = {Gaussian {P}rocess {D}ynamical {M}odels},
+booktitle = {Proc.~NIPS 18},
+year = {2006},
+pages = {1441--1448}
+}
+
+@inproceedings{Pavlovic:2000:LSL,
+  author    = {Vladimir Pavlovi{\'{c}} and
+               James M. Rehg and
+               John MacCormick},
+  title     = {Learning {S}witching {L}inear {M}odels of {H}uman {M}otion.},
+  booktitle = {Advances in Neural Information Processing Systems 13},
+  year      = {2001},
+  pages     = {981-987}
+}
+
+
+
+@inproceedings{Irani:1999:ADM,
+author = {M. Irani and P. Anandan},
+title = {About {D}irect {M}ethods},
+booktitle = {Vision Algorithms '99},
+note = {LNCS 1883},
+pages = {267--277},
+year = {2000}
+}
+
+
+@article{Black:1996:TRE,
+author = {Michael J. Black and P. Anandan}, 
+title = {The robust estimation of multiple motions: {P}arametric and piecewise-smooth flow fields},
+journal = {Computer Vision and Image Understanding},
+volume = {63},
+number = {1},
+pages = {75--104},
+year = {1996}
+}
+
+@inproceedings{Salakhutdinov:2003:OWE,
+author = {Ruslan Salakhutdinov and Sam T. Roweis and Zoubin Ghahramani},
+title = {Optimization with {EM} and {E}xpectation-{C}onjugate-{G}radient},
+booktitle={Proc.~ICML 20},
+year = {2003},
+pages = {672--679}
+}
+
+@phdthesis{Dellaert:2001:MCE,
+    author = "Frank Dellaert",
+    title = "Monte {C}arlo {EM} for {D}ata-{A}ssociation and its {A}pplications in {C}omputer {V}ision",
+    school = "Carnegie Mellon University",
+    year = 2001
+}
+
+
+
+@article{Ross:2010:LAS,
+author  = {David Ross and Daniel Tarlow and Richard S. Zemel},
+title = {Learning {A}rticulated {S}tructure and {M}otion},
+journal = {IJCV},
+year = {2010},
+volume = {88},
+number = {2}
+}
+
+@inproceedings{Taylor:2010:NRS,
+author = {Jonathan Taylor and Allan D. Jepson and Kiriakos N. Kutulakos},
+title = {Non-{R}igid {S}tructure from {L}ocally-{R}igid {M}otion},
+booktitle = cvpr,
+year = {2010}
+}
+
+@article{Bai:2009:VSC,
+author = {Xue Bai and Jue Wang and David Simons and Guillermo Sapiro},
+title = {Video {S}nap{C}ut: {R}obust {V}ideo {O}bject {C}utout {U}sing {L}ocalized {C}lassifiers},
+journal = {ACM Trans.~Graphics},
+year = {2009}
+}
+
+
+@inproceedings{Tresadern:2005:ASF,
+author = {P. Tresadern and I. Reid},
+title = {Articulated {S}tructure from {M}otion by {F}actorization},
+booktitle = cvpr,
+year = {2005}
+}
+
+@article{Yan:2008:AFB,
+title = {A {F}actorization-{B}ased {A}pproach for {A}rticulated {N}onrigid {S}hape, {M}otion and {K}inematic {C}hain {R}ecovery from {V}ideo},
+author = {Jingyu Yan and Marc Pollefeys},
+journal = {IEEE Trans.~PAMI},
+volume = {30},
+number = {5},
+year = {2008}
+}
+
+@article{Dellaert:2003:EMA,
+author = {Frank Dellaert and Steven M. Seitz and Charles E. Thorpe and Sebastian Thrun},
+title = {{EM}, {MCMC}, and {C}hain {F}lipping for {S}tructure from {M}otion with {U}nknown {C}orrespondence},
+journal = {Machine Learning},
+volume = {50},
+pages = {45--71},
+year = {2003},
+number = {1--2}
+}
+
+@incollection{Jordan:1998:AIT,
+author = {Michael I. Jordan and Zoubin Ghahramani and Tommi S. Jaakkola and Lawrence K. Saul},
+title = {An introduction to variational methods for graphical models},
+editor = {M. I. Jordan},
+booktitle = {Learning in Graphical Models},
+publisher={Kluwer Academic Publishers},
+year = {1998}
+}
+
+@article{Torresani:2008:NSF,
+author = {Lorenzo Torresani and Aaron Hertzmann and Christoph Bregler},
+title ={Nonrigid {S}tructure-from-{M}otion: {E}stimating {S}hape and {M}otion with {H}ierarchical {P}riors},
+journal = {IEEE Trans.~PAMI},
+year = {2008},
+volume = {30},
+number = {5}
+}
+
+
+@inproceedings{Torresani:2003:LNR,
+author = {Lorenzo Torresani and Aaron Hertzmann and Christoph Bregler},
+title = {Learning {N}on-{R}igid {3D} {S}hape from {2D} {M}otion},
+booktitle = {Proc.~NIPS 16},
+year = {2004},
+pages = {1555--1562}
+}
+
+@Article{Irani:2002:MFC,
+  author =       "Michal Irani",
+  journal =      "Int. J. of Comp. Vision",
+  volume =       "48",
+  number =       "3",
+  pages =        "173--194",
+  title =        "Multi-{F}rame {C}orrespondence {E}stimation {U}sing {S}ubspace {C}onstraints",
+  year =         "2002",
+}
+
+
+
+@inproceedings{Zhang:2003:SAM,
+author = {Li Zhang and Brian Curless and Aaron Hertzmann and Steven M. Seitz},
+title = {Shape and {M}otion under {V}arying {I}llumination: {U}nifying {S}tructure from {M}otion, {P}hotometric {S}tereo, and {M}ulti-view {S}tereo},
+booktitle = {Proc.~ICCV},
+month = oct,
+year = {2003},
+pages = {618--625}
+}
+
+
+
+@inproceedings{Bascle:1998:SOF,
+author = {B.~Bascle and A. Blake},
+title = {Separability of pose and expression in facial tracking animation},
+booktitle = {Proc.~ICCV},
+month = jan,
+year = {1998},
+pages = {323--328}
+}
+
+
+@article{Shumway:1982:AAT,
+author = {R. H. Shumway and D. S. Stoffer},
+title = {An approach to time series smoothing and forecasting using the {EM} algorithm},
+journal = {J. Time Series Analysis},
+volume = {3},
+number = {4},
+pages = {253--264},
+year = {1982}
+}
+
+@techreport{Ghahramani:1996:PEF,
+author = {Zoubin Ghahramani and Geoff E. Hinton},
+title = {Parameter estimation for linear dynamical systems},
+institution = {University of Toronto},
+number = {CRG-TR-96-2},
+year = {1996}
+}
+
+
+@article{Shum:1995:PCA,
+author = {Harry Shum and Katsushi Ikeuchi and Raj Reddy},
+title = {Principal {C}omponent {A}nalysis with {M}issing {D}ata and {I}ts {A}pplications to {P}olyhedral {O}bject {M}odeling},
+journal = {IEEE Trans. PAMI},
+volume = {17},
+number = {9},
+pages = {854--867},
+year={1995}
+}
+
+
+@article{Jacobs:2001:LFW,
+author = {David W. Jacobs},
+title = {Linear {F}itting with {M}issing {D}ata for {S}tructure-{F}rom-{M}otion},
+journal = {Computer Vision and Image Understanding},
+volume = {82},
+pages={57--82},
+year = {2001}
+}
+
+@techreport{Torresani:2003:RMF,
+author = {Lorenzo Torresani and Aaron Hertzmann and Christoph Bregler},
+title = {Robust {M}odel-{F}ree {T}racking of {N}on-{R}igid {S}hape},
+year = {2003},
+institution = {New York University},
+number = {TR2003-840}
+}
+
+@article{MacKay95:network,
+ KEY            ="MacKay",
+ AUTHOR         ="D. J. C.  MacKay",
+ TITLE          ="Probable {N}etworks and {P}lausible {P}redictions - {A}
+		  {R}eview of {P}ractical {B}ayesian {M}ethods for {S}upervised
+		  {N}eural {N}etworks",
+ journal ="Network: CNS",
+ volume = 6,
+ YEAR           =1995,
+ pages = "469-505",
+ ANNOTE ="Date submitted: 1994; Date accepted: 1994; Collaborating
+		  institutes: none"}
+
+@inproceedings{Shi:1994:GFT,
+author = {Jianbo Shi and Carlo Tomasi},
+title = {Good {F}eatures to {T}rack},
+booktitle = cvpr,
+year = {1994},
+pages = {593--600}
+}
+
+
+@inproceedings{Morris:1998:AUF,
+author = {Daniel D. Morris and Takeo Kanade},
+title = {A {U}nified {F}actorization {A}lgorithm for {P}oints, {L}ine {S}egments and {P}lanes with {U}ncertainty {M}odels},
+booktitle = {Proc.~ICCV},
+month = jan,
+year = {1998},
+pages = {696--702}}
+
+@inproceedings{Roweis:1998:EAF,
+author = {Sam T. Roweis},
+title = {{EM} algorithms for {PCA} and {SPCA}},
+booktitle = {Proc.~NIPS 10},
+year = {1998},
+pages = {626--632}
+}
+
+
+@article{Tipping:1999:MOP,
+author = {Michael E. Tipping and Christopher M. Bishop},
+title = {Mixtures of probabilistic principal component analysers},
+year = {1999},
+journal = {Neural Computation},
+volume = {11},
+number = {2},
+pages = {443-482}
+}
+
+@inproceedings{Black:1993:AFF,
+author = {Michael J. Black and P. Anandan},
+title = {A {F}ramework for the {R}obust {E}stimation of {O}ptical {F}low}, 
+booktitle = {Proc.~ICCV},
+year = {1993},
+month = may,
+pages = {231--236}
+}
+
+
+
+
+
+@techreport{Ghahramani:1996:TEA,
+author = {Zoubin Ghahramani and Geoff E. Hinton},
+title = {The {EM} {A}lgorithm for {M}ixtures of {F}actor {A}nalyzers },
+institution = {University of Toronto},
+number = {CRG-TR-96-1},
+year = {1996}
+}
+
+@article{Roweis:1998:AUR,
+title = { A {U}nifying {R}eview of {L}inear {G}aussian {M}odels},
+author = {Sam Roweis and Zoubin Ghahramani},
+year = 1998,
+month = feb,
+journal = {Neural Computation},
+volume = 11,
+number = 2
+}
+
+@inproceedings{Blanz:1999:AMM,  author = "Volker Blanz and Thomas Vetter",  title = "A {M}orphable {M}odel for the {S}ynthesis of {3D} {F}aces",  year = "1999",  month = aug,  booktitle = "Proceedings of SIGGRAPH 99",  series = "Computer Graphics Proceedings",  pages = "187--194",}
+
+
+@inproceedings{Cootes:2001:SMO,
+author = {T. F. Cootes and C. J. Taylor},
+title = {Statistical models of appearance for medical image analysis and computer vision},
+booktitle = {Proc.~SPIE Medical Imaging},
+year = {2001}
+}
+
+@inproceedings{Soatto:2002:DDM,
+author = {Stefano Soatto and Anthony J. Yezzi},
+title = {{DEFORMOTION}: {D}eforming {M}otion, {S}hape {A}verages, and the {J}oint {R}egistration and {S}egmentation of {I}mages},
+booktitle = {Proc.~ECCV},
+month = may,
+year = {2002},
+volume = {3},
+pages = {32--47}
+}
+
+
+@inproceedings{Yezzi:2003:DDM,
+author = {Anthony J. Yezzi and Stefano Soatto},
+title = {{D}eformotion: {D}eforming {M}otion, {S}hape {A}verages, and the {J}oint {R}egistration and {A}pproximation of {S}tructures in {I}mages},
+booktitle = {Int.~J.~Computer Vision},
+year = {2003},
+volume = {53},
+pages = {153--167}
+}
+
+@article{Akhter:2011:TSA,
+author = {Ijaz Akhter and Yaser Sheikh and Sohaib Khan and Takeo Kanade},
+title = {Trajectory {S}pace: {A} {D}ual {R}epresentation for {N}onrigid {S}tructure from {M}otion},
+journal = {IEEE Trans.~PAMI},
+year = {2010}
+}
+
+
+@article{Torresani08,
+author = {L. Torresani and A. Hertzmann and C. Bregler},
+title = {Non-Rigid Structure-From-Motion: 
+Estimating Shape and Motion with Hierarchical Priors},
+journal = pami,
+year = 2008, 
+volume = 30, 
+number = 5, 
+pages = {878--892}
+}
+
+
+
+@inproceedings{Bregler:2000:RNR,
+author = {Christoph Bregler and Aaron Hertzmann and Henning Biermann},
+title = {Recovering {N}on-{R}igid 3{D} {S}hape from {I}mage {S}treams},
+booktitle = cvpr,
+year = {2000},
+pages = {690--696}
+}
+
+@inproceedings{Irani:2000:FWU,
+author = {Michal Irani and Anandan},
+title = {Factorization with {U}ncertainty},
+booktitle = {Proc.~ECCV},
+month = jun,
+year = 2000
+}
+
+
+@techreport{Weiss:1994:POE,
+author = {Yair Weiss and Edward H. Adelson},
+title = {Perceptually organized {EM}: {A} framework for motion segmentation that combines information about form and motion},
+institution = {MIT Media Lab Perceptual Computing Section},
+number = {TR 315},
+year = {1994}
+}
+
+
+@inproceedings{Jojic:2001:LFS,
+author = {Nebojsa Jojic and Brendan Frey},
+title = {Learning {F}lexible {S}prites in {V}ideo {L}ayers},
+booktitle = cvpr,
+year = {2001}
+}
+
+
+
+@Article{Kass:1988:SAC,
+  author =       "M.~Kass and A.~Witkin and D.~Terzopoulos",
+  journal =      "International Journal of Computer Vision",
+  number =       "4",
+  pages =        "321--331",
+  title =        "Snakes: Active contour models",
+  volume =       "1",
+  year =         "1987",
+}
+
+
+@book{Blake:1998:AC,
+author = {Andrew Blake and Michael Isard},
+title = {Active Contours},
+year = {1998},
+publisher = {Springer-Verlag}
+}
+
+@inproceedings{Irani:1999:MFO,
+author = {Michal Irani},
+title = {Multi-{F}rame {O}ptical {F}low {E}stimation {U}sing {S}ubspace {C}onstraints},
+booktitle = {Proc.~ICCV},
+year = {1999}, 
+month = sep
+}
+
+@inproceedings{Torresani:2002:STT,
+author = {Lorenzo Torresani and Christoph Bregler},
+title = {Space-{T}ime {T}racking},
+booktitle = {Proc.~ECCV},
+year = {2002}, 
+volume = {1},
+pages = {801--812}
+}
+
+@inproceedings{Torresani:2001:TAM,
+author = {Lorenzo Torresani and Danny Yang and Gene Alexander and Christoph Bregler},
+title = {Tracking and {M}odeling {N}on-{R}igid {O}bjects with {R}ank {C}onstraints},
+year = {2001},
+booktitle = cvpr,
+pages = {493--500}
+}
+
+
+@inproceedings{Brand:2005:ADM,
+author = {Matthew Brand},
+title = {A {D}irect {M}ethod for {3D} {F}actorization of {N}onrigid {M}otion {O}bserved in {2D}},
+year = {2005},
+booktitle = {Proc. CVPR},
+volume = {2},
+pages = {122--128}
+}
+
+@inproceedings{Brand:2001:M3M,
+author = {Matthew Brand},
+title = {Morphable 3{D} models from video},
+year = {2001},
+booktitle = cvpr,
+volume = {2},
+pages = {456--463}
+}
+
+
+
+@inproceedings{Brand:2001:FFF,
+author = {Matthew Brand and Rahul Bhotika},
+title = {Flexible flow for {3D} nonrigid tracking and shape recovery},
+year = {2001},
+booktitle = cvpr
+}
+
+@book{invariance:book92,
+    author = "Joseph L. Mundy and Andrew Zisserman",
+    title = "Geometric Invariance in Computer Vision",
+    publisher = "MIT Press", 
+    address = "Cambridge, MA",
+    year = 1992 }
+
+@book{mbr:book97,
+    author = "Mubarak Shah and Ramesh Jain",
+    title = "Motion-Based Recognition",
+    publisher = "Kluwer Academic Publishers",
+    address = "Boston, MA",
+    year = 1997}
+
+@book{hild:book83,
+    author = "Ellen Catherine Hildreth",
+    title = "The Measurement of Visual Motion",
+    publisher = "MIT Press",
+    address = "Cambridge, MA",
+    year = 1983}
+
+@book{hilb:gati,
+    author = "David Hilbert and S. Cohn-Vossen",
+    title = "Geometry and the Imagination",
+    publisher = "AMS Chelsea",
+    address = "Providence, RI",
+    year = 1991}
+
+@book{marr:book82,
+    author = "David Marr",
+    title = "Vision",
+    publisher = "W. H. Freeman Co.",
+    address = "San Francisco, CA",
+    year = 1982}
+
+@book{fvd:book90,
+    author = "James D. Foley and Andries van Dam and Steven K. Feiner and John F. Hughes",
+    title = "Computer Graphics:  Principles and Practice",
+    publisher = "Addison-Wesley",
+    address = "Reading, MA",
+    year = 1990 }
+
+@book{wolff:pbv92sr,
+    editor = "Lawrence B. Wolff and Steven A. Shafer and Glenn E. Healey",
+    title = "Physics-based vision:  Principles and Practice, {Shape Recovery}",
+    publisher = "Jones and Bartlett",
+    address = "Boston, MA",
+    year = 1992}
+
+@proceedings{orcv94,
+    title = "{NSF/ARPA} Workshop on {3D} Object Representation for Computer
+    Vision",
+    year = 1994,
+    address = "New York, NY",
+    }
+
+@proceedings{rvs95,
+    title = "IEEE Workshop on Representation of Visual Scenes",
+    year = 1995,
+    address = "Cambridge, MA"
+    }
+
+@inbook{adel:cmvp91,
+    author = "Edward H. Adelson and J. R. Bergen",
+    title = "The Plenoptic Function and the Elements of Early Vision",
+    booktitle = "Computation Models of Vision Processing (M. Landy and J. A.  Movshon, Eds.)",
+    publisher = "MIT Press",
+    address = "Cambridge, MA",
+    year = 1991}
+
+@inproceedings{adel:rvs95,
+    author = "Edward H. Adelson",
+    title = "Layered Representations for Vision and Video",
+    booktitle = "Proc.~IEEE Workshop on Representation of Visual Scenes",
+    year = 1995,
+    pages = {3-9}}
+
+@inproceedings{allm:icpr90,
+    author = "Mark Allmen and Charles R. Dyer",
+    title = "Cyclic Motion Detection Using Spatiotemporal Surfaces and Curves",
+    booktitle = "Proc.~10th Int. Conf. on Pattern Recognition",
+    year = 1990,
+    pages = {365-370} }
+
+@phdthesis{allm:phd,
+    author = "Mark C. Allmen",
+    title = "Image Sequence Description Using Spatiotemporal Flow Curves: Toward Motion-Based  Recognition",
+    school = "University of Wisconsin",
+    address = "Madison, WI",
+    year = 1991}
+
+@inproceedings{avid:cvpr97,
+    author = "Shai Avidan and Amnon Shashua",
+    title = "Novel View Synthesis in Tensor Space",
+    booktitle = "Proc.~Computer Vision and Pattern Recognition Conf.",
+    year = 1997,
+    pages = {1034-1040} }
+
+@article{ayache:pami91,
+   author = "Nicholas Ayache and Francis Lustman",
+    title = "Trinocular Stereo Vision for Robotics",
+    journal = "IEEE Trans. on Pattern Analysis and Machine Intelligence",
+    volume = 13,
+    number = 1,
+    pages = {73-85},
+    year = 1991}
+
+@inproceedings{ayer:iccv95,
+    author = "Serge Ayer and Harpreet S. Sawhney",
+    title = "Layered Representation of Motion Video using Robust Maximum-Likelihood Estimation of Mixture Models and MDL Encoding",
+    booktitle = "Proc.~Fifth Int. Conf. on Computer Vision",
+    year = 1995,
+    pages = {777-784}}
+
+@inproceedings{baker:ijcai81,
+    author = "H. H. Baker and T. O. Binford",
+    title = "Depth from Edge and Intensity Based Stereo",
+    booktitle = "Proc.~7th Int. Joint Conf. on Artificial Intelligence",
+    pages = {631-636},
+    year = 1981}
+
+@article{baker:ijcv89,
+   author = "H. Harlyn Baker and Robert C. Bolles",
+    title = "Generalizing Epipolar-Plane Image Analysis on the Spatiotemporal Surface",
+    journal = "Int. J. of Computer Vision",
+    volume = 3,
+    number = 1,
+    pages = {33-49},
+    year = 1989}
+
+@article{bake:ijcv99,
+   author = "Simon Baker and Shree Nayar",
+    title = "A theory of single-viewpoint catadioptric image formation",
+    journal = "Int. J. of Computer Vision",
+    volume = 35,
+    number = 2,
+    pages = {175-196},
+    year = 1999}
+
+@book{ball:book82,
+    author = "Dana H. Ballard and Christopher M. Brown",
+    title = "Computer Vision",
+    publisher = "Prentice-Hall",
+    address = "Englewood Cliffs, NJ",
+    year = 1982,
+    pages = {137-143} }
+
+@article{barr:ijcv94,
+   author = "J. L. Barron and D. J. Fleet and S. S. Beauchemin",
+    title = "Performance of Optical Flow Techniques",
+    journal = "Int. J. of Computer Vision",
+    volume = 12,
+    number = 1,
+    pages = {43-77},
+    year = 1994}
+
+@inproceedings{basri:iuw92,
+    author = "Ronen Basri",
+    title = "On the Uniqueness of Correspondence under Orthographic and Perspective Projections",
+    booktitle = "Proc.~Image Understanding Workshop",
+    year = 1992,
+    pages = {875-884} }
+
+@inproceedings{basr:iccv01,
+    author = "Ronen Basri and David Jacobs",
+    title = "Photometric Stereo with General, Unknown Lighting",
+    booktitle = iccv,
+    year = 2001,
+    }
+
+@inproceedings{baum:mnao94,
+    author = "A. M. Baumberg and D. C. Hogg",
+    title = "An Efficient Method for Contour Tracking using Active Shape Models",
+    booktitle = "Proc.~Workshop on Motion of Non-Rigid and Articulated Objects",
+    pages = {194-199},
+    year = 1994}
+
+@inproceedings{bear:eccv96,
+    author = "Paul Beardsley and Phil Torr and Andrew Zisserman",
+    title = "{3D} Model Acquisition from Extended Image Sequences",
+    booktitle = "Proc.~European Conf. on Computer Vision",
+    pages = {683-695},
+    year = 1996}
+
+@inproceedings{beir:sigg92,
+    author = "Thaddeus Beier and Shawn Neely",
+    title = "Feature-Based Image Metamorphosis",
+    booktitle = "Proc.~SIGGRAPH 92",
+    year = 1992,
+    pages = {35-42} }
+
+@inproceedings{beie:sigg92,
+    author = "Thaddeus Beier and Shawn Neely",
+    title = "Feature-Based Image Metamorphosis",
+    booktitle = "Proc.~SIGGRAPH 92",
+    year = 1992,
+    pages = {35-42} }
+
+@inproceedings{belh:cvpr92,
+    author = "Peter N. Belhumeur and David Mumford",
+    title = "A {B}ayesian Treatment of the Stereo Correspondence Problem Using Half-Occluded Regions",
+    booktitle = "Proc.~Computer Vision and Pattern Recognition Conf.",
+    year = 1992,
+    pages = {506-512} }
+
+@inproceedings{belh:cvpr96,
+    author = "Peter N. Belhumeur and David J. Kriegman",
+    title = "What is the Set of Images of an Object Under All Possible Lighting Conditions",
+    booktitle = "Proc.~Computer Vision and Pattern Recognition Conf.",
+    year = 1996,
+    pages = {270-277} }
+
+@inproceedings{berg:eccv92,
+    author = "J. R. Bergen and P. Anandan and K. J. Hanna and R. Hingorani",
+    title = "Hierarchical Model-Based Motion Estimation",
+    booktitle = "Proc.~European Conf. on Computer Vision",
+    pages = {237-252},
+    year = 1992}
+
+@techreport{bey:tr1431,
+    author = "D. Beymer and A. Shashua and Tomaso Poggio",
+    title = "Example Based Image Analysis and Synthesis",
+    institution = "M.I.T.",
+    address = "Boston, MA",
+    type = "{A}.{I}. {M}emo {N}o.",
+    number = "1431",
+    month = "November",
+    year = 1993}
+
+@inproceedings{bey:fgr95,
+    author = "Tomaso Poggio and David Beymer",
+    title = "Learning Networks for Face Analysis and Synthesis",
+    booktitle = "Proc.~Int. Workshop on Automatic Face- and Gesture-Recognition",
+    address = "Zurich",
+    pages = {160-165},
+    year = 1995}
+
+@article{bey:sci96,
+    author = "David Beymer and Tomaso Poggio",
+    title = "Image Representations for Visual Learning",
+    journal = "Science",
+    number = 272,
+    pages = {1905-1909},
+    year = 1996}
+
+@inproceedings{black:cvpr91,
+    author = "Michael J. Black and P. Anandan",
+    title = "Robust Dynamic Motion Estimation Over Time",
+    booktitle = "Proc.~Computer Vision and Pattern Recognition Conf.",
+    year = 1991,
+    pages = {296-302} }
+
+@article{black:pami96,
+    author = "Michael J. Black and P. Anandan",
+    title = "Estimating Optical Flow in Segmented Images Using Variable-Order
+    Parametric Models With Local Deformations",
+    journal = "IEEE Trans. on Pattern Analysis and Machine Intelligence",
+    volume = 18,
+    number = 10,
+    year = 1996,
+    pages = {972-986} }
+
+@article{blak:ijcv93,
+   author = "Andrew Blake and Rupert Curwen and Andrew Zisserman",
+    title = "A Framework for Spatiotemporal Control in the Tracking of Visual Contours",
+    journal = "Int. J. of Computer Vision",
+    volume = 11,
+    number = 2,
+    pages = {127-145},
+    year = 1993}
+
+@article{blinn:cga92,
+    author = "Jim Blinn",
+    title = "Hyperbolic Interpolation",
+    journal = "IEEE Computer Graphics and Applications",
+    volume = 12,
+    number = 4,
+    pages = {89-94},
+    year = 1992}
+
+@inproceedings{bobick:iccv95,
+    author = "Aaron F. Bobick and Andrew D. Wilson",
+    title = "A State-based Technique for the Summarization and Recognition of Gesture",
+    booktitle = iccv,
+    year = 1995,
+    pages = {382-388}}
+
+@article{boll:ijcv87,
+   author = "Robert C. Bolles and H. Harlyn Baker and David H. Marimont",
+    title = "Epipolar-Plane Image Analysis:  An Approach to Determining Structure from Motion",
+    journal = "Int. J. of Computer Vision",
+    volume = 1,
+    number = 1,
+    pages = {7-55},
+    year = 1987}
+    
+@article{boyk:pami01,
+    author = "Yuri Boykov, Olga Veksler and Ramin Zabih",
+    title = "Fast Approximate Energy Minimization via Graph Cuts",
+    journal = "IEEE Trans. on Pattern Analysis and Machine Intelligence",
+    volume = 23,
+    number = 11,
+    year = 2001}
+
+@article{brun:pami93,
+    author = "Roberto Brunelli and Tomaso Poggio",
+    title = "Face Recognition:  Features versus Templates",
+    journal = "IEEE Trans. on Pattern Analysis and Machine Intelligence",
+    volume = 15,
+    number = 10,
+    year = 1993,
+    pages = {1042-1052} }
+
+@article{burt:comm83,
+   author = "P. J. Burt and E. H. Adelson",
+    title = "The Laplacian pyramid as a compact image code",
+    journal = "{IEEE} Trans. Communications",
+    volume = 31,
+    pages = {532-540},
+    year = 1983}
+
+@inproceedings{burt:iuw94,
+    author = "Peter J. Burt and P. Anandan",
+    title = "Image Stabilization by Registration to a Reference Mosaic",
+    booktitle = "Proc.~Image Understanding Workshop",
+    year = 1994,
+    pages = {425-434} }
+
+@article{cedras:ivc95,
+    author = "Claudette Cedras and Mubarak Shah",
+    title = "Motion-based recognition:  {A} survey",
+    journal = "Image and Vision Computing",
+    volume = 13,
+    number = 2,
+    year = 1995,
+    pages = {129-155} }
+
+@inproceedings{chak:spie82,
+    author = "Indranil Chakravarty and Herbert Freeman",
+    title = "Characteristic views as a basis for three-dimensional object recognition",
+    booktitle = "Proc.~SPIE Vol. 336",
+    year = 1982,
+    pages = {37-45} }
+
+@article{chel:ieee95,
+    author = "R. Chellappa and C. L. Wilson and S. Sirohey",
+    title = "Human and Machine Recognition of Faces:  A Survey",
+    journal = "Proc.~IEEE",
+    volume = 83,
+    number = 5,
+    year = 1995,
+    pages = {705-740} }
+
+@inproceedings{chen:sigg93,
+    author = "Shenchang Eric Chen and Lance Williams",
+    title = "View Interpolation for Image Synthesis",
+    booktitle = "Proc.~SIGGRAPH 93",
+    year = 1993,
+    pages = {279-288} }
+
+@inproceedings{chen:sigg95,
+    author = "Shenchang Eric Chen",
+    title = "QuickTime {VR} --- {A}n Image-Based Approach to Virtual Environment Navigation",
+    booktitle = "Proc.~SIGGRAPH 95",
+    year = 1995,
+    pages = {29-38} }
+
+@inproceedings{chou:iccv95,
+    author = "George T. Chou",
+    title = "A Model of Figure-Ground Segregation from Kinetic Occlusion",
+    booktitle = iccv,
+    pages = {1050-1057},
+    year = 1995}
+
+@article{cipp:ijcv92,
+   author = "R. Cipolla and A. Blake",
+    title = "Surface shape from the deformation of apparent contours",
+    journal = "Int. J. of Computer Vision",
+    volume = 9,
+    number = 2,
+    pages = {83-112},
+    year = 1992}
+
+@inproceedings{coll:cvpr96,
+    author = "Robert T. Collins",
+    title = "A Space-Sweep Approach to True Multi-Image Matching",
+    booktitle = "Proc.~Computer Vision and Pattern Recognition Conf.",
+    year = 1996,
+    pages = {358-363} }
+
+@inproceedings{coll:cvpr97,
+    author = "Robert T. Collins",
+    title = "Multi-Image Focus of Attention for Rapid Site Model Construction",
+    booktitle = "Proc.~Computer Vision and Pattern Recognition Conf.",
+    year = 1997,
+    pages = {575-581} }
+
+@article{cox:ijcv93,
+   author = "Ingemar J. Cox",
+    title = "A Review of Statistical Data Association Techniques for Motion Correspondence",
+    journal = "Int. J. of Computer Vision",
+    volume = 10,
+    number = 1,
+    pages = {53-66},
+    year = 1993}
+
+@inproceedings{curl:sigg96,
+    author = "Brian Curless and Marc Levoy",
+    title = "A Volumetric Method for Building Complex Models from Range Images",
+    booktitle = "Proc.~SIGGRAPH 96",
+    year = 1996,
+    pages = {303-312} }
+
+@inproceedings{dana:cvpr97,
+    author = "Kristin J. Dana and Shree K. Nayar and Bram van Ginneken and Jan J. Koenderink",
+    title = "Reflectance and Texture of Real-World Surfaces",
+    booktitle = "Proc.~Computer Vision and Pattern Recognition Conf.",
+    year = 1997,
+    pages = {151-157} }
+
+@article{davi:ip87,
+   author = "Andrew Davidhazy",
+    title = "Principles of Peripheral Photography",
+    journal = "Industrial Photography",
+    year = "Jan. 1987",
+note = "(http://www.rit.edu/$\tilde{~}$andpph/text-peripheral-basics.html)"}
+
+@article{davis:visp94,
+   author = "J. W. Davis and M. Shah",
+    title = "Visual gesture recognition",
+    journal = "IEE Proc.~Vision, Image and Signal Processing",
+    volume = 141,
+    number = 2,
+    pages = {101-106},
+    year = 1994}
+
+@inproceedings{debe:sigg97,
+    author = "Paul E. Debevec and Jitendra Malik",
+    title = "Recovering {H}igh {D}ynamic {R}ange {R}adiance {M}aps from {P}hotographs",
+    booktitle = "Proc.~SIGGRAPH 97",
+    year = 1997,
+    pages = {369-378} }
+
+@inproceedings{deb:sigg96,
+    author = "Paul E. Debevec and Camillo J. Taylor and Jitendra Malik",
+    title = "Modeling and Rendering Architecture from Photographs:  {A} Hybrid Geometry- and Image-Based Approach",
+    booktitle = "Proc.~SIGGRAPH 96",
+    year = 1996,
+    pages = {11-20} }
+
+@article{dist:cvgip84,
+   author = "G. Borgefors",
+    title = "Distance transformations in arbitrary dimensions",
+    journal = "Computer Vision, Graphics, and Image Processing",
+    volume = 27,
+    pages = {321-345},
+    year = 1984}
+
+@inproceedings{darr:cvpr93,
+    author = "Trevor Darrell and Alex Pentland",
+    title = "Space-Time Gestures",
+    booktitle = "Proc.~Computer Vision and Pattern Recognition Conf.",
+    year = 1993,
+    pages = {335-340} }
+
+@inproceedings{darr:vmw91,
+    author = "Trevor Darrell and Alex Pentland",
+    title = "Robust Estimation of a Multi-Layered Motion Representation",
+    booktitle = "Proc.~IEEE Workshop on Visual Motion",
+    year = 1991,
+    pages = {173-178} }
+
+@article{darr:pami95,
+    author = "Trevor Darrell and Alex P. Pentland",
+    title = "Cooperative Robust Estimation Using Layers of Support",
+    journal = "IEEE Trans. on Pattern Analysis and Machine Intelligence",
+    volume = 17,
+    number = 5,
+    pages = {474-487},
+    year = 1995}
+    
+@inproceedings{debo:sigg97,
+   author = {Jeremy S. De Bonet},
+   title = {Multiresolution Sampling Procedure for Analysis and Synthesis of Texture Images},
+   booktitle = "Proc.~SIGGRAPH 97",
+   year = {1997},
+   pages = {361--368},
+   }
+
+@article{Cashman:2012:WSA,
+title = {What {S}hape are {D}olphins? {B}uilding {3D} {M}orphable {M}odels from {2D} {I}mages},
+author = {Thomas J. Cashman and Andrew W. Fitzgibbon},
+journal = {IEEE Trans.~PAMI},
+year = {2013},
+volume = {35},
+number = {1}
+}
+
+
+@inproceedings{deri:eccv94,
+    author = "R. Deriche and Z. Zhang and Q.-T. Luong and O. Faugeras",
+    title = "Robust Recovery of the Epipolar Geometry for an Uncalibrated Stereo Rig",
+    booktitle = "Proc.~European Conf. on Computer Vision",
+    pages = {567-576},
+    year = 1994}
+
+@article{dors:cga95,
+    author = "Julie Dorsey and James Arvo and Donald Greenburg",
+    title = "Interactive Design of Complex Time-Dependent Lighting",
+    journal = "IEEE Computer Graphics and Applications",
+    volume = 15,
+    number = 2,
+    pages = {26-36},
+    year = 1995}
+    
+@inproceedings{efro:iccv99,
+    author = "Alexei A. Efros and Thomas K. Leung",
+    title = "Texture Synthesis by Non-parametric Sampling",
+    booktitle = iccv,
+    year = 1999,
+    pages = "1033--1038"}
+
+@inproceedings{essa:cvpr94,
+    author = "Irfan A. Essa and Alex Pentland",
+    title = "A Vision System for Observing and Extracting Facial Action Parameters",
+    booktitle = "Proc.~Computer Vision and Pattern Recognition Conf.",
+    year = 1994,
+    pages = {76-83} }
+
+@book{faug:book93,
+    author = "Olivier Faugeras",
+    title = "Three-Dimensional Computer Vision, {A} Geometric Viewpoint",
+    publisher = "MIT Press",
+    address = "Cambridge, MA",
+    year = 1993}
+
+@inproceedings{faug:eccv92,
+    author = "O. D. Faugeras and Q-T. Luong and S. J. Maybank",
+    title = "Camera self-calibration: theory and experiments",
+    booktitle = "Proc.~European Conf. on Computer Vision",
+    pages = {321-334},
+    year = 1992}
+
+@inproceedings{faug:eccv94,
+    author = "Olivier Faugeras and Luc Robert",
+    title = "What can two images tell us about a third one?",
+    booktitle = "Proc.~European Conf. on Computer Vision",
+    pages = {485-492},
+    year = 1994}
+
+@inproceedings{faug:iccv87,
+    author = "O. D. Faugeras and Giorgio Toscani",
+    title = "Motion and Structure from Motion from Point and Line Matches",
+    booktitle = iccv,
+    year = 1987,
+    pages = {25-34}}
+
+@techreport{faug:tr95,
+    author = "Olivier Faugeras and St\'{e}phane Laveau and Luc Robert and Gabriella Csurka and Cyril Zeller",
+    title = "3-{D} Reconstruction of Urban Scenes from Sequences of Images",
+    institution = "INRIA",
+    address = "Sophia-Antipolis, France",
+    number = "2572",
+    month = "June",
+    year = 1995}
+
+@inproceedings{faug:icpr96,
+    author = "O. Faugeras",
+    title = "Combining computer vision, photogrammetry and computer graphics to map the world in {3D} from multiple images",
+    booktitle = "Proc.~Int. Conf. on Pattern Recognition",
+    year = 1996}
+
+@inproceedings{faug:iccv95,
+    author = "Olivier Faugeras and Mourrain ",
+    title = "On the geometry and algebra of the point and line
+    correspondences between {N} images",
+    booktitle = iccv,
+    year = 1995,
+    pages = {951-956}}
+
+@article{faug:tip98,
+   author = "O. D. Faugeras and R. Keriven",
+    title = "Variational principles, surface evolution, {PDE}'s, level set
+                  methods and the stereo problem",
+    journal = "IEEE Trans. on Image Processing",
+    volume = 7,
+    number = 3,
+    pages = {336-344},
+    year = 1998}
+
+@article{fleet:ijcv90,
+   author = "D. J. Fleet and A. D. Jepson",
+   title = "Computation of component image velocity from local phase information",
+   journal = "Int. J. of Computer Vision",
+   volume = 5,
+   pages = {77-104},
+   year = 1990}
+
+@inproceedings{flem:cvpr01,
+    author = "Roland W. Fleming and Ron O. Dror and Edward H. Adelson",
+    title = "How do humans determine reflectance properties under unknown illumination",
+    booktitle = "Proc.~IEEE Workshop on Identifying Objects Across Variations in Lighting:  Psychophysics \& Computation",
+    pages = {3-10},
+    year = 2001}
+
+@incollection{floy:sid75,
+  author =       "R. W. Floyd and L. Steinberg",
+  title =        "An Adaptive Algorithm for Spatial Gray Scale",
+  year =         "1975",
+  booktitle =    "SID 75, Int. Symp. Dig. Tech. Papers",
+  pages =        "36",
+  keywords =     "dither"}
+
+@article{free:pami91,
+   author = "William T. Freeman and Edward H. Adelson",
+    title = "The Design and Use of Steerable Filters",
+    journal = "IEEE Trans. on Pattern Analysis and Machine Intelligence",
+    volume = 13,
+    number = 9,
+    pages = {891-906},
+    year = 1991}
+
+@book{freu:book92,
+   author = "John E. Freund",
+    title = "Mathematical Statistics",
+    publisher = "Prentice Hall",
+    address = "Englewood Cliffs, NJ",
+    year = 1992}
+
+@article{fua:ijcv95,
+   author = "Pascal Fua and Yvan G. Leclerc",
+   title = "Obejct-centered surface reconstruction:  Combining multi-image stereo and shading",
+   journal = "Int. J. of Computer Vision",
+   volume = 16,
+   pages = {35-56},
+   year = 1995}
+
+@inproceedings{fuch:sigg80,
+    author = "H. Fuchs and Z. M. Kedem and B. F. Naylor",
+    title = "On Visible Surface Generation by A Priori Tree Structures",
+    booktitle = "Proc.~SIGGRAPH 80",
+    pages = {124-133},
+    year = 1980}
+
+@inproceedings{geig:eccv92,
+    author = "Davi Geiger and Bruce Landendorf and Alan Yuille",
+    title = "Occlusions and Binocular Stereo",
+    booktitle = "Proc.~European Conf. on Computer Vision",
+    pages = {425-433},
+    year = 1992}
+
+@inproceedings{goad:iuw83,
+    author = "C. Goad",
+    title = "Special-purpose automatic programming for 3{D} model-based vision",
+    booktitle = "Proc.~Image Understanding Workshop",
+    year = 1983,
+    pages = {94-104} }
+
+@phdthesis{godd:phd,
+    author = "Nigel H. Goddard",
+    title = "The Perception of Articulated Motion:  Recognizing Moving Light Displays",
+    school = "University of Rochester",
+    address = "Rochester, NY",
+    year = 1992}
+
+@inproceedings{godd:vmw89,
+    author = "Nigel H. Goddard",
+    title = "The Interpretation of Visual Motion: {R}ecognizing Moving Light Displays",
+    booktitle = "Proc.~IEEE Workshop on Visual Motion",
+    year = 1989,
+    pages = {212-220} }
+
+@phdthesis{godd:mw89,
+    author = "Nigel H. Goddard",
+    title = "The Perception of Articulated Motion:  Recognizing Moving Light Displays",
+    school = "University of Rochester",
+    address = "Rochester, NY",
+    year = 1992}
+
+@inproceedings{gort:sigg96,
+    author = "Steven J. Gortler and Radek Grzeszczuk and Richard Szeliski and Michael F. Cohen",
+    title = "The Lumigraph",
+    booktitle = "Proc.~SIGGRAPH 96",
+    year = 1996,
+    pages = {43-54}}
+
+@inproceedings{gould:cvpr89,
+    author = "Kristine Gould and Mubarak Shah",
+    title = "The Trajectory Primal Sketch:  A Multi-Scale Scheme for Representing Motion Characteristics",
+    booktitle = "Proc.~Computer Vision and Pattern Recognition Conf.",
+    year = 1989,
+    pages = {79-85}}
+
+@article{gree:cga86,
+  author = "Ned Greene",
+  title = "Environment Mapping and Other Applications of World Projections",
+  year = 1986,
+  month = nov,
+  volume = 6,
+  number = 11,
+  journal = "IEEE Computer Graphics and Applications",
+  pages = {21-29}
+}
+
+@article{gupt:pami97,
+    author = "Rajiv Gupta and Richard I. Hartley",
+    title = "Linear Pushbroom Cameras",
+    journal = "IEEE Trans. Pattern Analysis and Machine Intell.",
+    volume = 19,
+    number = 9,
+    year = 1997,
+    pages = {963-975} }
+
+@article{gutt:cga92,
+    author = "Karl Guttag and Robert J. Gove and Jerry R. Van Aken",
+    title = "A Single-Chip Multiprocessor for Multimedia:  The {MVP}",
+    journal = "IEEE Computer Graphics and Applications",
+    volume = 12,
+    number = 6,
+    pages = {53-64},
+    year = 1992}
+
+\bibitem{Hanr90a}
+P.~Hanrahan and P.~Haeberli, ``Direct {WYSIWYG} painting and texturing on
+{3D}
+  shapes,'' in {\em Proc.~SIGGRAPH 90}, pp.~215--223, 1990.
+
+@inproceedings{hanr:sigg90,
+    author = "P. Hanrahan and P. Haeberli",
+    title = "Direct {WYSIWYG} painting and texturing on {3D} shapes",
+    booktitle = "Proc.~SIGGRAPH 90",
+    year = 1990,
+    pages = {215-223}}
+
+@phdthesis{hal:phd,
+    author = "Peter Winthrop Hallihan",
+    title = "A Deformable Model for the Recognition of Human Faces Under Arbitrary Illumination",
+    school = "Harvard University",
+    address = "Cambridge, MA",
+    year = 1995}
+
+@book{hara-tex:book92,
+   author = "Robert M. Haralick and Linda G. Shapiro",
+    title = "Computer and Robot Vision",
+    publisher = "Addison-Wesley",
+    volume = 1,
+    pages = {453-507},
+    year = 1992}
+
+@inproceedings{hart:iuw94a,
+    author = "Richard Hartley and Peter Sturm",
+    title = "Triangulation",
+    booktitle = "Proc.~Image Understanding Workshop",
+    year = 1994,
+    pages = {957-966} }
+
+@inproceedings{hart:iuw94b,
+    author = "Richard Hartley",
+    title = "Lines and points in three views --- a unified approach",
+    booktitle = "Proc.~Image Understanding Workshop",
+    year = 1994,
+    pages = {1009-1016} }
+
+@article{hart:pami94,
+    author = "Richard I. Hartley",
+    title = "Projective reconstruction and invariants from multiple images",
+    journal = "IEEE Trans. Pattern Analysis and Machine Intell.",
+    volume = 16,
+    number = 10,
+    year = 1994,
+    pages = {1036-1041} }
+
+@inproceedings{hart:iccv95,
+    author = "Richard I. Hartley",
+    title = "In Defence of the 8-point Algorithm",
+    booktitle = iccv,
+    pages = {1064-1070},
+    year = 1995}
+
+@mastersthesis{heck:mast,
+    author = "Paul S. Heckbert",
+    title = "Fundamentals of Texture Mapping and Image Warping",
+    school = "University of California, Dept. CS",
+    address = "Berkeley, CA",
+    number = "UCB/CSD 89/516",
+    month = "May",
+    year = 1989}
+
+@inproceedings{heyd:rvs95,
+    author = "Anders Heyden and Kalle Astrom",
+    title = "A Canonical Framework for Sequences of Images",
+    booktitle = "Proc.~IEEE Workshop on Representation of Visual Scenes",
+    pages = {45-52},
+    year = 1995}
+
+@article{hogg:ivc83,
+    author = "David Hogg",
+    title = "Model-based vision:  A program to see a walking person",
+    journal = "Image and Vision Computing",
+    volume = 1,
+    number = 1,
+    year = 1983,
+    pages = {5-20} }
+
+@article{hogg:ivc83,
+    author = "David Hogg",
+    title = "Model-based vision:  A program to see a walking person",
+    journal = "Image and Vision Computing",
+    volume = 1,
+    number = 1,
+    year = 1983,
+    pages = {5-20} }
+
+@InProceedings{hopp:sigg92,
+       author =       "Hugues Hoppe and Tony DeRose and Tom Duchamp and John
+                      McDonald and Werner Stuetzle",
+       title =        "Surface reconstruction from unorganized points",
+       pages =        "71--78",
+       booktitle =    "Computer Graphics (SIGGRAPH '92 Proceedings)",
+       volume =       "26",
+       year =         "1992",
+       month =        jul,
+       editor =       "Edwin E. Catmull",
+     }
+
+@InProceedings{hopp:sigg96,
+       author =       "Hugues Hoppe",
+       title =        "Progressive Meshes",
+       editor =       "Holly Rushmeier",
+       series =       "Annual Conference Series",
+       pages =        "99--108",
+       booktitle =    "SIGGRAPH 96 Conference Proceedings",
+       year =         "1996",
+       organization = "ACM SIGGRAPH",
+       publisher =    "Addison Wesley",
+       month =        aug,
+     }
+
+@InProceedings{hopp:sigg97,
+       author =       "Hugues Hoppe",
+       title =        "View-Dependent Refinement of Progressive Meshes",
+       booktitle =    "SIGGRAPH 97 Conference Proceedings",
+       editor =       "Turner Whitted",
+       series =       "Annual Conference Series",
+       year =         "1997",
+       organization = "ACM SIGGRAPH",
+       publisher =    "Addison Wesley",
+       month =        aug,
+       pages =        "189--198",
+}
+
+@book{horn:robvis,
+    author = "B. K. P. Horn",
+    title = "Robot Vision",
+    publisher = "{McGraw-Hill}",
+    address = "New York, NY",
+    year = 1986 }
+
+@inproceedings{horr:sigg97,
+    author = "Youichi Horry and Ken-ichi Anjyo and Kiyoshi Arai",
+    title = "Tour Into the Picture:  {U}sing a Spidery Mesh Interface to Make Animation from a Single Image",
+    booktitle = "Proc.~SIGGRAPH 97",
+    year = 1997,
+    pages = {225-232}}
+
+@article{huan:gmip98,
+    author = "H. C. Huang and Y. P. Hung",
+    title = "Panoramic stereo imaging system with automatic disparity warping and seaming",
+    journal = "Graphical Models and Image Processing",
+    volume = 60,
+    number = 3,
+    year = 1998,
+    pages = {196-208}}
+
+@inproceedings{hughes:sigg92,
+    author = "John F. Hughes",
+    title = "Scheduled Fourier Volume Morphing",
+    booktitle = "Proc.~SIGGRAPH 92",
+    year = 1992,
+    pages = {43-46} }
+
+
+@article{hutt:ijcv90,
+    author = "Daniel P. Huttenlocher and Shimon Ullman",
+    title = "Recognizing solid objects by alignment with an image",
+    journal = "Int. J. of Computer Vision",
+    volume = 5,
+    number = 2,
+    year = 1990,
+    pages = {195-212} }
+
+@article{hutt:pami93,
+    author = "Daniel P. Huttenlocher and G. A. Klanderman and W. J. Rucklidge",
+    title = "Comparing images using the {H}ausdorff distance",
+    journal = "IEEE Trans. Pattern Analysis and Machine Intell.",
+    volume = 15,
+    number = 9,
+    year = 1993,
+    pages = {850-863} }
+
+@inproceedings{hutt:cvpr93,
+    author = "Daniel P. Huttenlocher and W. J. Rucklidge",
+    title = "A multi-resolution technique for comparing images using the Hausdorff distance",
+    booktitle = "Proc.~Computer Vision and Pattern Recognition Conf.",
+    year = 1993,
+    pages = {705-706} }
+
+@article{ishi:pami92, 
+AUTHOR = "Ishiguro, H. and Yamamoto, M. and Tsuji, S.", 
+TITLE = "Omni-directional Stereo", 
+JOURNAL = "PAMI", 
+VOLUME = "14", 
+YEAR = "1992", 
+NUMBER = "2", 
+MONTH = "February", 
+PAGES = "257-262"} 
+
+@article{ikeu:pami81,
+    author = "Katsushi Ikeuchi",
+    title = "Determining surface orientations of specular surfaces by using the photometric stereo method",
+    journal = "IEEE Trans. on Pattern Analysis and Machine Intelligence",
+    volume = 3,
+    number = 6,
+    pages = {661-669},
+    year = 1981}
+
+@article{ikeu:ijcv87,
+    author = "Katsushi Ikeuchi",
+    title = "Generating an interpretation tree from a CAD model for {3D}-object
+recognition in bin-picking tasks",
+    journal = "Int. J. of Computer Vision",
+    volume = 1,
+    number = 2,
+    year = 1987,
+    pages = {145-165} }
+
+@inproceedings{irani:iccv95,
+    author = "Michal Irani and P. Anandan and Steve Hsu",
+    title = "Mosaic Based Representations of Video Sequences and Their Applications",
+    booktitle = "Proc.~Fifth Int. Conf. on Computer Vision",
+    pages = {605-611},
+    year = 1995}
+
+@inproceedings{irani:cvpr92,
+    author = "Michal Irani and Shmuel Peleg",
+    title = "Image Sequence Enhancement Using Multiple Motions Analysis",
+    booktitle = cvpr,
+    pages = {216-221},
+    year = 1992}
+
+@article{irani:cvgip91,
+    author  = "Michal Irani and Shmuel Peleg",
+    title   = "Improving resolution by image registration",
+    journal = "CVGIP:  Graphical Models and Image Processing",
+    year = 1991,
+    volume  = 53,
+    pages   = {231-239}}
+
+@inproceedings{jeps:cvpr93,
+    author = "Allan Jepson and Michael J. Black",
+    title = "Mixture models for optical flow computation",
+    booktitle = cvpr,
+    year = 1993,
+    pages = {760--761} }
+
+@article{joha:pp73,
+    author = "G. Johansson",
+    title = "Visual perception of biological motion and a model for its analysis",
+    journal = "Perception and Psychophysics",
+    volume = 14,
+    number = 2,
+    year = 1973,
+    publisher = "Psychonomic Press",
+    address = "Goleta, CA",
+    pages = {201-211} }
+
+@book{jule:book71,
+    author = "Bele Julesz",
+    title = "Foundations of Cyclopean Perception",
+    publisher = "University of Chicago Press", 
+    address = "Chicago, IL",
+    year = 1971 }
+
+
+@inproceedings{kana:rvs95,
+    author = "Takeo Kanade and P. J. Narayanan and Peter W. Rander",
+    title = "Virtualized Reality:  Concepts and Early Results",
+    booktitle = "Proc.~IEEE Workshop on Representation of Visual Scenes",
+    pages = {69-76},
+    year = 1995}
+
+@article{kana:mm97,
+    author = "Takeo Kanade and Peter Rander and P. J. Narayanan",
+    title = "Virtualized Reality:  Constructing Virtual Worlds from Real Scenes",
+    journal = "IEEE Multimedia",
+    volume = 4,
+    number = 1,
+    pages = {34-46},
+    year = 1997}
+
+@inproceedings{kang:cvpr96,
+    author = "Sing Bing Kang and Richard Szeliski",
+    title = "{3-D} Scene Data Recovery using Omnidirectional Multibaseline Stereo",
+    booktitle = "Proc.~Computer Vision and Pattern Recognition Conf.",
+    year = 1996,
+    pages = {364-370} }
+
+@article{kass:ijcv88,
+    author  = "M. Kass and A. Witkin and D. Terzopoulos",
+    year = 1988,
+    title   = "Snakes: {A}ctive contour models",
+    journal = "Int. J. of Computer Vision",
+    volume  = 1,
+    number  = 4,
+    pages   = "321--331"}
+
+@inproceedings{kata:spie95,
+    author = "Akihiro Katayama and Koichiro Tanaka and Takahiro Oshino and Hideyuki Tamura",
+    title = "A Viewpoint Dependent Stereoscopic Display Using Interpolation of Multi-Viewpoint Images",
+    booktitle = "Proc.~SPIE Vol. 2409A",
+    year = 1995,
+    pages = {21-30}}
+
+@inproceedings{kent:sigg92,
+    author = "James R. Kent and Wayne E. Carlson and Richard E. Parent",
+    title = "Shape Transformation for Polyhedral Objects",
+    booktitle = "Proc.~SIGGRAPH 92",
+    year = 1992,
+    pages = {47-54} }
+
+@article{koen:opt91,
+   author = "Jan J. Koenderink and Andrea J. van Doorn",
+    title = "Affine structure from motion",
+    journal = "J. Opt. Soc. Am. A",
+    volume = 8,
+    pages = {377-385},
+    year = 1991}
+
+@article{kvd:bc76,
+   author = "Jan J. Koenderink and Andrea J. van Doorn",
+    title = "The Singularities of the Visual Mapping",
+    journal = "Biological Cybernetics",
+    volume = 24,
+    pages = {51-59},
+    year = 1976}
+
+@article{kvd:bc79,
+   author = "Jan J. Koenderink and Andrea J. van Doorn",
+    title = "The internal representation of solid shape with respect to vision",
+    journal = "Biological Cybernetics",
+    volume = 32,
+    pages = {211-216},
+    year = 1979}
+
+@inproceedings{kumar:icpr94,
+    author = "R. Kumar and P. Anandan and K. Hanna",
+    title = "Direct recovery of shape from multiple views: A parallax based approach",
+    booktitle = "Proc.~ICPR",
+    year = 1994,
+    pages = {685-688}}
+
+@inproceedings{kumar:rvs95,
+    author = "Rakesh Kumar and P. Anandan and Michal Irani and James Bergen and Keith Hanna",
+    title = "Representation of Scenes from Collections of Images",
+    booktitle = "Proc.~IEEE Workshop on Representation of Visual Scenes",
+    pages = {10-17},
+    year = 1995}
+
+@inproceedings{kutu:cvpr94a,
+    author = "Kiriakos N. Kutulakos and Charles R. Dyer",
+    title = "Occluding Contour Detection Using Affine Invariants and Purposive Viewpoint Control",
+    booktitle = "Proc.~Computer Vision and Pattern Recognition Conf.",
+    year = 1994,
+    pages = {323-330}}
+
+@inproceedings{kutu:cvpr94b,
+    author = "Kiriakos N. Kutulakos and Charles R. Dyer",
+    title = "Global Surface Reconstruction by Purposive Control of Observer Motion",
+    booktitle = "Proc.~Computer Vision and Pattern Recognition Conf.",
+    year = 1994,
+    pages = {331-338}}
+
+@article{kutu:ijcv94,
+    author = "Kiriakos N. Kutulakos and Charles R. Dyer",
+    title = "Recovering shape by purposive viewpoint adjustment",
+    journal = "Int. J. of Computer Vision",
+    volume = 12,
+    number = 2,
+    pages = {113-136},
+    year = 1994}
+
+@inproceedings{kutu:iccv95,
+    author = "Kiriakos N. Kutulakos and Charles R. Dyer",
+    title = "Affine Surface Reconstruction By Purposive Viewpoint Control",
+    booktitle = "Proc.~Fifth Int. Conf. on Computer Vision",
+    pages = {894-901},
+    year = 1995}
+
+@article{kutu:ai95,
+    author = "Kiriakos N. Kutulakos and Charles R. Dyer",
+    title = "Global surface reconstruction by purposive control of observer motion",
+    journal = "Artificial Intelligence",
+    pages = {147-177},
+    volume = 78,
+    year = 1995}
+
+@techreport{kutu:tr98,
+    author = "Kiriakos N. Kutulakos and Steven M. Seitz",
+    title = "A Theory of Shape by Space Carving",
+    institution = "Computer Science Dept., University of Rochester",
+    address = "Rochester, New York",
+    number = "692",
+    month = "May",
+    year = 1998}
+
+@inproceedings{kutu:cvpr97,
+    author = "Kiriakos N. Kutulakos",
+    title = "Shape from the Light Field Boundary",
+    booktitle = "Proc.~Computer Vision and Pattern Recognition Conf.",
+    year = 1997,
+    pages = {53-59}}
+    
+@article{kutu:ijcv00,
+    author = "Kiriakos N. Kutulakos and Steven M. Seitz",
+    title = "A Theory of Shape by Space Carving",
+    journal = "Int. J. of Computer Vision (Marr Prize Special Issue)",
+    volume = 38,
+    number = 3,
+    year = 2000,
+    pages = {199-218}}
+
+
+@inproceedings{lacr:sigg94,
+    author = "Philippe Lacroute and Marc Levoy",
+    title = "Fast Volume Rendering Using a Shear-Warp Factorization of the Viewing Transformation",
+    booktitle = "Proc.~SIGGRAPH 94",
+    year = 1994,
+    pags = {451-458}}
+
+@inproceedings{lass:sigg87,
+    author = "John Lasseter",
+    title = "Principles of traditional animation applied to {3D} computer animation",
+    booktitle = "Proc.~SIGGRAPH 87",
+    year = 1987,
+    pages = {35-44} }
+
+@inproceedings{laur:sigg91,
+    author = "David Laur and Pat Hanrahan",
+    title = "Hierarchical Splatting:  {A} Progressive Refinement Algorithm for Volume Rendering",
+    booktitle = "Proc.~SIGGRAPH 91",
+    year = 1991,
+    pags = {285-288}}
+
+@article{laur:pami95,
+   author = "Aldo Laurentini",
+    title = "How Far {3D} Shapes Can Be Understood from {2D} Silhouettes",
+    journal = "IEEE Trans. on Pattern Analysis and Machine Intelligence",
+    volume = 17,
+    number = 2,
+    pages = {188-195},
+    year = 1995}
+
+@article{laur:cviu97,
+   author = "Aldo Laurentini",
+    title = "How Many {2D} Silhouettes Does it Take to Reconstruct a {3D} Object",
+    journal = "Computer Vision and Image Understanding",
+    volume = 67,
+    number = 1,
+    pages = {81-87},
+    year = 1997}
+
+@techreport{lav:tr94,
+    author = "Stephane Laveau and Olivier Faugeras",
+    title = "3-{D} Scene Representation as a Collection of Images and Fundamental Matrices",
+    institution = "INRIA",
+    address = "Sophia-Antipolis, France",
+    number = "2205",
+    month = "February",
+    year = 1994}
+
+@inproceedings{lav:icpr94,
+    author = "Stephane Laveau and Olivier Faugeras",
+    title = "3-{D} Scene Representation as a Collection of Images",
+    booktitle = "Proc.~Int. Conf. on Pattern Recognition",
+    year = 1994,
+    pages = {689-691}}
+
+@article{lee:cvgip90,
+   author = "Chia-Hoang Lee and Thomas Huang",
+    title = "Finding Point Correspondences and Determining Motion of a Rigid Object from Two Weak Perspective Views",
+    journal = "Computer Vision, Graphics, and Image Processing",
+    volume = 52,
+    pages = {309-327},
+    year = 1990}
+
+@inproceedings{lee:sigg95,
+    author = "Seung-Yong Lee and Kyung-Yong Chwa and Sung Yong Shin and George Wolberg",
+    title = "Image Metamorphosis Using Snakes and Free-Form Deformations",
+    booktitle = "Proc.~SIGGRAPH 92",
+    year = 1992,
+    pages = {439-448} }
+
+@article{lens:tog03,
+   author = "H. Lensch and J. Kautz and M. Goesele and W. Heidrich and H.-P. Seidel",
+    title = "Image-Based Reconstruction of Spatially Varying Materials",
+    journal = "Trans. on Graphics",
+    year = 2003,
+    note = {To appear}}
+
+@incollection{lenz:notes90,
+    author = "R. Lenz",
+    title = "Group theoretical methods in image processing",
+    booktitle = "Lecture Notes in Computer Science",
+    publisher = "Springer Verlag",
+    volume = 413,
+    year = 1990}
+
+@inproceedings{lerios:sigg95,
+    author = "Apostolos Lerios and Chase D. Garfinkle and Mark Levoy",
+    title = "Feature-Based Volume Metamorphosis",
+    booktitle = "Proc.~SIGGRAPH 92",
+    year = 1992,
+    pages = {449-456} }
+
+@book{levi:book85,
+    author = "M. Levine",
+    title = "Vision in Man and Machine",
+    publisher = "{McGraw-Hill}",
+    address = "New York, NY",
+    year = 1985 }
+
+@techreport{levo:tr85,
+    author  =       "Mark Levoy and Turner Whitted",
+    title   =       "The Use of Points as a Display Primitive",
+    type    =       "UNC Technical Report" ,
+    number  =       "85-022" ,
+    institution=    "University of North Carolina" ,
+    year    =       "1985" ,
+    bibdate =       "Mon Aug 18 22:46:26 1986"}
+
+
+@inproceedings{levo:sigg96,
+    author = "Marc Levoy and Pat Hanrahan",
+    title = "Light Field Rendering",
+    booktitle = "Proc.~SIGGRAPH 96",
+    year = 1996,
+    pags = {31-42}}
+
+@article{l-h:nature81,
+   author = "H. C. Longuet-Higgins",
+    title = "A Computer Algorithm for Reconstructing a Scene from Two Projections",
+    journal = "Nature",
+    volume = 293,
+    pages = {133-135},
+    year = 1981}
+
+@article{li:pami93,
+   author = "Haibo Li and Pertti Roivainen and Robert Forchheimer",
+    title = "3-{D} Motion Estimation in Model-Based Facial Image Coding",
+    journal = "IEEE Trans. on Pattern Analysis and Machine Intelligence",
+    volume = 15,
+    number = 6,
+    pages = {545-555},
+    year = 1993}
+
+@inproceedings{lipp:sigg80,
+    author =       "A. Lippman",
+    title =        "Movie-Maps: an Application of the Optical Videodisc to Computer Graphics",
+    booktitle = "Proc.~SIGGRAPH 80",
+    year =         "1980",
+    pages =        "32--42"}
+
+@inproceedings{loop:cvpr99,
+    author = "Charles Loop and Zhengyou Zhang",
+    title = "Computing Rectifying Homographies for Stereo Vision",
+    booktitle = "Proc.~Computer Vision and Pattern Recognition Conf.",
+    year = 1999
+    }
+
+@article{lowe:ijcv87,
+    author = "David G. Lowe",
+    title = "The viewpoint consistency constraint",
+    journal = "Int. J. of Computer Vision",
+    volume = 1,
+    number = 1,
+    year = 1987,
+    pages = {57-72} }
+
+@inproceedings{lucas:ijcai81,
+    author = "B. D. Lucas and T. Kanade",
+    title = "An iterative image registration technique with an application to stereo vision",
+    booktitle = "Proc.~7th IJCAI",
+    year = 1981}
+
+@InProceedings{lueb:sigg97,
+       author =       "David Luebke and Carl Erikson",
+       title =        "View-Dependent Simplification of Arbitrary Polygonal
+                      Environments",
+       booktitle =    "SIGGRAPH 97 Conference Proceedings",
+       editor =       "Turner Whitted",
+       series =       "Annual Conference Series",
+       year =         "1997",
+       organization = "ACM SIGGRAPH",
+       publisher =    "Addison Wesley",
+       month =        aug,
+       pages =        "199--208",
+}
+
+@techreport{luong:tr93,
+    author = "Quang-Tuan Luong and Rachid Deriche and Olivier Faugeras and Theo Papadopoulo",
+    title = "On determining the fundamental matrix: {A}nalysis of different
+    methods and experimental results",
+    institution = "INRIA",
+    address = "Sophia-Antipolis, France",
+    number = "1894",
+    month = "April",
+    year = 1993}
+
+@inproceedings{luong:eccv94,
+    author = "Q-.T. Luong and T. Vi\'{e}ville",
+    title = "Canonic Representations for the Geometries of Multiple Projective Views",
+    booktitle = "Proc.~Third European Conf. on Computer Vision",
+    pages = {589-597},
+    year = 1994}
+
+@article{luong:ijcv96,
+    author = "Quang-Tuan Luong and Olivier Faugeras",
+   title = "The Fundamental Matrix:  Theory, Algorithms, and Stability Analysis",
+   journal = "Int. J. of Computer Vision",
+   volume = 17,
+   number = 1,
+   pages = {43-75},
+   year = 1996}
+
+@incollection{madd:ev95,
+    author = "Brian C. Madden and Hany Farid",
+    title = "Active vision and virtual reality",
+    booktitle = "Exploratory Vision: The Active Eye",
+    publisher = "Springer-Verlag",
+    year = 1995,
+    pages = {301-339},
+    address = {New York, NY} }
+
+
+@inproceedings{mann:icip94,
+    author = "Steve Mann and Rosalind Picard",
+    title = "Virtual Bellows:  {C}onstructing high-quality images from video",
+    booktitle = "Proc.~First Int. Conf. on Image Processing",
+    year = 1994 }
+
+@techreport{mann:tr338,
+    author = "Steve Mann and Rosalind Picard",
+    title = "Video orbits of the projective group;  {A} new perspective on image mosaicing",
+    institution = "MIT Media Lab",
+    address = "Cambridge, MA",
+    type = "{A}.{I}. {M}emo {N}o.",
+    number = "338",
+    year = 1995}
+
+@article{mann:tip97,
+    author = "Steve Mann and Rosalind Picard",
+    title = "Video Orbits of the Projective Group: A Simple Approach to Featureless Estimation of Parameters",
+    journal = "IEEE Trans. on Image Processing",
+    volume = 6,
+    number = 9,
+    year = 1997}
+
+@article{mart:pami83,
+   author = "W. N. Martin and J. K. Aggarwal",
+    title = "Volumetric description of objects from multiple views",
+    journal = "IEEE Trans. on Pattern Analysis and Machine Intelligence",
+    volume = 5,
+    number = 2,
+    pages = {150-158},
+    year = 1991}
+    
+@inproceedings{matu:sigg00,
+   author = {Wojciech Matusik and Chris Buehler and Ramesh Raskar and Steven J. Gortler and Leonard McMillan},
+   title = {Image-Based Visual Hulls},
+   booktitle = "Proc.~SIGGRAPH 95",
+   year = {2000},
+   pages = {369--374}
+}
+
+@inproceedings{mcl:iccv95,
+    author = "Philip F. McLauchlan and David W. Murray",
+    title = "A unifying framework for structure and motion recovery from image sequences",
+    booktitle = "Proc.~5th Int. Conf. on Computer Vision",
+    year = 1995,
+    pages = {314-320}}
+
+@inproceedings{mcm:spie95,
+    author = "Leonard McMillan and Gary Bishop",
+    title = "Head-tracked stereoscopic display using image warping",
+    booktitle = "Proc.~SPIE Vol. 2409A",
+    year = 1995,
+    pages = {21-30}}
+
+@inproceedings{mcm:sigg95,
+    author = "Leonard {McMillan} and Gary Bishop",
+    title = "Plenoptic Modeling: An image-based rendering system",
+    booktitle = "Proc.~SIGGRAPH 95",
+    year = 1995,
+    pages = {39-46}}
+
+@inproceedings{mcrey:iccv95,
+    author = "Daniel P. McReynolds and David G. Lowe",
+    title = "Rigidity Checking of {3D} Point Correspondences Under Perspective Projection",
+    booktitle = "Proc.~Fifth Int. Conf. on Computer Vision",
+    pages = {945-950},
+    year = 1995}
+
+@article{moez:cga96,
+    author = "Saied Moezzi and Arun Katkere and Don Y. Kuramura and Ramesh Jain",
+    title = "Reality Modeling and Visualization from Multiple Video Sequences",
+    journal = "IEEE Computer Graphics and Applications",
+    volume = 16,
+    number = 6,
+    pages = {58-63},
+    year = 1996}
+
+@article{moez:mm97,
+    author = "Saied Moezzi and Li-Cheng Tai and Philippe Gerard",
+    title = "Virtual View Generation for 3D Digital Video",
+    journal = "IEEE Multimedia",
+    volume = 4,
+    number = 1,
+    pages = {18-26},
+    year = 1997}
+
+@inproceedings{mohk:cvpr88,
+    author = "F. Mokhtarian",
+    title = "Multi-scale description of space curves and three-dimensional objects",
+    booktitle = "Proc.~Computer Vision and Pattern Recognition Conf.",
+    year = 1988,
+    pages = {298-303} }
+
+@techreport{morita:tr94,
+    author = "Toshihiko Morita and Takeo Kanade",
+    title = "{A} Sequential Factorization Method for Recovering Shape and Motion from Image Streams",
+    institution = "Carnegie Mellon University",
+    address = "Pittsburgh, PA",
+    number = "CMU-CS-94-158",
+    month = "June",
+    year = 1994}
+
+@InProceedings{mort:sigg95,
+  author =       "Eric N. Mortensen and William A. Barrett",
+  title =        "Intelligent Scissors for Image Composition",
+  pages =        "191--198",
+  booktitle =    "Proc.~SIGGRAPH 95",
+  year =         1995}
+
+@article{murase:ijcv95,
+    author = "Hiroshi Murase and Shree K. Nayar",
+    title = "Visual Learning and Recognition of 3-{D} Objects from Appearance",
+    journal = "Int. J. of Computer Vision",
+    volume = 14,
+    number = 1,
+    pages = {171-183},
+    year = 1990}
+
+@article{musm:ic89,
+    author = "Hans Georg Musmann and Michael Hotter and Jorn Ostermann",
+    title = "Object-oriented analysis-synthesis coding of moving images",
+    journal = "Signal Processing:  Image Communication",
+    volume = 1,
+    pages = {117-138},
+    year = 1989}
+
+@inproceedings{naka:cvpr96,
+    author = "Yuichi Nakamura and Tomohiko Matsuura and Kiyohide Satoh and Yuichi Ohta",
+    title = "Occlusion Detectable Stereo--Occlusion Patterns in Camera Matrix",
+    booktitle = "Proc.~Computer Vision and Pattern Recognition Conf.",
+    year = 1996,
+    pages = {371-378} }
+
+@book{nalwa:book,
+    author = "Vishvjit S. Nalwa",
+    title = "A Guided Tour of Computer Vision",
+    publisher = "Addison-Wesley",
+    address = "Reading, MA",
+    year = 1993 }
+
+@inproceedings{nara:iccv98,
+    author = "P. J. Narayanan and Peter W. Rander and Takeo Kanade",
+    title = "Constructing Virtual Worlds Using Dense Stereo",
+    booktitle = "Proc.~Sixth Int. Conf. on Computer Vision",
+    year = 1998,
+    pages = {3-10}}
+
+@inproceedings{naya:cvpr00,
+    author = "Shree K. Nayar and Amruta Karmarkar",
+    title = "360 x 360 Mosaics",
+    booktitle = "Proc.~Computer Vision and Pattern Recognition Conf.",
+    year = 2000,
+    pages = {388-395}}
+
+@article{naya:ra90,
+    author = "Shree K. Nayar and Katsushi Ikeuchi and Takeo Kanade",
+    title = "Determining shape and reflectance of Hybrid surfaces by photometric sampling",
+    journal = "IEEE Trans. on Robotics and Automation",
+    volume = 6,
+    number = 4,
+    pages = {418-431},
+    year = 1990}
+
+@inproceedings{newe:acm72,
+    author = "M. E. Newell and R. G. Newell and T. L. Sancha",
+    title = "A Solution to the Hidden Surface Problem",
+    booktitle = "Proc.~{ACM} National Conference",
+    pages = {443-450},
+    year = 1972}
+
+@inproceedings{niyogi:iccv95,
+    author = "Sourabh A. Niyogi",
+    title = "Detecting Kinetic Occlusion",
+    booktitle = "Proc.~Fifth Int. Conf. on Computer Vision",
+    pages = {1044-1049},
+    year = 1995}
+
+@book{nr:book88,
+    author = "William H. Press and Brian P. Flannery and Saul A. Teukolsky and William T. Vetterling",
+    title = "Numerical Recipes in C",
+    publisher = "Cambridge University Press",
+    address = "Cambridge, MA",
+    year = 1988}
+
+@article{ohta:pami85,
+   author = "Yuichi Ohta and Takeo Kanade",
+    title = "Stereo by Intra- and Inter-Scanline Search Using Dynamic Programming",
+    journal = "IEEE Trans. on Pattern Analysis and Machine Intelligence",
+    volume = 7,
+    number = 2,
+    pages = {139-154},
+    year = 1985}
+
+@article{okut:pami93,
+   author = "Masatoshi Okutomi and Takeo Kanade",
+    title = "A Multiple-Baseline Stereo",
+    journal = "IEEE Trans. on Pattern Analysis and Machine Intelligence",
+    volume = 15,
+    number = 4,
+    pages = {353-363},
+    year = 1985}
+
+@article{orour:pami80,
+    author = "J. O'Rourke and N.I. Badler",
+    title = "Model-based image analysis of human motion using constraint propagation",
+    booktitle = "Trans. on Pattern Analysis and Machine Intelligence",
+    year = 1980,
+    pages = {522-536} }
+
+@inproceedings{ott:inte93,
+    author = "Maximilian Ott and John P. Lewis and Ingemar Cox",
+    title = "Teleconferencing eye contact using a virtual camera",
+    booktitle = "Proc.~INTERCHI `93",
+    pages = {109-110},
+    year = 1993}
+
+@InProceedings{pajd:cvww01,
+  author =      {Pajdla, Tom{\'a}{\v s}},
+  title =       {Epipolar Geometry of some Non-classical Cameras},
+  year =        {2001},
+  pages =       {223--233},
+  booktitle =   {Proceedings of Computer Vision Winter Workshop},
+  publisher =   {Slovenian Pattern Recognition Society},
+  book_pages =  {285},
+}
+
+@inbook{palm:ap81,
+   author = "Stephen Palmer and Eleanor Rosch and Paul Chase",
+    title = "Canonical Perspective and the Perception of Objects",
+    booktitle = "Attention and Performance (J. Long and A. Baddeley, Eds.)",
+    publisher = "Erlbaum",
+    volume = 9,
+    pages = {135-151},
+    year = 1981}
+
+@inbook{heal:pbv92cc,
+    editor = "Glenn E. Healey and Steven A. Shafer and Lawrence B. Wolff",
+    title = "Physics-based vision:  Principles and Practice, {COLOR}",
+    publisher = "Jones and Bartlett",
+    address = "Boston, MA",
+    pages = {205-299},
+    year = 1992}
+
+@inproceedings{pele:cvpr97,
+    author = "Shmuel Peleg and Joshua Herman",
+    title = "Panoramic mosaics by manifold projection",
+    booktitle = "Proc.~Computer Vision and Pattern Recognition Conf.",
+    year = 1997,
+    pages = {338-343} }
+
+@inproceedings{pele:cvpr99,
+    author = "Shmuel Peleg and Mosha Ben-Ezra",
+    title = "Stereo Panorama with a Single Camera",
+    booktitle = "Proc.~Computer Vision and Pattern Recognition Conf.",
+    year = 1999,
+    pages = {395-401} }
+
+@inproceedings{pele:cvpr00,
+    author = "Shmuel Peleg and Y. Pritch and Mosha Ben-Ezra",
+    title = "Cameras for Stereo Panoramic Imaging",
+    booktitle = "Proc.~Computer Vision and Pattern Recognition Conf.",
+    pages = {208-214},
+    year = 2000}
+
+@inproceedings{pent:cvpr94,
+    author = "Alex Pentland and Baback Moghaddam and Thad Starner",
+    title = "View-Based and Modular Eigenspaces for Face Recognition",
+    booktitle = "Proc.~Computer Vision and Pattern Recognition Conf.",
+    year = 1994,
+    pages = {84-91} }
+
+@article{pero:pami95,
+   author = "Pietro Perona",
+    title = "Deformable Kernels for Early Vision",
+    journal = "IEEE Trans. on Pattern Analysis and Machine Intelligence",
+    volume = 17,
+    number = 5,
+    pages = {488-499},
+    year = 1995}
+
+@inproceedings{pero:cvpr96,
+   author = "Pietro Perona",
+    title = "Recognition of Planar Object Classes",
+    booktitle = "Proc.~Computer Vision and Pattern Recognition Conf.",
+    year = 1996,
+    pages = {223-230} }
+
+@article{perry:spect90,
+   author = "Tekla S. Perry",
+    title = "Biomechanically engineered athletes",
+    journal = "IEEE Spectrum",
+    pages = {43-44},
+    month = "April",
+    year = 1990}
+
+@inproceedings{plant:gi90,
+    author = "Harry Plantinga and Charles R. Dyer",
+    title = "Real-Time Hidden-line Elimination for a Rotating Polyhedral
+    Scene Using the Aspect Representation",
+    booktitle = "Proc.~Graphics Interface",
+    pages = {9-16},
+    year = 1990}
+
+@article{plant:ijcv90,
+    author = "Harry Plantinga and Charles R. Dyer",
+    title = "Visibility, Occlusion, and the Aspect Graph",
+    journal = "Int. J. of Computer Vision",
+    volume = 5,
+    number = 2,
+    year = 1990,
+    pages = {137-160} }
+
+@inproceedings{pola:cvpr92,
+    author = "Ramprasad Polana and Randal Nelson",
+    title = "Recognition of motion from temporal texture",
+    booktitle = "Proc.~Computer Vision and Pattern Recognition Conf.",
+    year = 1992,
+    pages = {129-134} }
+
+@inproceedings{pola:cvpr93,
+    author = "Ramprasad Polana and Randal Nelson",
+    title = "Detecting Activities",
+    booktitle = "Proc.~Computer Vision and Pattern Recognition Conf.",
+    year = 1993,
+    pages = {2-7} }
+
+@article{pog:nat85,
+   author = "Tomaso Poggio and Vincent Torre and Christof Koch",
+    title = "Computational vision and regularization theory",
+    journal = "Nature",
+    pages = {314-319},
+    volume = 317,
+    year = 1985}
+
+@techreport{pog:tr1354,
+    author = "Tomaso Poggio and Roberto Brunelli",
+    title = "A Novel Approach to Graphics",
+    institution = "M.I.T.",
+    address = "Cambridge, MA",
+    type = "{A}.{I}. {M}emo {N}o.",
+    number = "1354",
+    month = "February",
+    year = 1992}
+
+@inproceedings{poll:iccv98,
+    author = "Marc Pollefeys and Reinhard Koch and Luc Van Gool",
+    title = "Self-Calibration and Metric Reconstruction in spite of Varying
+    Unknown Internal Camera Parameters",
+    booktitle = "Proc.~Sixth Int. Conf. on Computer Vision",
+    year = 1998,
+    pages = {90-91}}
+
+@inproceedings{ponce:iuw89,
+    author = "Jean Ponce and David J. Kriegman",
+    title = "On recognizing and positioning curved {3D} objects from image contours",
+    booktitle = "Proc.~Image Understanding Workshop",
+    year = 1989,
+    pages = {461-470} }
+
+@InProceedings{popo:sigg97,
+       author =       "Jovan Popovi{\'{c}} and Hugues Hoppe",
+       title =        "Progressive Simplicial Complexes",
+       booktitle =    "SIGGRAPH 97 Conference Proceedings",
+       editor =       "Turner Whitted",
+       series =       "Annual Conference Series",
+       year =         "1997",
+       organization = "ACM SIGGRAPH",
+       publisher =    "Addison Wesley",
+       month =        aug,
+       pages =        "217--224",
+}
+
+@inbook{pre:book85,
+   author = "Franco P. Preparata and Michael Ian Shamos",
+    title = "Computational Geometry:  An Introduction",
+    publisher = "Springer-Verlag",
+    address = "New York, NY",
+    pages = 261,
+    year = 1985}
+
+@article{rade:sigg98,
+   author = {Paul Rademacher and Gary Bishop},
+   title = {Multiple-Center-of-Projection Images},
+   journal = {Proceedings of SIGGRAPH 98},
+   series = {Computer Graphics Proceedings, Annual Conference Series},
+   year = {1998},
+   month = {July},
+   pages = {199--206}}
+
+@article{rama:sigg02,  
+author = "Ravi Ramamoorthi and Pat Hanrahan",  
+title = "Frequency {S}pace {E}nvironment {M}ap {R}endering",  
+year = "2002",  
+month = "July",  
+journal = "Trans. on Graphics",  
+volume = "21",  
+number = "3",  
+pages = "517--526",  
+note = "(Proceedings of SIGGRAPH 2002)",
+}
+
+
+@inproceedings{rega:sigg94,
+    author = "Matthew Regan and Ronald Post",
+    title = "Priority Rendering with a Virtual Reality Address Recalculation Pipeline",
+    booktitle = "Proc.~SIGGRAPH 94",
+    pages = {155-162},
+    year = 1994}
+
+@techreport{rob:tr95,
+    author = "Luc Robert and Cyril Zeller and Olivier Faugeras and Martial H\'{e}bert",
+    title = "Applications of non-metric vision to some visually guided robotics tasks",
+    institution = "INRIA",
+    address = "Sophia-Antipolis, France",
+    number = "2584",
+    month = "June",
+    year = 1995}
+
+@inproceedings{rob:ima97,
+    author = "Luc Robert",
+    title = "Realistic Scene Models From Image Sequences",
+    booktitle = "Proc.~Imagina 97 Conf.",
+    address = "Monaco",
+    year = 1997,
+    pages = {8-13} }
+
+@inproceedings{rohr:cvpr93,
+    author = "K. Rohr",
+    title = "Incremental Recognition of Pedestrians from Image Sequences",
+    booktitle = "Proc.~Computer Vision and Pattern Recognition Conf.",
+    year = 1993,
+    pages = {8-13} }
+
+@article{rosen:prai87,
+    author = "A. Rosenfeld",
+    title = "Recognizing unexpected objects:  {A} proposed approach",
+    journal = "Int. J. Pattern Recognition and Artificial Intelligence",
+    volume = 1,
+    number = 1,
+    pages = {71-84},
+    year = 1987}
+
+@inproceedings{roy:iccv98,
+    author = "Sebastien Roy and Ingemar J. Cox",
+    title = "A Maximum-Flow Formulation of the {N}-camera Stereo Correspondence Problem",
+    booktitle = "Proc.~Sixth Int. Conf. on Computer Vision",
+    year = 1998,
+    pages = {492-499}}
+
+@inproceedings{roy:cvpr97,
+    author = "S. Roy and J. Meunier and I. Cox",
+    title = "Cylindrical Rectification to Minimize Epipolar Distortion",
+    booktitle = "Proc.~Computer Vision and Pattern Recognition Conf.",
+    year = 1997,
+    pages = {393-399} }
+
+@article{samal:pr92,
+    author = "A. Samal and P. Iyengar",
+    title = "Automatic Recognition and Analysis of Human Faces and Facial Expressions:  A Survey",
+    journal = "Pattern Recognition",
+    volume = 25,
+    number = 5,
+    year = 1992,
+    pages = {65-77} }
+
+@inproceedings{sato:sigg97,
+    author = "Yoichi Sato and Mark D. Wheeler and Katsushi Ikeuchi",
+    title = "Object Shape and Reflectance Modeling from Observation",
+    booktitle = "Proc.~SIGGRAPH 97",
+    pages = {379-387},
+    year = 1997}
+
+@Article{same:cs84,
+  author =       "H. Samet",
+  title =        "The Quadtree and Related Hierarchical Data Structures",
+  year =         "1984",
+  journal =      "ACM Computing Surveys",
+  volume =       "16",
+  pages =        "187--260"}
+
+@inproceedings{sawhney:cvpr94,
+    author = "Harpreet S. Sawhney",
+    title = "3{D} Geometry from Planar Parallax",
+    booktitle = "Proc.~Computer Vision and Pattern Recognition Conf.",
+    pages = {929-934},
+    year = 1994}
+
+@inproceedings{scha:cvpr96,
+    author = "Daniel Scharstein",
+    title = "Stereo Vision for View Synthesis",
+    booktitle = "Proc.~Computer Vision and Pattern Recognition Conf.",
+    pages = {852-858},
+    year = 1996}
+
+@article{seal:cvgip95,
+    author = "W. Brent Seales and Olivier D. Faugeras",
+    title   = "Building Three-Dimensional Object Models from Image Sequences",
+    journal = "CVGIP: Image Understanding",
+    number  = 61,
+    volume  = 3,
+    year = 1995,
+    pages   = "308--324"}
+
+@unpublished{seal:unpub97,
+    author = "W. Brent Seales and Cheng Jiun Yuan",
+    title = "Recognition Using Morphing",
+    note = "In preparation",
+    year = 1997}
+
+@inproceedings{seales:spie95,
+    author = "W. Brent Seales and Matthew D. Cutts",
+    title = "Active Camera Control from Compressed Image Streams",
+    booktitle = "Proc.~SPIE:  Sensor Fusion and Networked Robotics",
+    year = 1995,
+    note = {To appear}}
+
+@inproceedings{seales:gi90,
+    author = "W. Brent Seales and Charles R. Dyer",
+    title = "Shaded Rendering and Shadow Computation for Polyhedral Animation",
+    booktitle = "Proc.~Graphics Interface",
+    pages = {175-182},
+    year = 1990}
+
+@inproceedings{seder:sigg92,
+    author = "Thomas W. Sederberg and Eugene Greenwood",
+    title = "A Physically Based Approach to 2-D Shape Blending",
+    booktitle = "Proc.~SIGGRAPH 92",
+    year = 1992,
+    pages = {25-34} }
+
+@techreport{seitz:tr94,
+    author = "Steven M. Seitz and Charles R. Dyer",
+    title = "Affine Invariant Detection of Periodic Motion",
+    institution = "University of Wisconsin",
+    address = "Madison, WI",
+    number = "CS-TR-1225",
+    month = "June",
+    year = 1994}
+
+@inproceedings{seitz:cvpr94,
+    author = "Steven M. Seitz and Charles R. Dyer",
+    title = "Affine Invariant Detection of Periodic Motion",
+    booktitle = "Proc.~Computer Vision and Pattern Recognition Conf.",
+    pages = {970-975},
+    year = 1994}
+
+@inproceedings{seitz:mnao94,
+    author = "Steven M. Seitz and Charles R. Dyer",
+    title = "Detecting Irregularities in Cyclic Motion",
+    booktitle = "Proc.~Workshop on Motion of Non-Rigid and Articulated Objects",
+    pages = {178-185},
+    year = 1994}
+
+@inproceedings{seitz:iccv95,
+    author = "Steven M. Seitz and Charles R. Dyer",
+    title = "Complete Structure from Four Point Correspondences",
+    booktitle = "Proc.~Fifth Int. Conf. on Computer Vision",
+    pages = {330-337},
+    year = 1995}
+
+@inproceedings{seitz:rvs95,
+    author = "Steven M. Seitz and Charles R. Dyer",
+    title = "Physically-Valid View Synthesis by Image Interpolation",
+    booktitle = "Proc.~IEEE Workshop on Representation of Visual Scenes",
+    pages = {18-25},
+    year = 1995}
+
+@inproceedings{seitz:sigg96,
+    author = "Steven M. Seitz and Charles R. Dyer",
+    title = "View Morphing",
+    booktitle = "Proc.~SIGGRAPH 96",
+    pages = {21-30},
+    year = 1996}
+
+@techreport{seitz:tr96,
+    author = "Steven M. Seitz and Charles R. Dyer",
+    title = "Scene Appearance Representation by Perspective View Synthesis",
+    institution = "University of Wisconsin",
+    address = "Madison, WI",
+    number = "CS-TR-1298",
+    month = "May",
+    year = 1996}
+
+@inproceedings{seitz:icpr96,
+    author = "Steven M. Seitz and Charles R. Dyer",
+    title = "Toward Image-Based Scene Representation Using View Morphing",
+    booktitle = "Proc.~Int. Conf. on Pattern Recognition",
+    pages = {84-89},
+    year = 1996}
+
+@incollection{seitz:mbr97,
+    author = "Steven M. Seitz and Charles R. Dyer",
+    title = "Cyclic Motion Analysis Using the Period Trace",
+    booktitle = "Motion-Based Recognition (M. Shah and R. Jain, Eds.)",
+    publisher = "Kluwer Academic Publishers",
+    address = "Boston, MA",
+    pages = {61-85},
+    year = 1997}
+
+@inproceedings{seitz:ima97,
+    author = "Steven M. Seitz",
+    title = "Bringing Photographs to Life with View Morphing",
+    booktitle = "Proc.~Imagina 97 Conf.",
+    address = "Monaco",
+    year = 1997,
+    pages = {153-158} }
+
+@inproceedings{seitz:iuw97a,
+    author = "Steven M. Seitz and Charles R. Dyer",
+    title = "View Morphing:  Uniquely Predicting Scene Appearance from Basis Images",
+    booktitle = "Proc.~Image Understanding Workshop",
+    year = 1997,
+    pages = {881-887} }
+
+@inproceedings{seitz:iuw97b,
+    author = "Steven M. Seitz and Charles R. Dyer",
+    title = "Photorealistic Scene Reconstruction by Voxel Coloring",
+    booktitle = "Proc.~Image Understanding Workshop",
+    year = 1997,
+    pages = {1067-1073} }
+
+@inproceedings{seitz:cvpr97,
+    author = "Steven M. Seitz and Charles R. Dyer",
+    title = "Photorealistic Scene Reconstruction by Voxel Coloring",
+    booktitle = "Proc.~Computer Vision and Pattern Recognition Conf.",
+    pages = {1067-1073},
+    year = 1997}
+
+@article{seitz:ijcv99,
+    author = "Steven M. Seitz and Charles R. Dyer",
+    title = "View-Invariant Analysis of Cyclic Motion",
+    journal = "Int. J. of Computer Vision",
+    volume = 35,
+    number = 2,
+    year = 1999,
+    pages = {151-173}}
+
+@inproceedings{seitz:iccv98,
+    author = "Steven M. Seitz and Kiriakos N. Kutulakos",
+    title = "Plenoptic Image Editing",
+    booktitle = "Proc.~Sixth Int. Conf. on Computer Vision",
+    year = 1998,
+    pages = {17-24}}
+
+@inproceedings{seitz:iccv01,
+    author = "Steven M. Seitz",
+    title = "The Space of All Stereo Images",
+    booktitle = "Proc.~Eighth Int. Conf. on Computer Vision",
+    year = 2001,
+    pages = {26-33}}
+
+@techreport{seitz:tr01,
+    author = {Steven M. Seitz},
+    title = "The Space of All Stereo Images",
+    institution = "University of Washington",
+    address = "Seattle, Washington",
+    number = "UW-CSE-01-04-01",
+    month = "April",
+    year = 2001}
+    
+@article{seitz:ijcv01a,
+    author = "Steven M. Seitz and Jiwon Kim",
+    title = "The Space of All Stereo Images",
+    journal = "Int. J. of Computer Vision (Marr Prize Special Issue)",
+    year = 2001,
+    note = {To appear}}
+    
+@article{seitz:ijcv01b,
+    author = "Steven M. Seitz and Kiriakos N. Kutulakos",
+    title = "Plenoptic Image Editing",
+    journal = "Int. J. of Computer Vision",
+    year = 2001,
+    note = {To appear}}
+
+@inproceedings{shap:eccv94,
+    author = "Larry Shapiro and Andrew Zisserman and Michael Brady",
+    title = "Motion from Point Matches Using Affine Epipolar Geometry",
+    booktitle = "Proc.~Third European Conf. on Computer Vision",
+    pages = {73-84},
+    year = 1994}
+
+@article{shap:ijcv95,
+    author = "Larry S. Shapiro and Andrew Zisserman and Michael Brady",
+    title = "{3D} Motion Recovery via Affine Epipolar Geometry",
+    journal = "Int. J. of Computer Vision",
+    year = 1995,
+    volume = 16,
+    pages = {147-182}}
+
+@phdthesis{shash:phd,
+    author = "Amnon Shashua",
+    title = "Geometry and Photometry in {3D} Visual Recognition",
+    school = "Massachusetts Institute Of Technology",
+    address = "Cambridge, MA",
+    year = 1992}
+
+@article{shash:pami94,
+   author = "Amnon Shashua",
+    title = "Projective Structure from Uncalibrated Images:  {S}tructure from Motion and Recognition",
+    journal = "IEEE Trans. on Pattern Analysis and Machine Intelligence",
+    volume = 16,
+    number = 8,
+    pages = {778-790},
+    year = 1994}
+
+@article{shep:sci76,
+    author = "Roger N. Shepard and Sherryl A. Judd",
+    title = "Perceptual Illusion of Rotation of Three-Dimensional Objects",
+    journal = "Science",
+    number = 191,
+    pages = {952-954},
+    year = 1976}
+
+@article{shep:sci77,
+    author = "Clive Robins and Roger N. Shepard",
+    title = "Spatio-Temporal Probing of Apparent Rotational Movement",
+    journal = "Perception and Psychophysics",
+    number = 22,
+    pages = {12-18},
+    year = 1977}
+
+@inproceedings{shum:iccv99b,
+author  =   "Shum, H.-Y. and Szeliski, R." ,
+fullauthor= "Heung-Yeung Shum and Richard Szeliski" ,
+title   =   "Stereo Reconstruction from Multiperspective Panoramas" ,
+booktitle = "Proc.~Seventh Int. Conf. on Computer Vision",
+year    =   "1999",
+pages  =   {14-21}}
+
+@inproceedings{shum:iccv99a,
+author= "Heung-Yeung Shum and Adam Kalai and Steven M. Seitz" ,
+title   =   "Omnivergent Stereo" ,
+booktitle = "Proc.~Seventh Int. Conf. on Computer Vision",
+year    =   "1999",
+pages  =   {22-29}}
+
+
+@inproceedings{shoe:sigg85,
+    author = "Ken Shoemake",
+    title = "Animating Rotation with Quaternion Curves",
+    booktitle = "Proc.~SIGGRAPH 85",
+    year = 1985,
+    pages = {245-254} }
+
+@article{shum:sigg99,
+author = {Heung-Yeung Shum and Li-Wei He},
+title = {Rendering with Concentric Mosaics},
+journal = {Proceedings of SIGGRAPH 99},
+series = {Computer Graphics Proceedings, Annual Conference Series},
+year = {1999},
+pages = {299--306}}
+
+@inproceedings{shum:iccv99,
+author = {Heung-Yeung Shum and Adam Kalai and Steven M. Seitz},
+title = {Omnivergent Stereo},
+booktitle = {Proc.~7th Int. Conf. on Computer Vision},
+year = {1999},
+pages = {22-29}}
+
+@mastersthesis{silv:mast,
+    author = "William M. Silver",
+    title = "Determining Shape and Reflectance Using Multiple Images",
+    school = "Massachusetts Institute Of Technology",
+    address = "Cambridge, MA",
+    year = 1980}
+
+@inproceedings{sloa:3ds97,
+    author = "Peter-Pike Sloan and Michael F. Cohen and Steven J. Gortler",
+    title = "Time Critical Lumigraph Rendering",
+    booktitle = "Proc.~Symposium on Interactive 3D Graphics",
+    year = 1997,
+    pages = {17-23} }
+
+@article{simo:tit92,
+   author = "E. Simoncelli and W. Freeman and E. H. Adelson and D. Heeger",
+    title = "Shiftable multi-scale transforms",
+    journal = "IEEE Trans. Information Theory",
+    volume = 38,
+    number = 2,
+    pages = {587-607},
+    year = 1992}
+
+@inproceedings{smit:sigg96,
+    author = "Alvy Ray Smith and James F. Blinn",
+    title = "Blue Screen Matting",
+    booktitle = "Proc.~SIGGRAPH 96",
+    year = 1996,
+    pages = {259-268} }
+
+@article{smith:cga93,
+    author = "Brian C. Smith and Lawrence A. Rowe",
+    title = "Algorithms for Manipulating Compressed Images",
+    journal = "IEEE Computer Graphics and Applications",
+    volume = 13,
+    number = 5,
+    pages = {34-42},
+    year = 1993}
+
+@inproceedings{leng:sigg97,
+    author = "Jed Lengyel and John Snyder",
+    title = "Rendering With Coherent Layers",
+    booktitle = "Proc.~SIGGRAPH 97",
+    year = 1997,
+    pages = {233-242} }
+
+@inproceedings{soat:mnao94,
+    author = "Stefano Soatto and Pietro Perona",
+    title = "Three dimensional transparent structure segmentation and multiple 3{D} motion estimation from monocular perspective image sequences",
+    booktitle = "Proc.~Workshop on Motion of Non-Rigid and Articulated Objects",
+    pages = {228-235},
+    year = 1994}
+
+@article{spet:ijcv90,
+    author = "Minas E. Spetsakis and John Aloimonos",
+    title = "Structure from Motion Using Line Correspondences",
+    journal = "Int. J. of Computer Vision",
+    volume = 4,
+    pages = {171-183},
+    year = 1990}
+
+@book{stew:book73,
+    author = "G. W. Stewart",
+    title = "Introduction to Matrix Computations",
+    publisher = "Academic Press",
+    address = "New York, NY",
+    year = 1973,
+    pages = {322-323} }
+
+@inproceedings{stew:iccv88,
+    author = "C. V. Stewart and C. R. Dyer",
+    title = "The trinocular general support algorithm:  a three-camera stereo algorithm for overcoming binocular matching errors",
+    booktitle = "Proc.~Second Int. Conf. on Computer Vision",
+    pages = {134-138},
+    year = 1988}
+
+@book{strang:book88,
+    author = "Gilbert Strang",
+    title = "Linear Algebra and its Applications",
+    publisher = "Harcourt Brace Jovanovich Inc.",
+    address = "San Diego, CA",
+    year = 1988,
+    pages = {322-323} }
+
+@inproceedings{svob:eccv98,
+    author = "Tomas Svoboda and Tomas Pajdla and Vaclav Hlavac",
+    title = "Epipolar Geometry for Panoramic Cameras",
+    booktitle = "Proc.~5th Eur. Conf. on Computer Vision",
+    pages = {218-232},
+    year = 1998}
+
+@article{szel:cvgip93,
+    author = "Richard Szeliski",
+    title   = "Rapid Octree Construction from Image Sequences",
+    journal = "Computer Vision, Graphics, and Image Processing: Image Understanding",
+    number  = 58,
+    volume  = 1,
+    year = 1993,
+    pages   = "23--32"}
+
+@inproceedings{szel:acv94,
+    author = "Richard Szeliski",
+    title = "Image mosaicing for tele-reality applications",
+    booktitle = "Proc.~Workshop Applications of Computer Vision",
+    year = 1994,
+    pages = {44-53} }
+
+@inproceedings{szel:rvs95,
+    author = "Richard Szeliski and Sing Bing Kang",
+    title = "Direct Methods for Visual Scene Reconstruction",
+    booktitle = "Proc.~IEEE Workshop on Representation of Visual Scenes",
+    note = "{T}o appear",
+    year = 1995}
+
+@article{szel:cga96,
+    author = "Richard Szeliski",
+    title = "Video Mosaics for Virtual Environments",
+    journal = "IEEE Computer Graphics and Applications",
+    volume = 16,
+    number = 2,
+    pages = {22-30},
+    year = 1996}
+
+@inproceedings{szel:sigg97,
+    author = "Richard Szeliski and Heung-Yeung Shum",
+    title = "Creating Full View Panoramic Image Mosaics and Environment Maps",
+    booktitle = "Proc.~SIGGRAPH 97",
+    year = 1997,
+    pages = {251-258}}
+
+@inproceedings{szel:iccv98,
+    author = "Richard Szeliski and Polina Golland",
+    title = "Stereo Matching with Transparency and Matting",
+    booktitle = "Proc.~Sixth Int. Conf. on Computer Vision",
+    pages = {517-524},
+    year = 1998}
+
+@inproceedings{tell:pg98,
+    author = "Seth Teller",
+    title = "Toward Urban Model Acquisition from Geo-Located Images",
+    booktitle = "Proc.~Pacific Graphics `98.",
+    year = 1998,
+    }
+
+@article{terz:pami88,
+    author = "Demetri Terzopoulos",
+    title = "Multiresolution {C}omputation of {V}isible-{S}urface {R}epresentations",
+    journal = "IEEE Computer Graphics and Applications",
+    volume = 10,
+    number = 4,
+    pages = {417-438},
+    year = 1988}
+
+@inproceedings{terz:aaai88,
+    author = "Demetri Terzopoulos and Andrew Witkin and Michael Kass",
+    title = "Constraints on Deformable Models:  Recovering {3D} Shape and Nonrigid Motion",
+    booktitle = "Proc.~AAAI Conf.",
+    year = 1988,
+    pages = {91-122} }
+
+@techreport{toelg:tr1494,
+    author = "Sebastian Toelg and Tomaso Poggio",
+    title = "Towards an Example-Based Image Compression Architecture for Video Conferencing",
+    institution = "M.I.T.",
+    address = "Cambridge, MA",
+    type = "{A}.{I}. {M}emo {N}o.",
+    number = "1494",
+    month = "June",
+    year = 1994}
+
+@phdthesis{toma:phd,
+    author = "Carlo Tomasi",
+    title = "Shape and Motion from Image Streams:  {A} Factorization Method",
+    school = "Carnegie Mellon University",
+    address = "Pittsburgh, PA",
+    year = 1991}
+
+@article{toma:ijcv92,
+   author = "Carlo Tomasi and Takeo Kanade",
+    title = "Shape and Motion from Image Streams under Orthography:  {A} Factorization Method",
+    journal = "Int. J. of Computer Vision",
+    volume = 9,
+    number = 2,
+    pages = {137-154},
+    year = 1992}
+
+@inproceedings{torb:sigg96,
+    author = "Jay Torborg and James T. Kajiya",
+    title = "Talisman:  Commodity Realtime {3D} Graphics for the {PC}",
+    booktitle = "Proc.~SIGGRAPH 96",
+    year = 1996,
+    pages = {353-363} }
+
+@Article{torr:josa67,
+  author =   "K. E. Torrance and E. M. Sparrow",
+  title =    "Theory of off-specular reflection from roughened surface",
+  journal =  "Journal of the Optical Society of America",
+  year =     1967,
+  volume =   57,
+  pages =    "1105--1114"
+}
+
+@inproceedings{trig:iccv95,
+    author = "Bill Triggs",
+    title = "Matching Constraints and the Joint Image",
+    booktitle = "Proc.~5th Int. Conf. on Computer Vision",
+    year = 1995,
+    pages = {338-343}}
+
+@techreport{tsai:tr93,
+    author = "Ping-Sing Tsai and Mubarak Shah",
+    title = "Cyclic Motion Detection",
+    institution = "University of Central Florida",
+    address = "Orlando, FL",
+    number = "CS-TR-93-08",
+    year = 1993}
+
+@article{tsai:pr94,
+   author = "P.S. Tsai and M. Shah and K. Keiter and T. Kasparis",
+   title = "Cyclic motion detection for motion based recognition",
+   journal = "Pattern Recognition",
+   volume = 27,
+   number = 12,
+   pages = {1591-1603},
+   year = 1994}
+
+@incollection{tsai:cvip84,
+   author = "R. Y. Tsai and T. S. Huang",
+    title = "Multiframe image restoration and registration",
+    booktitle = "Advances in Computer Vision and Image Processing (T.S. Huang, Ed.)",
+    publisher = "JAI Press",
+    volume = 1,
+    pages = {317-339},
+    year = 1984}
+
+@article{tsai:ra87,
+    author = "R. Y. Tsai",
+    title = "A versatile camera calibration technique for high-accuracy {3D} machine vision metrology using off-the-shelf cameras and lenses",
+    journal = "IEEE Trans. Robotics and Automation",
+    volume = 3,
+    number = 4,
+    year = 1987,
+    pages = {323-344}}
+
+@inproceedings{turk:sigg94,
+    author = "Greg Turk and Marc Levoy",
+    title = "Zippered Polygon Meshes from Range Images",
+    booktitle = "Proc.~SIGGRAPH 94",
+    year = 1994,
+    pages = {311-318} }
+
+@article{turk:jcn91,
+   author = "Matthew Turk and Alex Pentland",
+    title = "Eigenfaces for Recognition",
+    journal = "J. of Cognitive Neuroscience",
+    volume = 3,
+    number = 1,
+    pages = {71-86},
+    year = 1991}
+
+@book{ullm:book79,
+    author = "Shimon Ullman",
+    title = "The Interpretation of Visual Motion",
+    publisher = "MIT Press",
+    address = "Cambridge, MA",
+    year = 1979}
+
+@article{ullm:pami91,
+   author = "Shimon Ullman and Ronen Basri",
+    title = "Recognition by Linear Combinations of Models",
+    journal = "IEEE Trans. on Pattern Analysis and Machine Intelligence",
+    volume = 13,
+    number = 10,
+    pages = {992-1006},
+    year = 1991}
+
+@article{verr:pami89,
+   author = "Alessandro Verri and Tomaso Poggio",
+    title = "Motion Field and Optical Flow:  Qualitative Properties",
+    journal = "IEEE Trans. on Pattern Analysis and Machine Intelligence",
+    volume = 11,
+    number = 5,
+    pages = {490-498},
+    year = 1989}
+
+@inproceedings{vett:eccv96,
+    author = "Thomas Vetter and Tomaso Poggio",
+    title = "Image Synthesis from a Single Example Image",
+    booktitle = "Proc.~European Conf. on Computer Vision",
+    year = 1996,
+    pages = {653-659} }
+
+@inproceedings{vett:cvpr97,
+    author = "Thomas Vetter and Michael J. Jones and Tomaso Poggio",
+    title = "A Bootstrapping Algorithm for Learning Linear Models of Object Classes",
+    booktitle = "Proc.~Computer Vision and Pattern Recognition Conf.",
+    year = 1997,
+    pages = {40-46} }
+
+@inproceedings{wang:cvpr93,
+    author = "John Y. A. Wang and Edward H. Adelson",
+    title = "Layered Representation for Motion Analysis",
+    booktitle = "Proc.~Computer Vision and Pattern Recognition Conf.",
+    year = 1993,
+    pages = {361-366} }
+
+@article{wang:ip94,
+    author = "John Y. A. Wang and Edward H. Adelson",
+    title = "Representing moving images with layers",
+    journal = "IEEE Trans. Image Processing",
+    volume = 3,
+    number = 5,
+    year = 1994,
+    pages = {625-638} }
+
+@inproceedings{ward:sigg92,
+    author = "Gregory J. Ward",
+    title = "Measuring and Modeling Anisotropic Reflection",
+    booktitle = "Proc.~SIGGRAPH 92",
+    year = 1992,
+    pages = {265-272} }
+
+@article{wein:ijcv93,
+    author = "Daphna Weinshall",
+    title = "Model-Based Invariants for 3-{D} Vision",
+    journal = "IEEE Trans. on Pattern Analysis and Machine Intelligence",
+    volume = 17,
+    number = 5,
+    pages = {512-517},
+    year = 1995}
+
+@article{wein:pami95,
+    author = "Daphna Weinshall and Carlo Tomasi",
+    title = "Linear and Incremental Acquisition of Invariant Shape Models from Image Sequences",
+    journal = "Int. J. of Computer Vision",
+    volume = 10,
+    number = 1,
+    pages = {27-42},
+    year = 1993}
+
+@inproceedings{werner:iccv95,
+    author = "Tomas Werner and Roger David Hersch and Vaclav Hlavac",
+    title = "Rendering Real-World Objects Using View Interpolation",
+    booktitle = "Proc.~Fifth Int. Conf. on Computer Vision",
+    pages = {957-962},
+    year = 1995}
+
+@inproceedings{west:sigg90,
+    author = "Lee Westover",
+    title = "Footprint Evaluation for Volume Rendering",
+    booktitle = "Proc.~SIGGRAPH 90",
+    year = 1990,
+    pages = {367-376} }
+
+@article{will:cvgip92,
+    author  = "Williams, D. J. and Shah, M.",
+    year = 1992,
+    title   = "A fast algorithm for active contours and curvature
+        information",
+    journal = "CVGIP: Image Understanding",
+    number  = 55,
+    volume  = 1,
+    pages   = "14--26"}
+
+@InProceedings{will:sigg83,
+       author =       "Lance Williams",
+       title =        "Pyramidal Parametrics",
+       year =         "1983",
+       booktitle =    "Proc.~SIGGRAPH 83",
+       pages =        "1--11",
+     }
+
+@book{wol:diw,
+    author = "George Wolberg",
+    title = "Digital Image Warping",
+    publisher = "IEEE Computer Society Press",
+    address = "Los Alamitos, CA",
+    year = 1990}
+
+
+@inproceedings{wood:sigg97,
+    author = "Daniel N. Wood and Adam Finkelstein and John F. Hughes and Craig E. Thayer and David H. Salesin",
+    title = "Multiperspective Panoramas for Cel Animation",
+    booktitle = "Proc.~SIGGRAPH 97",
+    year = 1997,
+    pages = {243-250} }
+
+@inproceedings{wood:sigg00,
+    author = "Daniel N. Wood and Daniel I. Azuma and Wyvern Aldinger and Brian Curless and Tom Duchamp and David H. Salesin and Werner Stuetzle",
+    title = "Surface {L}ight {F}ields for 3{D} {P}hotography",
+    booktitle = "Proc.~SIGGRAPH 2000",
+    year = 2000,
+    pages = {287-296} }
+
+@article{wood:oe80,
+  author =       "Robert J. Woodham",
+  title =        "Photometric method for determining surface orientation from multiple images",
+  journal =      "Optical Engineering",
+  volume =       "19",
+  number =       "1",
+  pages =        "139--144",
+  year =         "1980"}
+
+@inproceedings{yach:isrr86,
+    author = "Masahiko Yachida",
+    title = "3-D Data Acquisition by Multiple Views",
+    booktitle = "Proc.~Third Int. Symposium on Robotics Research,",
+    publisher = "MIT Press",
+    address = "Cambridge, MA",
+    year = 1986,
+    pages = {11-18} }
+
+@inproceedings{yaco:cvpr94,
+    author = "Yaser Yacoob and Larry Davis",
+    title = "Computing Spatio-Temporal Representations of Human Faces",
+    booktitle = "Proc.~Computer Vision and Pattern Recognition Conf.",
+    year = 1994,
+    pages = {70-75} }
+
+@article{zaka:cgf96,
+  author =       "Yaron Zakai and Ari Rappoport",
+  title =        "Three-Dimensional Modeling and Effects on Still Images",
+  journal =      "Computer Graphics Forum",
+  volume =       "15",
+  number =       "3",
+  pages =        "3--10",
+  year =         "1996"}
+
+
+@techreport{zitn:tr96,
+    author = "C. Lawrence Zitnick and Jon A. Webb",
+    title = "Multi-baseline Stereo Using Surface Extraction",
+    institution = "Carnegie Mellon University",
+    address = "Pittsburgh, PA",
+    number = "CMU-CS-96-196",
+    month = "November",
+    year = 1996}
+
+@article{zitn:pami00,
+    author = "C. Lawrence Zitnick and Takeo Kanade",
+    title = "A Cooperative Algorithm for Stereo Matching and Occlusion Detection",
+    journal = "IEEE Trans. on Pattern Analysis and Machine Intelligence",
+    volume = 22,
+    number = 7,
+    year = 2000}
+    
+ 
+@article{zhu:ijcv98,
+    author = "Song Chun Zhu and Ying Nian Wu and David Mumford",
+    title = "{FRAME}: {F}ilters, Random field And Maximum Entropy: --- Towards a Unified Theory for Texture Modeling",
+    journal = "Int. J. of Computer Vision",
+    volume = 27,
+    number = 2,
+    pages = {1-20},
+    year = 1998}
+
+
+@misc{tlp:film33,
+    author = "{Walt Disney Productions}",
+    title = "Three Little Pigs",
+    howpublished = "film",
+    year = 1933}
+
+@misc{fant:film33,
+    author = "{Walt Disney Productions}",
+    title = "Fantasia",
+    howpublished = "film",
+    year = 1940}
+
+@misc{alad:film95,
+    author = "{Walt Disney Productions}",
+    title = "Aladdin",
+    howpublished = "film",
+    year = 1992}
+
+@misc{pino:film40,
+    author = "{Walt Disney Productions}",
+    title = "Pinocchio",
+    howpublished = "film",
+    year = 1940}
+
+@misc{qtvr:prod95,
+    author = "{Apple Computer, Inc.}",
+    title = "{QuickTime VR, version 1.0}",
+    year = 1995}
+
+@misc{surr:prod97,
+    author = "{Black Diamond, Inc.}",
+    title = "{Surround Video, version 1.0}",
+    year = 1997}
+
+@misc{ipix:prod97,
+    author = "{Interactive Pictures Corporation, Inc.}",
+    title = "{IPIX, version 1.0}",
+    year = 1997}
+
+@misc{smoo:prod97,
+    author = "{Infinite Pictures, Inc.}",
+    title = "{SmoothMove, version 1.0}",
+    year = 1997}
+
+@misc{rs:prod97,
+    author = "{Live Picture, Inc.}",
+    title = "{RealSpace Viewer, version 2.0}",
+    year = 1997}
+
+@inproceedings{bake:iccv98,
+    author = "Simon Baker and Shree Nayar",
+    title = "A Theory of Catadioptric Image Formation",
+    booktitle = "Proc.~Sixth Int. Conf. on Computer Vision",
+    pages = {35-42},
+    year = 1998}
+
+@techreport{Nalwa:tr96,
+    author = "V.S. Nalwa",
+    title = "{A} True Omnidirectional Viewer",
+    institution = "Bell Labs",
+    address = "Holmodel, NJ",
+    month = "Feb",
+    year = 1996}
+
+@inproceedings{kang:iccv95,
+    author = "S.B. Kang and J. Webb and L. Zitnick and T. Kanade",
+    title = "A Multibaseline Stereo System with Active Illumination and Real-time Image Acquisition",
+    booktitle = "Proc.~Fifth Int. Conf. on Computer Vision",
+    pages = {88-93},
+    year = 1995}
+
+@article{krot:pami90,
+    author = "E. Krotkov and K. Henriksen and R. Kories",
+    title = "Stereo Ranging with Verging Cameras",
+    journal = "IEEE Trans. on Pattern Analysis and Machine Intelligence",
+    volume = 12,
+    number = 12,
+    pages = {1200-1205},
+    year = 1990} 

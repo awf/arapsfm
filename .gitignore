@@ -27,3 +27,8 @@
 *.exe
 *.out
 *.app
+
+# TeX
+*.synctex.gz
+*.blg
+

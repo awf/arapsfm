@@ -1,0 +1,53 @@
+\documentclass{acmsiggraph}
+\usepackage{times}
+\usepackage{amsmath,amssymb}
+\usepackage[margin=5mm,paperwidth=4.5in,paperheight=6in]{geometry}
+\include{macros}
+
+
+\begin{document}
+\onecolumn
+
+\title{\Large Deformable Mesh Animation from Single-View Video
+\\{\footnotesize \em Online Submission ID: 629}}
+
+\author{\normalsize Supplementary material: quick reference card for energy terms}
+\pdfauthor{Robert A. Smith}
+
+\maketitle
+\vspace{-8mm}
+\def\ED{D}
+\def\earap{E^\text{\sc{arap}}}
+\def\Estar{\cE^\ast}
+\def\earaptag{\hat{E}^\text{\sc{arap}}}
+\def\Rtag#1{R^{\text{#1}}}
+\def\cRtag#1{\cR_{\text{#1}}}
+\def\ic{{\ensuremath{\text{\sc ic}}}}
+\def\ict{{\ensuremath{\text{\sc ic},t}}}
+\def\ictall{{\ensuremath{\text{\sc ic},1..T}}}
+
+\begin{align*}
+&\E{point}^t(\cV_t) & = & \sum_{(i,_,\bc)\in\cC_t} || \bc - \bPi \bv_i^t ||^2
+\\
+&\E{sil}^t(\cV_t, \cW_t) & = & \sum_j || \bs_j^t - \bPi \bB(\bomega_j^t; \cV_t) ||^2
+\\
+&\E{nrm}^t(\cV_t, \cW_t) & = &\sum_j w_j^t(\bomega_j^t; \cV_t)\ || \bn_j^t - \bN(\bomega_j^t; \cV_t) ||^2
+\\
+&\E{sil-smooth}^t(\cW_t) & = &\sum_j d(\bomega_j^t, \bomega_{j+1}^t)
+\\
+&\E{motion}(\cV_{1..T}) & = &\sum_{t=2}^T \min_\alpha \earap(\cV_{t-1}, \cV_t; \alpha I_{3\times3}) 
+\\
+&\E{core-template}(\Vcore,\Vtemplate,\cRtag{core}) & = &\earaptag(\Vcore, \Vtemplate, \cRtag{core}; I_{3\times3})
+\\
+&\E{core-template-reg}(\cRtag{core}) & = &\sum_i \angle(\Rtag{core}_i)^2
+\\
+&\E{instance-core}(\Vcore,\cV_{1..T},\cG,\cQ) & = &\sum_{t=1}^T \earaptag(\Vcore,\cV_t, \cQ_t;\alpha^G_t R^G_t)
+\\
+&\E{instance-core-motion}(\cQ) & = &\sum_{t=2}^T \sum_{i=1}^N \angle( Q^t_i (Q^{t-1}_i)^\top ) ^2
+\\
+&\E{camera-R-motion}(\cG) &= &\sum_{t=2}^T \angle(R^G_t (R^G_{t-1})^\top)^2
+\\
+&\E{camera-scale-motion}(\cG) &=& \sum_{t=2}^T \left ( \log(\alpha^G_{t}) - \log(\alpha^G_{t-1}) \right )^2
+\end{align*}
+
+\end{document}
