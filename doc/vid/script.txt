@@ -1,0 +1,47 @@
+
+We describe a method for recovering the 3D shape of dynamic deforming objects in video, for example this stock footage of a dog on the beach.
+
+We have just one viewpoint, so this is a hard problem, but a solution would mean we could hope to recover 3D from any of the billions of hours of footage that are already out there.
+
+Our method begins from a template mesh which is adapted to the individual video.   The mesh doesn't have to be very accurate, as you can see here.
+
+
+
+The user segments the object from the background (we used Adobe's RotoBrush) and tracks some keypoints on the object.   
+
+Notice that for this dog, and for many other animals, you can get only a few reliable keypoints.
+
+Our algorithm then deforms the 3D template to fit the silhouette and point tracks, via a large energy minimization, giving the 3D shape you see here.  
+
+The shapes still have the somewhat blobby form of the template, but match the dog pretty accurately and capture the dynamic motion without oversmoothing.
+
+
+
+Two key innovations allow the energy minimization to find good solutions to this problem.   First, in addition to the 3D shape per frame, we parameterize a _Core_ shape which adapts the template to the specific sequence.  
+
+Here we can see the core shape evolving over the optimization iterations.
+
+
+Second, we allow the user to mark up regions on the template which have similar motion characteristics.   
+
+If we look back at the dog template, you can see that it is segmented into regions:
+
+All the legs are one colour, indicating that they share a rotation axis, 
+
+and the head is another colour indicating that its motion is largely rigid.   
+
+The paper has much more detail on this.
+
+
+
+Let's look at another example: a leaping Impala.
+Again we supply a template, and extract the silhouettes and point tracks.   In this case a reasonable model of the motion is extracted.   The rightmost column shows one of the key components of the minimization: estimation of the contour generator indicated by the red spheres.  
+
+Only the points visited by the contour generator get information from the image silhouettes, indicating how important it is to have good motion and structure priors for this problem.
+
+
+This fish is a relatively easy example, but is interesting because it shows that both smooth contours and creases are handled by our model.
+
+Finally we look at some alternatives.   This is the dog sequence, but without the motion markup on the template mesh.   The general ARAP, or "as rigid as possible"-prior is insufficient to give a good solution for this sequence.
+
+
