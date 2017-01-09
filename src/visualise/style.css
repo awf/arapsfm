@@ -1,0 +1,34 @@
+h1 {
+    font-family: monospace;
+}
+h2 {
+    font-family: monospace;
+}
+h3 {
+    font-family: monospace;
+}
+
+h1.subheading {
+    color:red;
+}
+
+.vis_info {
+    padding: 0 0 0 0;
+    border: 0px;
+    position: relative;
+    float: left;
+    display : block;
+    clear: both;
+    border-bottom: 2px solid black;
+}
+.vis_info div {
+    float: top;
+    padding: 0 10px 0 10px;
+    font-family: monospace;
+    border-bottom: 1px dotted black;
+}
+.vis_info img {
+    float: left;
+    max-width: 300px;
+}
+
