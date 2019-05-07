@@ -1,6 +1,6 @@
-### Deformable Mesh Animation from Single-View Video
-## Richard Stebbing, Aaron Hertzmann, Andrew Fitzgibbon
-## Submitted to SIGGRAPH 2012.
+## Deformable Mesh Animation from Single-View Video
+### Richard Stebbing, Aaron Hertzmann, Andrew Fitzgibbon
+#### Submitted to SIGGRAPH 2012.
 
 Paper and code for the above paper.  
 Find the paper in doc/arapsfm.pdf
